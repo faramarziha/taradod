@@ -1,0 +1,53 @@
+{% extends "core/base_management.html" %}
+{% block title %}مدیریت کاربران{% endblock %}
+{% block management_content %}
+<h2 style="text-align:right;">
+  <i class="fas fa-users-cog" style="margin-left:0.5rem;"></i>
+  مدیریت کاربران
+</h2>
+<a class="btn" href="{% url 'user_add' %}" style="margin-bottom:1.4rem;">
+  <i class="fas fa-user-plus" style="margin-left:0.5rem;"></i> افزودن کاربر جدید
+</a>
+<table class="management-table">
+  <thead>
+    <tr>
+      <th>ردیف</th>
+      <th>کد پرسنلی</th>
+      <th>نام و نام خانوادگی</th>
+      <th>وضعیت</th>
+      <th>ثبت چهره</th>
+      <th>عملیات</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for user in users %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ user.personnel_code }}</td>
+        <td>{{ user.get_full_name }}</td>
+        <td>
+          {% if user.is_active %}
+            <span class="alert-success" style="padding:0.15rem 0.4rem;font-size:0.95em;">فعال</span>
+          {% else %}
+            <span class="alert-error" style="padding:0.15rem 0.4rem;font-size:0.95em;">غیرفعال</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if user.face_encoding %}
+            <i class="fa fa-check-circle" style="color: var(--color-secondary);"></i>
+          {% else %}
+            <i class="fa fa-times-circle" style="color: var(--color-error);"></i>
+          {% endif %}
+        </td>
+        <td>
+          <a href="{% url 'user_update' user.pk %}" title="ویرایش"><i class="fas fa-edit"></i></a>
+          <a href="{% url 'register_face_page_for_user' user.pk %}" title="ثبت چهره"><i class="fas fa-camera"></i></a>
+          <a href="{% url 'user_delete' user.pk %}" title="حذف"><i class="fas fa-trash-alt"></i></a>
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="6">هیچ کاربری یافت نشد</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

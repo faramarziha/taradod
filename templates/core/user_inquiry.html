@@ -1,0 +1,24 @@
+{% extends "core/base.html" %}
+{% block title %}مشاهده تردد من{% endblock %}
+{% block content %}
+<div class="card" style="max-width:400px;margin:2.5rem auto 0 auto;">
+  <h2 style="color:var(--color-primary-dark);text-align:right;">
+    <i class="fas fa-search" style="margin-left:0.5rem;"></i> مشاهده تردد من
+  </h2>
+  <form method="post" autocomplete="off">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="error">{{ form.non_field_errors.0 }}</div>
+    {% endif %}
+    <div class="form-group">
+      {{ form.personnel_code.label_tag }}
+      {{ form.personnel_code }}
+    </div>
+    <div class="form-group">
+      {{ form.national_id.label_tag }}
+      {{ form.national_id }}
+    </div>
+    <button type="submit" class="btn"><i class="fas fa-search" style="margin-left:0.4rem;"></i> نمایش ترددها</button>
+  </form>
+</div>
+{% endblock %}

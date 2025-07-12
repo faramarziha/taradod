@@ -1,0 +1,21 @@
+{% extends "core/base_management.html" %}
+{% block title %}داشبورد مدیریت{% endblock %}
+{% block management_content %}
+<h2 style="text-align:right;">
+  <i class="fas fa-chart-bar" style="margin-left:0.5rem;"></i> داشبورد مدیریت
+</h2>
+<div class="dashboard-stats">
+  <div class="dashboard-card">
+    <h3>{{ total_users }}</h3>
+    کل کاربران
+  </div>
+  <div class="dashboard-card">
+    <h3>{{ today_logs }}</h3>
+    تردد امروز
+  </div>
+  <div class="dashboard-card">
+    <h3>{{ users_without_face }}</h3>
+    بدون ثبت چهره
+  </div>
+</div>
+{% endblock %}

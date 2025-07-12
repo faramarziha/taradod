@@ -1,0 +1,38 @@
+{% extends "core/base.html" %}
+{% load jformat static %}
+{% block title %}گزارش تردد من{% endblock %}
+{% block content %}
+<div class="card" style="max-width:600px;margin:2rem auto 1.3rem auto;">
+  <h2 style="color:var(--color-primary-dark);text-align:right;">
+    <i class="fa fa-list-alt" style="margin-left:0.5rem;"></i> گزارش ترددهای {{ user.get_full_name }}
+  </h2>
+  <div style="margin-bottom:1.1rem;color:var(--color-muted);font-size:1rem;">
+    کد پرسنلی: {{ user.personnel_code }}
+  </div>
+  {% if logs %}
+    <table class="management-table" style="margin-top:0;overflow-x:auto;">
+      <thead>
+        <tr>
+          <th>تاریخ</th>
+          <th>ساعت</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+          <tr>
+            <td>{{ log.timestamp|jformat:"%Y/%m/%d" }}</td>
+            <td>{{ log.timestamp|time:"H:i" }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="alert-error" style="text-align:right;margin:2.2rem 0;">
+      هیچ ترددی برای نمایش وجود ندارد.
+    </div>
+  {% endif %}
+  <div style="margin-top:2rem;">
+    <a class="btn" href="{% url 'user_inquiry' %}"><i class="fas fa-chevron-right" style="margin-left:0.4rem;"></i> بازگشت</a>
+  </div>
+</div>
+{% endblock %}

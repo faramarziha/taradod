@@ -1,0 +1,107 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}تأیید چهره مدیر{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/device.css' %}">
+{% endblock %}
+{% block extra_js %}
+<script>
+    const overlay = document.getElementById('device-overlay');
+    const video = document.getElementById('video'),
+        msgEl = document.getElementById('verifyResult'),
+        btn   = document.getElementById('verifyBtn');
+
+
+    if (overlay) {
+  setTimeout(() => {
+    overlay.style.opacity = '0';
+    setTimeout(() => overlay.style.display = 'none', 500);
+  }, 2000);
+}
+  function getCsrf(){
+    return document.cookie.split(';')
+      .map(c=>c.trim())
+      .find(c=>c.startsWith('csrftoken='))
+      .split('=')[1];
+  }
+
+  async function setupCamera(){
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+      video.srcObject = stream;
+      msgEl.textContent = '';
+    } catch(e) {
+      console.error('Camera error:', e);
+      msgEl.textContent = 'اجازه دوربین رد شد';
+      msgEl.className = 'error';
+      btn.disabled = true;
+    }
+  }
+
+  async function verifyOnce(){
+    if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+      msgEl.textContent = "لطفاً صبر کنید تا تصویر دوربین آماده شود";
+      btn.disabled = false;
+      return;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    const dataUrl = canvas.toDataURL('image/png');
+
+
+    msgEl.textContent = 'لطفاً صبر کنید...';
+    msgEl.className = '';
+
+    try {
+      const res = await fetch('{% url "api_management_verify_face" %}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCsrf()
+        },
+        body: JSON.stringify({ image: dataUrl })
+      });
+      const j = await res.json();
+      if(j.success){
+        msgEl.textContent = '✅ تأیید چهره موفق!';
+        msgEl.className = 'success';
+        setTimeout(()=> window.location.href = '{% url "management_dashboard" %}', 1000);
+      } else {
+        msgEl.textContent = '❌ ' + (j.error || 'شناسایی ناموفق');
+        msgEl.className = 'error';
+        btn.disabled = false;
+      }
+    } catch(e) {
+      console.error('Fetch error:', e);
+      msgEl.textContent = '❌ خطا در ارتباط با سرور';
+      msgEl.className = 'error';
+      btn.disabled = false;
+    }
+  }
+
+  setupCamera().then(() => {
+    video.onloadedmetadata = () => {
+      btn.onclick = () => { btn.disabled = true; verifyOnce(); };
+    };
+  });
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="device-page card">
+  <h2 style="text-align:right;">
+    <i class="fas fa-user-check" style="margin-left:0.5rem;"></i> تأیید چهره مدیر
+  </h2>
+  <div class="device-video-area">
+    <video id="video" autoplay muted playsinline></video>
+    <canvas id="canvas" style="display:none"></canvas>
+    <div id="device-overlay">
+      <span>صورت خود را در مرکز کادر قرار دهید و دکمه تأیید را بزنید</span>
+    </div>
+  </div>
+  <button class="btn" id="verifyBtn"><i class="fa fa-user-check" style="margin-left:0.4rem;"></i> تأیید چهره</button>
+  <div id="verifyResult" class="device-message"></div>
+</div>
+{% endblock %}

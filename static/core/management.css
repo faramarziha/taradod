@@ -1,0 +1,176 @@
+.management-layout {
+  display: flex;
+  flex-direction: row-reverse;
+  gap: 2rem;
+  margin: 0;
+  direction: rtl;
+}
+.management-sidebar {
+  width: 220px;
+  min-width: 180px;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 2.3rem 1.1rem 1.4rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-height: 88vh;
+  margin-right: 1.1rem;
+  margin-left: 0;
+}
+.management-sidebar .sidebar-logo {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+  border-radius: 1rem;
+  background: #fff;
+  margin: 0 auto 1.7rem auto;
+  display: block;
+}
+.management-sidebar .sidebar-title {
+  text-align: center;
+  font-weight: 600;
+  color: var(--color-primary-dark);
+  font-size: 1.2rem;
+  margin-bottom: 1.7rem;
+}
+.management-sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+.management-sidebar nav a {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-size: 1.08rem;
+  font-weight: 500;
+  padding: 0.4rem 0.7rem;
+  border-radius: 0.6rem;
+  transition: background 0.2s, color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.management-sidebar nav a.active,
+.management-sidebar nav a:hover {
+  background: var(--color-primary);
+  color: #fff;
+}
+.management-content {
+  flex: 1;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 2.2rem 1.6rem;
+  min-width: 0;
+  min-height: 82vh;
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+  direction: rtl;
+}
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2.4rem;
+}
+.dashboard-card {
+  background: var(--color-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.3rem 1.1rem;
+  text-align: center;
+  border: 1px solid var(--color-border);
+  font-size: 1.14rem;
+}
+.dashboard-card h3 {
+  font-size: 1.4rem;
+  margin-bottom: 0.7rem;
+  color: var(--color-primary-dark);
+}
+.management-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 2rem;
+  direction: rtl;
+}
+.management-table th, .management-table td {
+  padding: 0.9rem 0.6rem;
+  border-bottom: 1px solid var(--color-border);
+  text-align: right;
+  font-size: 1rem;
+}
+.management-table th {
+  background: var(--color-bg);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+.management-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.management-table tr:hover {
+  background: #e3f2fd44;
+}
+@media (max-width: 900px) {
+  .management-layout {
+    flex-direction: column;
+    gap: 0;
+  }
+  .management-sidebar {
+    margin-right: 0;
+    margin-bottom: 1.2rem;
+    min-height: unset;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 1.1rem 0.3rem;
+  }
+  .management-sidebar .sidebar-logo {
+    margin: 0 1.4rem 0 0;
+  }
+}
+@media (max-width: 600px) {
+  .management-content {
+    padding: 1.2rem 0.4rem;
+  }
+  .dashboard-stats {
+    grid-template-columns: 1fr;
+  }
+  .management-table th, .management-table td {
+    padding: 0.6rem 0.3rem;
+    font-size: 0.95rem;
+  }
+}
+@media (max-width: 900px) {
+  .management-layout { flex-direction: column; gap: 0; }
+  .management-sidebar {
+    margin-right: 0 !important;
+    margin-bottom: 1.2rem !important;
+    min-width: unset !important;
+    width: 99vw !important;
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 1.1rem 0.3rem !important;
+    border-radius: 0.8rem !important;
+  }
+  .management-sidebar .sidebar-logo { margin: 0 1.4rem 0 0 !important; }
+}
+@media (max-width: 600px) {
+  .management-content {
+    padding: 1.2rem 0.3rem !important;
+    min-width: unset !important;
+  }
+  .dashboard-stats {
+    grid-template-columns: 1fr !important;
+  }
+  .management-table th, .management-table td {
+    padding: 0.6rem 0.3rem !important;
+    font-size: 0.94rem !important;
+  }
+}
+

@@ -1,0 +1,84 @@
+{% extends "core/base_management.html" %}
+{% load static %}
+{% block title %}ثبت چهره برای کاربر{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/device.css' %}">
+{% endblock %}
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  const btn = document.getElementById('captureBtn');
+  const resultDiv = document.getElementById('captureResult');
+
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+      .then(stream => { video.srcObject = stream; })
+      .catch(() => { resultDiv.textContent = "دسترسی به دوربین ممکن نشد."; });
+  } else {
+    resultDiv.textContent = "دوربین توسط مرورگر پشتیبانی نمی‌شود.";
+  }
+
+  btn.onclick = () => {
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg');
+      fetch("{% url 'register_face_api' user_to_register.pk %}", {
+        method: "POST",
+        headers: { "X-CSRFToken": getCsrfToken() },
+        body: new URLSearchParams({ image: dataUrl })
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) {
+          resultDiv.textContent = "چهره کاربر با موفقیت ثبت شد.";
+        } else {
+          resultDiv.textContent = data.msg || "ثبت چهره ناموفق بود.";
+        }
+      }).catch(() => {
+        resultDiv.textContent = "ارتباط با سرور برقرار نشد.";
+      });
+    }
+  };
+
+  function getCsrfToken() {
+    let value = "; " + document.cookie;
+    let parts = value.split("; csrftoken=");
+    if (parts.length === 2) return parts.pop().split(";").shift();
+    return '';
+  }
+});
+</script>
+{% endblock %}
+{% block management_content %}
+<div class="device-page card">
+  <h2 style="text-align:right;">
+    <i class="fas fa-camera" style="margin-left:0.5rem;"></i> ثبت چهره برای {{ user_to_register.get_full_name }}
+  </h2>
+  <div style="margin-bottom:0.9rem;">
+    کد پرسنلی: <b>{{ user_to_register.personnel_code }}</b> |
+    کد ملی: <b>{{ user_to_register.national_id }}</b>
+  </div>
+  <div class="device-video-area">
+    <video id="video" autoplay muted playsinline></video>
+    <canvas id="canvas" style="display:none"></canvas>
+    <div id="device-overlay">
+      <span>صورت کاربر باید کامل در کادر باشد</span>
+    </div>
+  </div>
+  <button class="btn" id="captureBtn"><i class="fa fa-camera" style="margin-left:0.4rem;"></i> ثبت چهره</button>
+  <div id="captureResult" class="device-message"></div>
+  <div class="card" style="margin-top:1.3rem;">
+    <b>راهنمای ثبت چهره:</b>
+    <ul>
+      <li>نور کافی و یکنواخت</li>
+      <li>بدون عینک، کلاه، ماسک</li>
+      <li>صورت کاملاً در کادر باشد</li>
+      <li>پس‌زمینه ساده باشد</li>
+    </ul>
+  </div>
+</div>
+{% endblock %}

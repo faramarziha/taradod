@@ -1,0 +1,23 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/management.css' %}">
+{% endblock %}
+{% block content %}
+<div class="management-layout">
+  <aside class="management-sidebar">
+    <div class="sidebar-title">پنل مدیریت</div>
+    <nav>
+      <a href="{% url 'management_dashboard' %}" class="{% if request.resolver_match.url_name == 'management_dashboard' %}active{% endif %}">
+        <i class="fas fa-chart-pie"></i> داشبورد
+      </a>
+      <a href="{% url 'management_users' %}" class="{% if request.resolver_match.url_name == 'management_users' %}active{% endif %}">
+        <i class="fas fa-users"></i> کاربران
+      </a>
+    </nav>
+  </aside>
+  <section class="management-content">
+    {% block management_content %}{% endblock %}
+  </section>
+</div>
+{% endblock %}

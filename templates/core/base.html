@@ -1,0 +1,36 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}سامانه تردد{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'core/global.css' %}" />
+  <link rel="stylesheet" href="{% static 'fonts/vazir.ttf' %}" as="font" type="font/ttf" crossorigin />
+  <link rel="shortcut icon" href="{% static 'core/logo.png' %}">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <img src="{% static 'core/logo.png' %}" alt="لوگو" class="site-logo" />
+      <span class="site-title">سامانه تردد هوشمند</span>
+      {% if user.is_authenticated %}
+        <nav>
+          <a href="{% url 'home' %}"><i class="fas fa-home"></i> صفحه اصلی</a>
+          <a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> خروج</a>
+        </nav>
+      {% endif %}
+    </div>
+  </header>
+  <main id="main-content">
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="site-footer">
+  </footer>
+  <script src="{% static 'core/global.js' %}" defer></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>
