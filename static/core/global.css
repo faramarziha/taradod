@@ -193,6 +193,18 @@ label {
   text-align: center;
 }
 
+/* centered card layouts used on several pages */
+.center-card {
+  max-width: 450px;
+  margin: 3rem auto 1rem auto;
+}
+
+/* enable horizontal scrolling for wide tables on small screens */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
 @media (max-width: 700px) {
   .header-inner,
   #main-content {

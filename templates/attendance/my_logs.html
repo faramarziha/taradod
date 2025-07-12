@@ -2,7 +2,7 @@
 {% load jformat static %}
 {% block title %}گزارش تردد من{% endblock %}
 {% block content %}
-<div class="card" style="max-width:600px;margin:2rem auto 1.3rem auto;">
+<div class="card center-card" style="margin-top:2rem;">
   <h2 style="color:var(--color-primary-dark);text-align:right;">
     <i class="fa fa-list-alt" style="margin-left:0.5rem;"></i> گزارش ترددهای {{ user.get_full_name }}
   </h2>
@@ -10,7 +10,8 @@
     کد پرسنلی: {{ user.personnel_code }}
   </div>
   {% if logs %}
-    <table class="management-table" style="margin-top:0;overflow-x:auto;">
+    <div class="table-responsive" style="margin-top:0;">
+      <table class="management-table">
       <thead>
         <tr>
           <th>تاریخ</th>
@@ -25,7 +26,8 @@
           </tr>
         {% endfor %}
       </tbody>
-    </table>
+      </table>
+    </div>
   {% else %}
     <div class="alert-error" style="text-align:right;margin:2.2rem 0;">
       هیچ ترددی برای نمایش وجود ندارد.
