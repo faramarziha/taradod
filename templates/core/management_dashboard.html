@@ -18,4 +18,28 @@
     بدون ثبت چهره
   </div>
 </div>
+<div style="margin-top:2rem;">
+  <canvas id="logsChart" height="120"></canvas>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const logLabels = {{ date_range_json|safe }};
+const logData = {{ daily_logs_json|safe }};
+new Chart(document.getElementById('logsChart').getContext('2d'), {
+  type: 'line',
+  data: {
+    labels: logLabels,
+    datasets: [{
+      label: 'تعداد تردد',
+      data: logData,
+      borderColor: '#3e95cd',
+      fill: false
+    }]
+  },
+  options: {scales: {y: {beginAtZero:true}}}
+});
+</script>
 {% endblock %}
