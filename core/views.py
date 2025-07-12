@@ -214,6 +214,29 @@ def my_logs(request):
     return render(request, "attendance/my_logs.html", {"user": u, "logs": logs})
 
 
+@login_required
+def export_my_logs_csv(request):
+    """Export current user's logs stored in session as CSV"""
+    uid = request.session.get("inquiry_user_id")
+    if not uid:
+        return redirect("user_inquiry")
+    u = get_object_or_404(User, id=uid)
+    logs = AttendanceLog.objects.filter(user=u).order_by("-timestamp")
+    import csv
+    from django.http import HttpResponse
+    import jdatetime
+
+    response = HttpResponse(content_type='text/csv')
+    filename = f"{u.personnel_code}_logs.csv"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    writer = csv.writer(response)
+    writer.writerow(['تاریخ', 'ساعت'])
+    for log in logs:
+        jd = jdatetime.datetime.fromgregorian(datetime=log.timestamp)
+        writer.writerow([jd.strftime('%Y/%m/%d'), jd.strftime('%H:%M:%S')])
+    return response
+
+
 # —————————————————————————
 # پنل مدیریت کاربران
 # —————————————————————————
@@ -367,13 +390,18 @@ def management_dashboard(request):
         logs = AttendanceLog.objects.filter(timestamp__date=date).count()
         daily_logs.append(logs)
 
+    # prepare JSON for chart rendering
+    import json
+    labels_json = json.dumps([d.strftime('%Y-%m-%d') for d in date_range])
+    logs_json = json.dumps(daily_logs)
+
     context = {
         'active_tab': 'dashboard',
         'total_users': total_users,
         'today_logs': today_logs,
         'users_without_face': users_without_face,
-        'date_range': [d.strftime("%Y-%m-%d") for d in date_range],
-        'daily_logs': daily_logs
+        'date_range_json': labels_json,
+        'daily_logs_json': logs_json,
     }
     return render(request, 'core/management_dashboard.html', context)
 
@@ -386,6 +414,12 @@ def user_reports(request):
     active_users = User.objects.filter(is_active=True).count()
     inactive_users = User.objects.filter(is_active=False).count()
     users_with_face = User.objects.filter(face_encoding__isnull=False).count()
+    total_users = User.objects.count()
+    users_without_face = total_users - users_with_face
+
+    import json
+    status_data_json = json.dumps([active_users, inactive_users])
+    face_data_json = json.dumps([users_with_face, users_without_face])
 
     # آخرین ترددها
     latest_logs = AttendanceLog.objects.select_related('user').order_by('-timestamp')[:10]
@@ -395,9 +429,36 @@ def user_reports(request):
         'active_users': active_users,
         'inactive_users': inactive_users,
         'users_with_face': users_with_face,
-        'latest_logs': latest_logs
+        'users_without_face': users_without_face,
+        'latest_logs': latest_logs,
+        'status_data_json': status_data_json,
+        'face_data_json': face_data_json,
     }
     return render(request, 'core/user_reports.html', context)
+
+
+@login_required
+@staff_required
+def export_logs_csv(request):
+    """Download all attendance logs as CSV for admins"""
+    logs = AttendanceLog.objects.select_related('user').order_by('-timestamp')
+    import csv
+    from django.http import HttpResponse
+    import jdatetime
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="attendance_logs.csv"'
+    writer = csv.writer(response)
+    writer.writerow(['کاربر', 'کد پرسنلی', 'تاریخ', 'ساعت'])
+    for log in logs:
+        jd = jdatetime.datetime.fromgregorian(datetime=log.timestamp)
+        writer.writerow([
+            log.user.get_full_name(),
+            log.user.personnel_code,
+            jd.strftime('%Y/%m/%d'),
+            jd.strftime('%H:%M:%S'),
+        ])
+    return response
 
 
 def custom_logout(request):

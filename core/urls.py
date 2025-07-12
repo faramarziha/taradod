@@ -11,6 +11,8 @@ urlpatterns = [
     path("device/login/",     views.DeviceLoginView.as_view(),     name="device_login"),
     path("logout/",           LogoutView.as_view(next_page="home"), name="logout"),
     path('management/dashboard/', views.management_dashboard, name='management_dashboard'),
+    path('management/reports/', views.user_reports, name='management_reports'),
+    path('management/logs/export/', views.export_logs_csv, name='export_logs_csv'),
 
     # مرحلهٔ دوم: ثبت یا تأیید چهرهٔ مدیر برای فعال‌سازی کیوسک
     path("device/face-check/",      views.device_face_check,              name="device_face_check"),
@@ -25,6 +27,7 @@ urlpatterns = [
     # —————— کاربر عادی ——————
     path("user/inquiry/",           views.user_inquiry,                   name="user_inquiry"),
     path("user/logs/",              views.my_logs,                        name="my_logs"),
+    path("user/logs/export/",      views.export_my_logs_csv,             name="export_my_logs_csv"),
 
     # —————— پنل مدیریت ——————
     # تأیید چهرهٔ مدیر قبل از ورود به پنل
