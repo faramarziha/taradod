@@ -1,0 +1,16 @@
+{% extends "core/base.html" %}
+{% load jformat %}
+{% block title %}تأیید مرخصی{% endblock %}
+{% block content %}
+<div class="card page page-md">
+  <h2 class="page-title">تأیید مرخصی</h2>
+  <p>از تاریخ {{ form.cleaned_data.start_date|jformat:"%Y/%m/%d" }} به مدت {{ form.cleaned_data.duration }} روز.</p>
+  <p>تاریخ پایان: {{ end_date|jformat:"%Y/%m/%d" }}</p>
+  <form method="post">
+    {% csrf_token %}
+    {% for f in form.hidden_fields %}{{ f }}{% endfor %}
+    <input type="hidden" name="confirm" value="1">
+    <button class="btn" type="submit">ثبت</button>
+  </form>
+</div>
+{% endblock %}

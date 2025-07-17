@@ -1,0 +1,29 @@
+{% extends "core/base.html" %}
+{% block title %}درخواست ویرایش تردد{% endblock %}
+{% block content %}
+<div class="card page page-md">
+  <h2 class="page-title">درخواست ویرایش تردد برای {{ user.get_full_name }}</h2>
+  <form method="post">
+    {% csrf_token %}
+    <div class="form-group">
+      {{ form.date.label_tag }}<br>
+      {{ form.date }}
+    </div>
+    <div class="form-group">
+      {{ form.time.label_tag }}<br>
+      {{ form.time }}
+    </div>
+    <div class="form-group">
+      {{ form.log_type.label_tag }}<br>
+      {{ form.log_type }}
+    </div>
+    <div class="form-group">
+      {{ form.note.label_tag }}<br>
+      {{ form.note }}
+    </div>
+    <button type="submit" class="btn"><i class="fas fa-check" style="margin-left:0.4rem;"></i> ثبت درخواست</button>
+    <a class="btn" href="{% url 'my_logs' %}"><i class="fas fa-chevron-right" style="margin-left:0.4rem;"></i> بازگشت</a>
+  </form>
+</div>
+{% endblock %}
+{% block extra_js %}{{ form.media }}{% endblock %}

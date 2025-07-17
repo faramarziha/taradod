@@ -1,0 +1,57 @@
+{% extends "core/base.html" %}
+{% load jformat %}
+{% block title %}درخواست‌های ویرایش{% endblock %}
+{% block content %}
+<div class="card page page-md">
+  <h2 class="page-title">
+    <i class="fas fa-edit" style="margin-left:0.5rem;"></i>
+    درخواست‌های ویرایش {{ user.get_full_name }}
+  </h2>
+  <div class="profile-details" style="margin-top:0;">
+    کد پرسنلی: {{ user.personnel_code }}
+  </div>
+  {% if requests %}
+  <div class="table-responsive">
+  <table class="management-table">
+    <thead>
+      <tr>
+        <th>زمان</th>
+        <th>نوع</th>
+        <th>توضیح</th>
+        <th>وضعیت</th>
+        <th>توضیح مدیر</th>
+        <th>لغو</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for r in requests %}
+      <tr>
+        <td>{{ r.timestamp|jformat:"%Y/%m/%d %H:%M" }}</td>
+        <td>{% if r.log_type == 'in' %}ورود{% else %}خروج{% endif %}</td>
+        <td>{{ r.note|default:"-" }}</td>
+        <td>
+          {% if r.status == 'pending' %}در انتظار{% elif r.status == 'approved' %}تأیید شده{% elif r.status == 'cancelled' %}لغو شده{% else %}رد شده{% endif %}
+        </td>
+        <td>{{ r.manager_note|default:"-" }}</td>
+        <td>
+          {% if r.status == 'pending' %}
+          <form method="post" action="{% url 'cancel_edit_request' r.id %}">
+            {% csrf_token %}
+            <button class="btn btn-danger" style="font-size:0.8rem;">لغو</button>
+          </form>
+          {% else %}-{% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <div class="alert-error" style="text-align:right;margin:2rem 0;">درخواستی ثبت نشده است.</div>
+  {% endif %}
+  <div class="profile-actions">
+    <a class="btn" href="{% url 'edit_request' %}" style="margin-left:0.5rem;"><i class="fa fa-plus" style="margin-left:0.4rem;"></i> درخواست جدید</a>
+    <a class="btn" href="{% url 'user_profile' %}"><i class="fas fa-chevron-right" style="margin-left:0.4rem;"></i> بازگشت</a>
+  </div>
+</div>
+{% endblock %}

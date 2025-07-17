@@ -1,0 +1,50 @@
+{% extends "core/base_management.html" %}
+{% load jformat %}
+{% block title %}درخواست‌های ویرایش{% endblock %}
+{% block management_content %}
+<h2 class="page-title">
+  <i class="fas fa-edit"></i>
+  درخواست‌های ویرایش
+</h2>
+<table class="management-table">
+  <thead>
+    <tr>
+      <th>کاربر</th>
+      <th>زمان</th>
+      <th>نوع</th>
+      <th>توضیح</th>
+      <th>وضعیت</th>
+      <th>اقدام / توضیح مدیر</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in requests %}
+    <tr>
+      <td>{{ r.user.get_full_name }} - {{ r.user.personnel_code }}</td>
+      <td>{{ r.timestamp|jformat:"%Y/%m/%d %H:%M" }}</td>
+      <td>{% if r.log_type == 'in' %}ورود{% else %}خروج{% endif %}</td>
+      <td>{{ r.note|default:"-" }}</td>
+      <td>
+        {% if r.status == 'pending' %}در انتظار{% elif r.status == 'approved' %}تأیید شده{% elif r.status == 'cancelled' %}لغو شده{% else %}رد شده{% endif %}
+      </td>
+      <td>
+        {% if r.status == 'pending' %}
+        <form method="post" style="display:flex;gap:0.3rem;flex-wrap:wrap;">
+          {% csrf_token %}
+          <input type="hidden" name="req_id" value="{{ r.id }}">
+          <input type="text" name="manager_note" placeholder="توضیح" style="flex:1;min-width:80px;">
+          <button name="action" value="approve" class="btn" style="font-size:0.9rem;">تأیید</button>
+          <button name="action" value="reject" class="btn btn-danger" style="font-size:0.9rem;">رد</button>
+          <button name="action" value="cancel" class="btn" style="font-size:0.9rem;background:var(--color-muted);">لغو</button>
+        </form>
+        {% else %}
+          {{ r.manager_note|default:"-" }}
+        {% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="6">درخواستی وجود ندارد.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block title %}ورود دستگاه تردد{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/login.css' %}">
+{% endblock %}
+{% block content %}
+<div class="login-container card" style="margin-top:4rem;">
+  <h2 style="text-align:right;">
+    <i class="fas fa-door-open" style="margin-left:0.4rem;"></i>
+    ورود دستگاه تردد
+  </h2>
+  <form method="post" autocomplete="off">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="error">{{ form.non_field_errors.0 }}</div>
+    {% endif %}
+    <div class="form-group">
+      <label for="id_username"><i class="fa fa-user" style="margin-left:0.3rem;"></i> نام کاربری</label>
+      {{ form.username }}
+    </div>
+    <div class="form-group">
+      <label for="id_password"><i class="fa fa-lock" style="margin-left:0.3rem;"></i> رمز عبور</label>
+      {{ form.password }}
+    </div>
+    <button type="submit" class="btn" style="width:100%;">
+      <i class="fa fa-arrow-right" style="margin-left:0.3rem;"></i> ورود به سیستم
+    </button>
+    <div class="login-links" style="margin-top:1.2rem;">
+      <a href="{% url 'home' %}" style="color:var(--color-muted);">
+        <i class="fa fa-arrow-left" style="margin-left:0.3rem;"></i> بازگشت به صفحه اصلی
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

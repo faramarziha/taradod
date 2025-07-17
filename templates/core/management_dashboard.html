@@ -1,0 +1,113 @@
+{% extends "core/base_management.html" %}
+{% block title %}داشبورد مدیریت{% endblock %}
+{% block management_content %}
+<h2 class="page-title">
+  <i class="fas fa-chart-bar"></i> داشبورد مدیریت
+</h2>
+<div class="dashboard-stats">
+  <div class="dashboard-card">
+    <h3>{{ total_users }}</h3>
+    کل کاربران
+  </div>
+  <div class="dashboard-card">
+    <h3>{{ today_logs }}</h3>
+    تردد امروز
+  </div>
+  <div class="dashboard-card">
+    <h3>{{ users_without_face }}</h3>
+    بدون ثبت چهره
+  </div>
+  <div class="dashboard-card">
+    <h3>{{ present_count }}</h3>
+    حاضر امروز
+  </div>
+  <div class="dashboard-card">
+    <h3>{{ absent_count }}</h3>
+    غایب امروز
+  </div>
+  <div class="dashboard-card">
+    <h3>{{ leave_count }}</h3>
+    در مرخصی
+  </div>
+  <div class="dashboard-card">
+    <h3>{{ total_hours }}</h3>
+    مجموع ساعات
+  </div>
+</div>
+
+<h3 style="margin-top:1.5rem;">هشدارها</h3>
+<ul class="alerts-list">
+  {% for u in tardy_users %}
+    <li>{{ u.get_full_name }} - {{ u.personnel_code }} دیرکرد در ورود</li>
+  {% endfor %}
+  {% if pending_edits %}
+    <li>{{ pending_edits }} درخواست ویرایش تردد در انتظار</li>
+  {% endif %}
+  {% if pending_leaves %}
+    <li>{{ pending_leaves }} درخواست مرخصی در انتظار</li>
+  {% endif %}
+  {% if suspicious_today %}
+    <li>{{ suspicious_today }} مورد عدم تطابق چهره</li>
+  {% endif %}
+  {% if not tardy_users and not pending_edits and not pending_leaves and not suspicious_today %}
+    <li>هشداری وجود ندارد.</li>
+  {% endif %}
+</ul>
+
+<div class="employee-lists">
+  <div>
+    <h4>حاضرین امروز</h4>
+    <ul>
+      {% for u in present_users %}
+        <li>{{ u.get_full_name }} - {{ u.personnel_code }}</li>
+      {% empty %}
+        <li>موردی ثبت نشده است</li>
+      {% endfor %}
+    </ul>
+  </div>
+  <div>
+    <h4>غایبین امروز</h4>
+    <ul>
+      {% for u in absent_users %}
+        <li>{{ u.get_full_name }} - {{ u.personnel_code }}</li>
+      {% empty %}
+        <li>همه حاضرند</li>
+      {% endfor %}
+    </ul>
+  </div>
+  <div>
+    <h4>در مرخصی</h4>
+    <ul>
+      {% for u in leave_users %}
+        <li>{{ u.get_full_name }} - {{ u.personnel_code }}</li>
+      {% empty %}
+        <li>موردی نیست</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+<div style="margin-top:2rem;">
+  <canvas id="logsChart" height="120"></canvas>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const logLabels = {{ date_range_json|safe }};
+const logData = {{ daily_logs_json|safe }};
+new Chart(document.getElementById('logsChart').getContext('2d'), {
+  type: 'line',
+  data: {
+    labels: logLabels,
+    datasets: [{
+      label: 'تعداد تردد',
+      data: logData,
+      borderColor: '#3e95cd',
+      fill: false
+    }]
+  },
+  options: {scales: {y: {beginAtZero:true}}}
+});
+</script>
+{% endblock %}

@@ -1,0 +1,75 @@
+.login-container {
+  max-width: 400px;
+  margin: 3.5rem auto 2rem auto;
+  padding: 2.2rem 1.5rem;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+  align-items: stretch;
+  direction: rtl;
+}
+.login-container h2 {
+  color: var(--color-primary-dark);
+  margin-bottom: 0.9rem;
+  font-size: 1.45rem;
+  text-align: right;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  justify-content: flex-start;
+}
+.login-container .form-group {
+  margin-bottom: 1.1rem;
+}
+.login-container label {
+  font-size: 1rem;
+  text-align: right;
+  display: block;
+  margin-bottom: 0.2rem;
+}
+.login-container input[type="text"],
+.login-container input[type="password"] {
+  width: 100%;
+  text-align: right;
+}
+.login-container .btn {
+  width: 100%;
+  font-size: 1.09rem;
+  padding: 0.6rem 0;
+  margin-top: 0.6rem;
+  box-shadow: none;
+}
+.login-links {
+  margin-top: 1.3rem;
+  text-align: right;
+}
+.login-links a {
+  color: var(--color-muted);
+  font-size: 0.97rem;
+  transition: color 0.2s;
+  text-decoration: none;
+  padding: 0.2rem 0.6rem;
+}
+.login-links a:hover {
+  color: var(--color-primary);
+}
+.error, .alert-error {
+  margin: 0.6rem 0;
+  text-align: right;
+  font-size: 1.03rem;
+}
+@media (max-width: 500px) {
+  .login-container {
+    max-width: 97vw !important;
+    padding: 1.2rem 0.3rem !important;
+    border-radius: 0.7rem !important;
+  }
+  .login-container .btn {
+    font-size: .99rem !important;
+    padding: 0.5rem 0.2rem !important;
+  }
+}
+

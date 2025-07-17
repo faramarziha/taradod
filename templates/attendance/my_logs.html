@@ -1,0 +1,36 @@
+{% extends "core/base.html" %}
+{% load jformat %}
+{% block title %}گزارش تردد من{% endblock %}
+{% block content %}
+<div class="card page page-md">
+  <h2 class="page-title"><i class="fa fa-list-alt"></i> گزارش ترددهای {{ user.get_full_name }}</h2>
+  <div class="profile-details" style="margin-top:0;">کد پرسنلی: {{ user.personnel_code }}</div>
+  <div class="profile-actions" style="margin-bottom:1rem;">
+    <a class="btn" href="?month={{ prev_month }}"><i class="fas fa-chevron-right"></i> ماه قبل</a>
+    <span style="margin:0 1rem;">{{ jyear }}/{{ jmonth }}</span>
+    <a class="btn" href="?month={{ next_month }}">ماه بعد <i class="fas fa-chevron-left"></i></a>
+  </div>
+  <div class="table-responsive">
+    <table class="management-table">
+      <thead>
+        <tr><th>تاریخ</th><th>ورود</th><th>خروج</th></tr>
+      </thead>
+      <tbody>
+        {% for day, info in daily_logs.items %}
+        <tr>
+          <td>{{ jyear }}/{{ jmonth|stringformat:"02d" }}/{{ day|stringformat:"02d" }}</td>
+          <td>{% if info.in %}{{ info.in|time:"H:i" }}{% else %}-{% endif %}</td>
+          <td>{% if info.out %}{{ info.out|time:"H:i" }}{% else %}-{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="profile-actions">
+    <a class="btn" href="{% url 'export_my_logs_csv' %}" style="margin-left:0.5rem;"><i class="fa fa-download" style="margin-left:0.4rem;"></i> دریافت CSV</a>
+    <a class="btn" href="{% url 'edit_request' %}" style="margin-left:0.5rem;"><i class="fa fa-edit" style="margin-left:0.4rem;"></i> درخواست ویرایش</a>
+    <a class="btn" href="{% url 'user_edit_requests' %}" style="margin-left:0.5rem;"><i class="fa fa-list" style="margin-left:0.4rem;"></i> درخواست‌های ویرایش</a>
+    <a class="btn" href="{% url 'user_inquiry' %}"><i class="fas fa-chevron-right" style="margin-left:0.4rem;"></i> بازگشت</a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,7 @@
+Django>=4.2,<5.0
+face_recognition
+Pillow
+opencv-python
+jdatetime
+numpy
+django_jalali

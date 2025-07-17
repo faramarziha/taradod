@@ -1,0 +1,84 @@
+{% extends "core/base_management.html" %}
+{% load jformat %}
+{% block title %}گزارش کاربران{% endblock %}
+{% block management_content %}
+<h2 style="text-align:right;">
+  <i class="fas fa-file-alt" style="margin-left:0.5rem;"></i> گزارش کاربران
+</h2>
+<div class="dashboard-stats">
+  <div class="dashboard-card">
+    <h3>{{ active_users }}</h3>
+    کاربر فعال
+  </div>
+  <div class="dashboard-card">
+    <h3>{{ inactive_users }}</h3>
+    کاربر غیرفعال
+  </div>
+  <div class="dashboard-card">
+    <h3>{{ users_with_face }}</h3>
+    با ثبت چهره
+  </div>
+</div>
+<div style="margin-top:2rem;">
+  <canvas id="statusChart" height="100"></canvas>
+</div>
+<div style="margin-top:2rem;">
+  <canvas id="faceChart" height="100"></canvas>
+</div>
+<a class="btn" href="{% url 'export_logs_csv' %}" style="margin:1rem 0;display:inline-block;">
+  <i class="fa fa-download" style="margin-left:0.4rem;"></i> دانلود گزارش CSV
+</a>
+<table class="management-table">
+  <thead>
+    <tr>
+      <th>کاربر</th>
+      <th>تاریخ</th>
+      <th>ساعت</th>
+      <th>نوع</th>
+      <th>ثبت‌کننده</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for log in latest_logs %}
+    <tr>
+      <td>{{ log.user.get_full_name }} - {{ log.user.personnel_code }}</td>
+      <td>{{ log.timestamp|jformat:"%Y/%m/%d" }}</td>
+      <td>{{ log.timestamp|time:"H:i" }}</td>
+      <td>{% if log.log_type == 'in' %}ورود{% else %}خروج{% endif %}</td>
+      <td>{% if log.source == 'self' %}کاربر{% elif log.source == 'auto' %}سیستم{% else %}مدیر{% endif %}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="5">ترددی ثبت نشده است.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const statusData = {{ status_data_json|safe }};
+new Chart(document.getElementById('statusChart').getContext('2d'), {
+  type: 'doughnut',
+  data: {
+    labels: ['فعال', 'غیرفعال'],
+    datasets: [{
+      data: statusData,
+      backgroundColor: ['#4caf50', '#f44336']
+    }]
+  }
+});
+
+const faceData = {{ face_data_json|safe }};
+new Chart(document.getElementById('faceChart').getContext('2d'), {
+  type: 'doughnut',
+  data: {
+    labels: ['با چهره', 'بدون چهره'],
+    datasets: [{
+      data: faceData,
+      backgroundColor: ['#2196f3', '#9e9e9e']
+    }]
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends "core/base.html" %}
+{% block title %}تأیید چهره{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/device.css' %}">
+{% endblock %}
+{% block extra_js %}
+<script>
+// اسکریپت مشابه صفحات ثبت چهره و face check، فقط URL و نتیجه متفاوت است
+document.addEventListener('DOMContentLoaded', () => {
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  const btn = document.getElementById('verifyBtn');
+  const resultDiv = document.getElementById('verifyResult');
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+      .then(stream => { video.srcObject = stream; })
+      .catch(() => { resultDiv.textContent = "دسترسی به دوربین ممکن نشد."; });
+  } else {
+    resultDiv.textContent = "دوربین توسط مرورگر پشتیبانی نمی‌شود.";
+  }
+  btn.onclick = () => {
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg');
+      fetch("{% url 'api_verify_face' %}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": getCsrfToken() },
+        body: JSON.stringify({ image: dataUrl })
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) {
+          resultDiv.textContent = "چهره شما تأیید شد.";
+        } else {
+          resultDiv.textContent = data.msg || "چهره مطابقت نداشت.";
+        }
+      }).catch(() => {
+        resultDiv.textContent = "ارتباط با سرور برقرار نشد.";
+      });
+    }
+  };
+  function getCsrfToken() {
+    let value = "; " + document.cookie;
+    let parts = value.split("; csrftoken=");
+    if (parts.length === 2) return parts.pop().split(";").shift();
+    return '';
+  }
+});
+</script>
+{% endblock %}
+{% block content %}
+<div class="device-page card">
+  <h2><i class="fa fa-user-check"></i> تأیید چهره</h2>
+  <div class="device-video-area">
+    <video id="video" autoplay muted playsinline></video>
+    <canvas id="canvas" style="display:none"></canvas>
+    <div id="device-overlay">
+      <span>صورت خود را در مرکز کادر قرار دهید و دکمه تأیید را بزنید</span>
+    </div>
+  </div>
+  <button class="btn" id="verifyBtn"><i class="fa fa-user-check"></i> تأیید چهره</button>
+  <div id="verifyResult" class="device-message"></div>
+</div>
+{% endblock %}

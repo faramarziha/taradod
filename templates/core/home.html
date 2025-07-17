@@ -1,0 +1,20 @@
+{% extends "core/base.html" %}
+{% block title %}سامانه تردد هوشمند{% endblock %}
+{% block content %}
+<div class="card page page-sm" style="margin-top:3.7rem;text-align:right;">
+  <h2 class="page-title">
+    <i class="fas fa-id-card"></i> سامانه تردد هوشمند
+  </h2>
+  <div style="display:flex;flex-direction:column;gap:1.1rem;">
+    <a class="btn" href="{% url 'management_login' %}">
+      <i class="fa fa-user-shield" style="margin-left:0.5rem;"></i> پنل مدیریت
+    </a>
+      <a class="btn" href="{% url 'device_login' %}">
+      <i class="fa fa-door-open" style="margin-left:0.5rem;"></i> ورود دستگاه تردد
+    </a>
+    <a class="btn" href="{% url 'user_inquiry' %}">
+      <i class="fa fa-users" style="margin-left:0.5rem;"></i> کارکنان
+    </a>
+  </div>
+</div>
+{% endblock %}
