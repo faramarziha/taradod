@@ -8,6 +8,7 @@
 <a class="btn" href="{% url 'user_add' %}" style="margin-bottom:1.4rem;">
   <i class="fas fa-user-plus" style="margin-left:0.5rem;"></i> افزودن کاربر جدید
 </a>
+<div class="table-responsive">
 <table class="management-table">
   <thead>
     <tr>
@@ -22,24 +23,24 @@
   <tbody>
     {% for user in users %}
       <tr>
-        <td>{{ forloop.counter }}</td>
-        <td>{{ user.personnel_code }}</td>
-        <td>{{ user.get_full_name }}</td>
-        <td>
+        <td data-label="ردیف">{{ forloop.counter }}</td>
+        <td data-label="کد پرسنلی">{{ user.personnel_code }}</td>
+        <td data-label="نام و نام خانوادگی">{{ user.get_full_name }}</td>
+        <td data-label="وضعیت">
           {% if user.is_active %}
             <span class="alert-success" style="padding:0.15rem 0.4rem;font-size:0.95em;">فعال</span>
           {% else %}
             <span class="alert-error" style="padding:0.15rem 0.4rem;font-size:0.95em;">غیرفعال</span>
           {% endif %}
         </td>
-        <td>
+        <td data-label="ثبت چهره">
           {% if user.face_encoding %}
             <i class="fa fa-check-circle" style="color: var(--color-secondary);"></i>
           {% else %}
             <i class="fa fa-times-circle" style="color: var(--color-error);"></i>
           {% endif %}
         </td>
-        <td>
+        <td data-label="عملیات">
           <a href="{% url 'user_update' user.pk %}" title="ویرایش"><i class="fas fa-edit"></i></a>
           <a href="{% url 'register_face_page_for_user' user.pk %}" title="ثبت چهره"><i class="fas fa-camera"></i></a>
           <a href="{% url 'user_logs_admin' user.pk %}" title="ترددها"><i class="fas fa-list"></i></a>
@@ -51,4 +52,5 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% endblock %}

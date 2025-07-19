@@ -26,14 +26,14 @@
     <tbody>
     {% for r in requests %}
       <tr>
-        <td>{{ r.timestamp|jformat:"%Y/%m/%d %H:%M" }}</td>
-        <td>{% if r.log_type == 'in' %}ورود{% else %}خروج{% endif %}</td>
-        <td>{{ r.note|default:"-" }}</td>
-        <td>
+        <td data-label="زمان">{{ r.timestamp|jformat:"%Y/%m/%d %H:%M" }}</td>
+        <td data-label="نوع">{% if r.log_type == 'in' %}ورود{% else %}خروج{% endif %}</td>
+        <td data-label="توضیح">{{ r.note|default:"-" }}</td>
+        <td data-label="وضعیت">
           {% if r.status == 'pending' %}در انتظار{% elif r.status == 'approved' %}تأیید شده{% elif r.status == 'cancelled' %}لغو شده{% else %}رد شده{% endif %}
         </td>
-        <td>{{ r.manager_note|default:"-" }}</td>
-        <td>
+        <td data-label="توضیح مدیر">{{ r.manager_note|default:"-" }}</td>
+        <td data-label="لغو">
           {% if r.status == 'pending' %}
           <form method="post" action="{% url 'cancel_edit_request' r.id %}">
             {% csrf_token %}

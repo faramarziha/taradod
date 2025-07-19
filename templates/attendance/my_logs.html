@@ -11,16 +11,16 @@
     <a class="btn" href="?month={{ next_month }}">ماه بعد <i class="fas fa-chevron-left"></i></a>
   </div>
   <div class="table-responsive">
-    <table class="management-table">
+    <table class="management-table my-log-table">
       <thead>
         <tr><th>تاریخ</th><th>ورود</th><th>خروج</th></tr>
       </thead>
       <tbody>
         {% for day, info in daily_logs.items %}
         <tr>
-          <td>{{ jyear }}/{{ jmonth|stringformat:"02d" }}/{{ day|stringformat:"02d" }}</td>
-          <td>{% if info.in %}{{ info.in|time:"H:i" }}{% else %}-{% endif %}</td>
-          <td>{% if info.out %}{{ info.out|time:"H:i" }}{% else %}-{% endif %}</td>
+          <td data-label="تاریخ">{{ jyear }}/{{ jmonth|stringformat:"02d" }}/{{ day|stringformat:"02d" }}</td>
+          <td data-label="ورود">{% if info.in %}{{ info.in|time:"H:i" }}{% else %}-{% endif %}</td>
+          <td data-label="خروج">{% if info.out %}{{ info.out|time:"H:i" }}{% else %}-{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>

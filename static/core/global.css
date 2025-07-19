@@ -210,6 +210,30 @@ label {
   margin-bottom: 1.1rem;
 }
 
+/* flexible form layout */
+.form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+.form-grid .form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+@media (min-width: 600px) {
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem 1.2rem;
+  }
+  .form-grid .full-width,
+  .form-grid .form-actions {
+    grid-column: span 2;
+  }
+}
+
 .card {
   background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-bg) 100%);
   box-shadow: var(--shadow);
@@ -249,6 +273,36 @@ label {
   background: #e3f2fd44;
 }
 
+@media (max-width: 600px) {
+  .management-table,
+  .management-table thead,
+  .management-table tbody,
+  .management-table tr,
+  .management-table td {
+    display: block;
+    width: 100%;
+  }
+  .management-table thead { display: none; }
+  .management-table tr {
+    background: var(--color-bg);
+    margin-bottom: 1rem;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 0.6rem;
+  }
+  .management-table td {
+    border: none;
+    padding: 0.4rem 0.6rem;
+  }
+  .management-table td::before {
+    content: attr(data-label);
+    display: block;
+    font-weight: 600;
+    color: var(--color-primary-dark);
+    margin-bottom: 0.2rem;
+  }
+}
+
 /* wrapper for horizontal scroll when needed */
 .table-responsive {
   overflow-x: auto;
@@ -279,6 +333,24 @@ label {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+
+/* chart containers on report pages */
+.chart-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+.chart-card {
+  background: var(--color-surface);
+  padding: 1rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--color-border);
+}
+@media (min-width: 700px) {
+  .chart-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 /* general page wrapper for centering card layouts */
@@ -406,3 +478,61 @@ label {
   }
 }
 
+@media (max-width: 600px) {
+  .my-log-table,
+  .my-log-table thead,
+  .my-log-table tbody,
+  .my-log-table tr,
+  .my-log-table td { display: block; width: 100%; }
+  .my-log-table thead { display: none; }
+  .my-log-table tr {
+    background: var(--color-bg);
+    margin-bottom: 1rem;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 0.6rem;
+  }
+  .my-log-table td {
+    border: none;
+    padding: 0.4rem 0.6rem;
+  }
+  .my-log-table td::before {
+    content: attr(data-label);
+    display: block;
+    font-weight: 600;
+    color: var(--color-primary-dark);
+    margin-bottom: 0.2rem;
+  }
+}
+
+/* grid layout for checkbox lists */
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.4rem 1rem;
+}
+@media (min-width: 500px) { .checkbox-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 800px) { .checkbox-grid { grid-template-columns: repeat(4, 1fr); } }
+
+/* collapsible sections */
+.collapsible {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+.collapsible summary {
+  padding: 0.6rem 0.8rem;
+  background: var(--color-bg);
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--color-primary-dark);
+}
+.collapsible[open] summary {
+  border-bottom: 1px solid var(--color-border);
+}
+.collapsible ul {
+  list-style: none;
+  margin: 0;
+  padding: 0.4rem 1rem 0.8rem 1rem;
+}

@@ -36,4 +36,18 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  const sidebarBtn = document.getElementById("sidebar-toggle");
+  const sidebar = document.querySelector(".management-sidebar");
+  const sidebarOverlay = document.getElementById("sidebar-overlay");
+  if (sidebarBtn && sidebar && sidebarOverlay) {
+    sidebarBtn.addEventListener("click", () => {
+      sidebar.classList.toggle("open");
+      sidebarOverlay.classList.toggle("show");
+    });
+    sidebarOverlay.addEventListener("click", () => {
+      sidebar.classList.remove("open");
+      sidebarOverlay.classList.remove("show");
+    });
+  }
+
 });
