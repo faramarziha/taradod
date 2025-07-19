@@ -4,6 +4,10 @@
 <link rel="stylesheet" href="{% static 'core/management.css' %}">
 {% endblock %}
 {% block content %}
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="نمایش منو">
+  <i class="fas fa-bars"></i>
+</button>
+<div id="sidebar-overlay" class="sidebar-overlay"></div>
 <div class="management-layout">
   <aside class="management-sidebar">
     <div class="sidebar-title">پنل مدیریت</div>
