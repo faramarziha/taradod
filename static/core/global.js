@@ -36,4 +36,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  const sidebarToggle = document.getElementById("sidebar-toggle");
+  const managementSidebar = document.getElementById("management-sidebar");
+  if (sidebarToggle && managementSidebar) {
+    sidebarToggle.addEventListener("click", () => {
+      managementSidebar.classList.toggle("open");
+    });
+  }
+
 });

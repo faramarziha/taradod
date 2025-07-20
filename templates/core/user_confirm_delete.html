@@ -2,7 +2,7 @@
 {% block title %}حذف کاربر{% endblock %}
 {% block management_content %}
 <h2 style="text-align:right;">
-  <i class="fas fa-trash-alt" style="margin-left:0.5rem;"></i> حذف کاربر
+  <i class="fas fa-trash-alt"></i> حذف کاربر
 </h2>
 <div class="card">
   <p>
@@ -12,7 +12,7 @@
   </p>
   <form method="post">
     {% csrf_token %}
-    <button type="submit" class="btn alert-error"><i class="fas fa-trash-alt" style="margin-left:0.4rem;"></i> بله، حذف شود</button>
+    <button type="submit" class="btn alert-error"><i class="fas fa-trash-alt"></i> بله، حذف شود</button>
     <a href="{% url 'management_users' %}" class="btn" style="background:var(--color-muted);color:#fff;">انصراف</a>
   </form>
 </div>

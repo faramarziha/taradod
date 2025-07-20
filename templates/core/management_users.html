@@ -5,9 +5,12 @@
   <i class="fas fa-users-cog"></i>
   مدیریت کاربران
 </h2>
-<a class="btn" href="{% url 'user_add' %}" style="margin-bottom:1.4rem;">
-  <i class="fas fa-user-plus" style="margin-left:0.5rem;"></i> افزودن کاربر جدید
-</a>
+<div class="page-actions">
+  <a class="btn" href="{% url 'user_add' %}">
+    <i class="fas fa-user-plus"></i> افزودن کاربر جدید
+  </a>
+</div>
+<div class="card table-responsive slide-in">
 <table class="management-table">
   <thead>
     <tr>
@@ -21,7 +24,7 @@
   </thead>
   <tbody>
     {% for user in users %}
-      <tr>
+      <tr style="--i:{{ forloop.counter }}">
         <td>{{ forloop.counter }}</td>
         <td>{{ user.personnel_code }}</td>
         <td>{{ user.get_full_name }}</td>
@@ -51,4 +54,5 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% endblock %}

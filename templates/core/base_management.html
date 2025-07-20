@@ -5,7 +5,10 @@
 {% endblock %}
 {% block content %}
 <div class="management-layout">
-  <aside class="management-sidebar">
+  <button class="sidebar-toggle" id="sidebar-toggle" aria-label="منو">
+    <i class="fas fa-bars"></i>
+  </button>
+  <aside class="management-sidebar" id="management-sidebar">
     <div class="sidebar-title">پنل مدیریت</div>
     <nav>
       <a href="{% url 'management_dashboard' %}" class="{% if request.resolver_match.url_name == 'management_dashboard' %}active{% endif %}">

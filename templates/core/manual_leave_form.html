@@ -6,7 +6,7 @@
   ثبت مرخصی برای کاربر
 </h2>
 <a class="btn" href="{% url 'leave_requests' %}" style="margin-bottom:1rem;">
-  <i class="fas fa-chevron-right" style="margin-left:0.4rem;"></i> بازگشت
+  <i class="fas fa-chevron-right"></i> بازگشت
 </a>
 <form method="post" class="card" autocomplete="off">
   {% csrf_token %}
@@ -19,7 +19,7 @@
       {% endfor %}
     </div>
   {% endfor %}
-  <button type="submit" class="btn"><i class="fas fa-check" style="margin-left:0.4rem;"></i> ثبت</button>
+  <button type="submit" class="btn"><i class="fas fa-check"></i> ثبت</button>
   <a href="{% url 'leave_requests' %}" class="btn" style="background:var(--color-muted);color:#fff;">لغو</a>
 </form>
 {% endblock %}

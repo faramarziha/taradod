@@ -1,7 +1,7 @@
 {% extends "core/base.html" %}
 {% block title %}درخواست مرخصی{% endblock %}
 {% block content %}
-<div class="card page page-md">
+<div class="card page page-md slide-in">
   <h2 class="page-title">درخواست مرخصی برای {{ user.get_full_name }}</h2>
   <form method="post">
     {% csrf_token %}
@@ -17,8 +17,8 @@
       {{ form.reason.label_tag }}<br>
       {{ form.reason }}
     </div>
-    <button type="submit" class="btn"><i class="fas fa-check" style="margin-left:0.4rem;"></i> ثبت درخواست</button>
-    <a class="btn" href="{% url 'user_profile' %}"><i class="fas fa-chevron-right" style="margin-left:0.4rem;"></i> بازگشت</a>
+    <button type="submit" class="btn"><i class="fas fa-check"></i> ثبت درخواست</button>
+    <a class="btn" href="{% url 'user_profile' %}"><i class="fas fa-chevron-right"></i> بازگشت</a>
   </form>
 </div>
 {% endblock %}

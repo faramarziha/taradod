@@ -3,7 +3,7 @@
 {% block title %}گزارش کاربران{% endblock %}
 {% block management_content %}
 <h2 style="text-align:right;">
-  <i class="fas fa-file-alt" style="margin-left:0.5rem;"></i> گزارش کاربران
+  <i class="fas fa-file-alt"></i> گزارش کاربران
 </h2>
 <div class="dashboard-stats">
   <div class="dashboard-card">
@@ -25,9 +25,12 @@
 <div style="margin-top:2rem;">
   <canvas id="faceChart" height="100"></canvas>
 </div>
-<a class="btn" href="{% url 'export_logs_csv' %}" style="margin:1rem 0;display:inline-block;">
-  <i class="fa fa-download" style="margin-left:0.4rem;"></i> دانلود گزارش CSV
-</a>
+<div class="page-actions">
+  <a class="btn" href="{% url 'export_logs_csv' %}">
+    <i class="fa fa-download"></i> دانلود گزارش CSV
+  </a>
+</div>
+<div class="card table-responsive slide-in">
 <table class="management-table">
   <thead>
     <tr>
@@ -40,7 +43,7 @@
   </thead>
   <tbody>
     {% for log in latest_logs %}
-    <tr>
+    <tr style="--i:{{ forloop.counter }}">
       <td>{{ log.user.get_full_name }} - {{ log.user.personnel_code }}</td>
       <td>{{ log.timestamp|jformat:"%Y/%m/%d" }}</td>
       <td>{{ log.timestamp|time:"H:i" }}</td>
@@ -52,6 +55,7 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% endblock %}
 
 {% block extra_js %}
