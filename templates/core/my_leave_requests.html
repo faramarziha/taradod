@@ -12,7 +12,7 @@
   </div>
   {% if requests %}
   <div class="table-responsive">
-  <table class="management-table">
+  <table class="management-table stacked-table">
     <thead>
       <tr>
         <th>از</th>
@@ -26,14 +26,22 @@
     <tbody>
     {% for r in requests %}
       <tr>
-        <td>{{ r.start_date|jformat:"%Y/%m/%d" }}</td>
-        <td>{{ r.end_date|jformat:"%Y/%m/%d" }}</td>
-        <td>{{ r.reason|default:"-" }}</td>
-        <td>
-          {% if r.status == 'pending' %}در انتظار{% elif r.status == 'approved' %}تأیید شده{% elif r.status == 'cancelled' %}لغو شده{% else %}رد شده{% endif %}
+        <td data-label="از">{{ r.start_date|jformat:"%Y/%m/%d" }}</td>
+        <td data-label="تا">{{ r.end_date|jformat:"%Y/%m/%d" }}</td>
+        <td data-label="توضیح">{{ r.reason|default:"-" }}</td>
+        <td data-label="وضعیت">
+          {% if r.status == 'pending' %}
+            <span class="badge badge-pending">در انتظار</span>
+          {% elif r.status == 'approved' %}
+            <span class="badge badge-approved">تأیید شده</span>
+          {% elif r.status == 'cancelled' %}
+            <span class="badge badge-cancelled">لغو شده</span>
+          {% else %}
+            <span class="badge badge-rejected">رد شده</span>
+          {% endif %}
         </td>
-        <td>{{ r.manager_note|default:"-" }}</td>
-        <td>
+        <td data-label="توضیح مدیر">{{ r.manager_note|default:"-" }}</td>
+        <td data-label="لغو">
           {% if r.status == 'pending' %}
           <form method="post" action="{% url 'cancel_leave_request' r.id %}">
             {% csrf_token %}

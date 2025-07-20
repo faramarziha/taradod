@@ -6,7 +6,8 @@
   <i class="fas fa-edit"></i>
   درخواست‌های ویرایش
 </h2>
-<table class="management-table">
+<div class="table-responsive">
+<table class="management-table stacked-table">
   <thead>
     <tr>
       <th>کاربر</th>
@@ -20,14 +21,22 @@
   <tbody>
     {% for r in requests %}
     <tr>
-      <td>{{ r.user.get_full_name }} - {{ r.user.personnel_code }}</td>
-      <td>{{ r.timestamp|jformat:"%Y/%m/%d %H:%M" }}</td>
-      <td>{% if r.log_type == 'in' %}ورود{% else %}خروج{% endif %}</td>
-      <td>{{ r.note|default:"-" }}</td>
-      <td>
-        {% if r.status == 'pending' %}در انتظار{% elif r.status == 'approved' %}تأیید شده{% elif r.status == 'cancelled' %}لغو شده{% else %}رد شده{% endif %}
+      <td data-label="کاربر">{{ r.user.get_full_name }} - {{ r.user.personnel_code }}</td>
+      <td data-label="زمان">{{ r.timestamp|jformat:"%Y/%m/%d %H:%M" }}</td>
+      <td data-label="نوع">{% if r.log_type == 'in' %}ورود{% else %}خروج{% endif %}</td>
+      <td data-label="توضیح">{{ r.note|default:"-" }}</td>
+      <td data-label="وضعیت">
+        {% if r.status == 'pending' %}
+          <span class="badge badge-pending">در انتظار</span>
+        {% elif r.status == 'approved' %}
+          <span class="badge badge-approved">تأیید شده</span>
+        {% elif r.status == 'cancelled' %}
+          <span class="badge badge-cancelled">لغو شده</span>
+        {% else %}
+          <span class="badge badge-rejected">رد شده</span>
+        {% endif %}
       </td>
-      <td>
+      <td data-label="اقدام / توضیح مدیر">
         {% if r.status == 'pending' %}
         <form method="post" style="display:flex;gap:0.3rem;flex-wrap:wrap;">
           {% csrf_token %}
@@ -46,5 +55,6 @@
     <tr><td colspan="6">درخواستی وجود ندارد.</td></tr>
     {% endfor %}
   </tbody>
-</table>
+  </table>
+</div>
 {% endblock %}

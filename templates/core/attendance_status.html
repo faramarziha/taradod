@@ -2,47 +2,49 @@
 {% load jformat %}
 {% block title %}وضعیت حضور و غیاب{% endblock %}
 {% block management_content %}
-<h2 class="page-title">
-  <i class="fas fa-user-check"></i> وضعیت حضور و غیاب
-</h2>
-<form method="get" style="margin-bottom:1rem;text-align:right;">
-  {{ form.date.label_tag }}
-  {{ form.date }}
-  <button type="submit" class="btn">نمایش</button>
-</form>
-<div style="margin-bottom:1rem;text-align:right;">
-  تاریخ: {{ jdate }}
-</div>
-<div class="employee-lists">
-  <div>
-    <h4>حاضرین</h4>
-    <ul id="present-list">
-      {% for u in present_users %}
-        <li>{{ u.get_full_name }} - {{ u.personnel_code }}</li>
-      {% empty %}
-        <li>موردی نیست</li>
-      {% endfor %}
-    </ul>
+<div class="card page page-md">
+  <h2 class="page-title">
+    <i class="fas fa-user-check"></i> وضعیت حضور و غیاب
+  </h2>
+  <form method="get" class="form-inline">
+    {{ form.date.label_tag }}
+    {{ form.date }}
+    <button type="submit" class="btn">نمایش</button>
+  </form>
+  <div class="status-date">
+    تاریخ: {{ jdate }}
   </div>
-  <div>
-    <h4>غایبین</h4>
-    <ul id="absent-list">
-      {% for u in absent_users %}
-        <li>{{ u.get_full_name }} - {{ u.personnel_code }}</li>
-      {% empty %}
-        <li>موردی نیست</li>
-      {% endfor %}
-    </ul>
-  </div>
-  <div>
-    <h4>مرخصی</h4>
-    <ul id="leave-list">
-      {% for u in leave_users %}
-        <li>{{ u.get_full_name }} - {{ u.personnel_code }}</li>
-      {% empty %}
-        <li>موردی نیست</li>
-      {% endfor %}
-    </ul>
+  <div class="employee-lists">
+    <div class="employee-card present">
+      <h4><i class="fa fa-user-check"></i> حاضرین</h4>
+      <ul id="present-list">
+        {% for u in present_users %}
+          <li>{{ u.get_full_name }} - {{ u.personnel_code }}</li>
+        {% empty %}
+          <li>موردی نیست</li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="employee-card absent">
+      <h4><i class="fa fa-user-times"></i> غایبین</h4>
+      <ul id="absent-list">
+        {% for u in absent_users %}
+          <li>{{ u.get_full_name }} - {{ u.personnel_code }}</li>
+        {% empty %}
+          <li>موردی نیست</li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="employee-card leave">
+      <h4><i class="fa fa-plane"></i> مرخصی</h4>
+      <ul id="leave-list">
+        {% for u in leave_users %}
+          <li>{{ u.get_full_name }} - {{ u.personnel_code }}</li>
+        {% empty %}
+          <li>موردی نیست</li>
+        {% endfor %}
+      </ul>
+    </div>
   </div>
 </div>
 {% endblock %}

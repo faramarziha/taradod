@@ -254,22 +254,81 @@ label {
   overflow-x: auto;
 }
 
+/* stacked table layout for small screens */
+.stacked-table thead {
+  display: none;
+}
+.stacked-table tr {
+  display: block;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.6rem 0.5rem;
+  margin-bottom: 0.8rem;
+}
+.stacked-table td {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.stacked-table td:last-child { border-bottom: none; }
+.stacked-table td::before {
+  content: attr(data-label);
+  font-weight: 600;
+  color: var(--color-primary-dark);
+  margin-left: 0.5rem;
+}
+
+@media (min-width: 600px) {
+  .stacked-table thead { display: table-header-group; }
+  .stacked-table tr {
+    display: table-row;
+    border: none;
+    box-shadow: none;
+    margin-bottom: 0;
+    padding: 0;
+  }
+  .stacked-table td {
+    display: table-cell;
+    padding: 0.9rem 0.6rem;
+  }
+  .stacked-table td::before { display: none; }
+}
+
 /* profile page tweaks */
 .profile-card {
-  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: fadeInUp 0.5s ease both;
+}
+.profile-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 .profile-avatar {
-  width: 80px;
-  height: 80px;
+  width: 88px;
+  height: 88px;
   border-radius: 50%;
   object-fit: cover;
+  border: 3px solid var(--color-primary);
   box-shadow: var(--shadow);
-  margin-bottom: 1rem;
+  transition: transform 0.3s;
+}
+.profile-avatar:hover {
+  transform: scale(1.05);
 }
 .profile-details {
   list-style: none;
   padding: 0;
-  margin: 1rem 0;
+  margin: 0.5rem 0 0 0;
+  text-align: right;
 }
 .profile-details li {
   margin-bottom: 0.4rem;
@@ -279,6 +338,63 @@ label {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+@media (min-width: 600px) {
+  .profile-card {
+    flex-direction: row;
+    text-align: right;
+    align-items: flex-start;
+  }
+  .profile-header {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 0;
+  }
+  .profile-avatar {
+    width: 110px;
+    height: 110px;
+  }
+}
+
+/* flexible form layout */
+.form-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.form-grid .form-group {
+  flex: 1 1 180px;
+  min-width: 160px;
+}
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+/* small badge styles for table statuses */
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  color: #fff;
+}
+.badge-pending { background: var(--color-muted); }
+.badge-approved { background: var(--color-secondary); }
+.badge-rejected { background: var(--color-error); }
+.badge-cancelled { background: #777; }
+
+/* charts grid */
+.chart-grid {
+  display: grid;
+  gap: 1rem;
+}
+@media (min-width: 600px) {
+  .chart-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 /* general page wrapper for centering card layouts */

@@ -7,12 +7,12 @@
     <i class="fas fa-edit" style="margin-left:0.5rem;"></i>
     درخواست‌های ویرایش {{ user.get_full_name }}
   </h2>
-  <div class="profile-details" style="margin-top:0;">
+  <div class="profile-details">
     کد پرسنلی: {{ user.personnel_code }}
   </div>
   {% if requests %}
   <div class="table-responsive">
-  <table class="management-table">
+  <table class="management-table stacked-table fade-in">
     <thead>
       <tr>
         <th>زمان</th>
@@ -26,14 +26,22 @@
     <tbody>
     {% for r in requests %}
       <tr>
-        <td>{{ r.timestamp|jformat:"%Y/%m/%d %H:%M" }}</td>
-        <td>{% if r.log_type == 'in' %}ورود{% else %}خروج{% endif %}</td>
-        <td>{{ r.note|default:"-" }}</td>
-        <td>
-          {% if r.status == 'pending' %}در انتظار{% elif r.status == 'approved' %}تأیید شده{% elif r.status == 'cancelled' %}لغو شده{% else %}رد شده{% endif %}
+        <td data-label="زمان">{{ r.timestamp|jformat:"%Y/%m/%d %H:%M" }}</td>
+        <td data-label="نوع">{% if r.log_type == 'in' %}ورود{% else %}خروج{% endif %}</td>
+        <td data-label="توضیح">{{ r.note|default:"-" }}</td>
+        <td data-label="وضعیت">
+          {% if r.status == 'pending' %}
+            <span class="badge badge-pending">در انتظار</span>
+          {% elif r.status == 'approved' %}
+            <span class="badge badge-approved">تأیید شده</span>
+          {% elif r.status == 'cancelled' %}
+            <span class="badge badge-cancelled">لغو شده</span>
+          {% else %}
+            <span class="badge badge-rejected">رد شده</span>
+          {% endif %}
         </td>
-        <td>{{ r.manager_note|default:"-" }}</td>
-        <td>
+        <td data-label="توضیح مدیر">{{ r.manager_note|default:"-" }}</td>
+        <td data-label="لغو">
           {% if r.status == 'pending' %}
           <form method="post" action="{% url 'cancel_edit_request' r.id %}">
             {% csrf_token %}

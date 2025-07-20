@@ -7,7 +7,8 @@
 <a class="btn" href="{% url 'user_add' %}" style="margin-bottom:1.2rem;">
   <i class="fas fa-user-plus" style="margin-left:0.5rem;"></i> افزودن کاربر جدید
 </a>
-<table class="management-table">
+<div class="table-responsive">
+<table class="management-table stacked-table">
   <thead>
     <tr>
       <th>ردیف</th>
@@ -22,19 +23,19 @@
   <tbody>
     {% for u in users %}
       <tr>
-        <td>{{ forloop.counter }}</td>
-        <td>{{ u.personnel_code }}</td>
-        <td>{{ u.first_name }}</td>
-        <td>{{ u.last_name }}</td>
-        <td>{{ u.username }}</td>
-        <td>
+        <td data-label="ردیف">{{ forloop.counter }}</td>
+        <td data-label="کد پرسنلی">{{ u.personnel_code }}</td>
+        <td data-label="نام">{{ u.first_name }}</td>
+        <td data-label="نام خانوادگی">{{ u.last_name }}</td>
+        <td data-label="نام کاربری">{{ u.username }}</td>
+        <td data-label="ثبت چهره">
           {% if u.face_encoding %}
             <i class="fa fa-check-circle" style="color: var(--color-secondary);"></i>
           {% else %}
             <i class="fa fa-times-circle" style="color: var(--color-error);"></i>
           {% endif %}
         </td>
-        <td>
+        <td data-label="عملیات">
           <a href="{% url 'user_update' u.pk %}" title="ویرایش"><i class="fas fa-edit"></i></a>
           <a href="{% url 'user_delete' u.pk %}" title="حذف"><i class="fas fa-trash-alt"></i></a>
         </td>
@@ -44,4 +45,5 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% endblock %}
