@@ -71,7 +71,7 @@
 }
 .dashboard-stats {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 1rem;
   margin-bottom: 2.4rem;
 }
@@ -83,6 +83,9 @@
   text-align: center;
   border: 1px solid var(--color-border);
   font-size: 1.14rem;
+  opacity: 0;
+  transform: translateY(10px);
+  animation: fadeUp 0.6s forwards;
 }
 .dashboard-card h3 {
   font-size: 1.4rem;
@@ -117,6 +120,60 @@
   background: #e3f2fd44;
 }
 
+/* responsive table cards */
+.responsive-table {
+  width: 100%;
+}
+.responsive-table thead {
+  background: var(--color-bg);
+}
+
+@media (max-width: 650px) {
+  .responsive-table thead {
+    display: none;
+  }
+  .responsive-table,
+  .responsive-table tbody,
+  .responsive-table tr,
+  .responsive-table td {
+    display: block;
+    width: 100%;
+  }
+  .responsive-table tr {
+    margin-bottom: 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-bg);
+    box-shadow: var(--shadow);
+    padding: 0.4rem;
+  }
+  .responsive-table td {
+    border: none;
+    padding: 0.5rem 0.6rem;
+    position: relative;
+  }
+  .responsive-table td + td {
+    border-top: 1px solid var(--color-border);
+  }
+  .responsive-table td[data-label]::before {
+    content: attr(data-label) ':';
+    font-weight: 600;
+    color: var(--color-primary);
+    display: block;
+    margin-bottom: 0.3rem;
+  }
+}
+
+.chart-container {
+  position: relative;
+  width: 100%;
+  margin: 1.5rem 0;
+}
+.chart-container canvas {
+  width: 100% !important;
+  height: auto !important;
+}
+
 .alerts-list {
   list-style: none;
   padding: 0;
@@ -140,11 +197,45 @@
 }
 .alerts-list li:last-child { border-bottom: none; }
 
+.alerts-collapse {
+  margin-bottom: 1.5rem;
+}
+.alerts-collapse summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 0.4rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.alerts-collapse summary::-webkit-details-marker { display: none; }
+.alerts-collapse[open] summary i { transform: rotate(180deg); }
+.alerts-collapse summary i { transition: transform 0.3s; }
+
 .employee-lists {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
   margin-top: 1rem;
+}
+
+/* layout for weekly holidays checkboxes */
+.weekly-form ul {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+.weekly-form li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.4rem 0.7rem;
 }
 .employee-lists ul {
   list-style: none;
@@ -155,6 +246,12 @@
 @media (min-width: 600px) {
   .dashboard-stats {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 900px) {
+  .dashboard-stats {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -185,5 +282,10 @@
     padding: 2.2rem 1.6rem;
     margin-bottom: 1.5rem;
   }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 

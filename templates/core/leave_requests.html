@@ -9,7 +9,8 @@
 <a class="btn" href="{% url 'add_leave' %}" style="margin-bottom:1rem;">
   <i class="fas fa-plus" style="margin-left:0.4rem;"></i> ثبت دستی مرخصی
 </a>
-<table class="management-table">
+<div class="table-responsive">
+<table class="management-table responsive-table fade-in">
   <thead>
     <tr>
       <th>کاربر</th>
@@ -23,14 +24,14 @@
   <tbody>
     {% for r in requests %}
     <tr>
-      <td>{{ r.user.get_full_name }} - {{ r.user.personnel_code }}</td>
-      <td>{{ r.start_date|jformat:"%Y/%m/%d" }}</td>
-      <td>{{ r.end_date|jformat:"%Y/%m/%d" }}</td>
-      <td>{{ r.reason|default:"-" }}</td>
-      <td>
+      <td data-label="کاربر">{{ r.user.get_full_name }} - {{ r.user.personnel_code }}</td>
+      <td data-label="از">{{ r.start_date|jformat:"%Y/%m/%d" }}</td>
+      <td data-label="تا">{{ r.end_date|jformat:"%Y/%m/%d" }}</td>
+      <td data-label="توضیح">{{ r.reason|default:"-" }}</td>
+      <td data-label="وضعیت">
         {% if r.status == 'pending' %}در انتظار{% elif r.status == 'approved' %}تأیید شده{% elif r.status == 'cancelled' %}لغو شده{% else %}رد شده{% endif %}
       </td>
-      <td>
+      <td data-label="اقدام یا توضیح">
         {% if r.status == 'pending' %}
         <form method="post" style="display:flex;gap:0.3rem;flex-wrap:wrap;">
           {% csrf_token %}
@@ -63,4 +64,5 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% endblock %}
