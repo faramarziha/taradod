@@ -19,15 +19,14 @@
     با ثبت چهره
   </div>
 </div>
-<div style="margin-top:2rem;">
-  <canvas id="statusChart" height="100"></canvas>
-</div>
-<div style="margin-top:2rem;">
-  <canvas id="faceChart" height="100"></canvas>
+<div class="card charts-grid fade-in" style="margin-top:1rem;">
+  <canvas id="statusChart" height="160"></canvas>
+  <canvas id="faceChart" height="160"></canvas>
 </div>
 <a class="btn" href="{% url 'export_logs_csv' %}" style="margin:1rem 0;display:inline-block;">
   <i class="fa fa-download" style="margin-left:0.4rem;"></i> دانلود گزارش CSV
 </a>
+<div class="table-responsive">
 <table class="management-table">
   <thead>
     <tr>
@@ -52,6 +51,7 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% endblock %}
 
 {% block extra_js %}

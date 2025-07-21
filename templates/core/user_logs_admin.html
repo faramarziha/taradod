@@ -8,6 +8,18 @@
   {{ form.end.label }} {{ form.end }}
   <button class="btn" type="submit">نمایش</button>
 </form>
+<div class="log-cards">
+  {% for log in logs %}
+  <div class="log-card fade-in">
+    <span>{{ log.timestamp|jformat:"%Y/%m/%d" }}</span>
+    <span>{{ log.timestamp|time:"H:i" }}</span>
+    <span>{% if log.log_type == 'in' %}ورود{% else %}خروج{% endif %}</span>
+  </div>
+  {% empty %}
+  <div class="alert-error">موردی نیست</div>
+  {% endfor %}
+</div>
+<div class="table-responsive">
 <table class="management-table">
   <thead>
     <tr><th>تاریخ</th><th>ساعت</th><th>نوع</th></tr>
@@ -24,4 +36,5 @@
   {% endfor %}
   </tbody>
 </table>
+</div>
 {% endblock %}

@@ -4,15 +4,15 @@
 <h2 style="text-align:right;">
   <i class="fas fa-trash-alt" style="margin-left:0.5rem;"></i> حذف کاربر
 </h2>
-<div class="card">
+<div class="card page page-sm fade-in">
   <p>
     آیا مطمئن هستید که می‌خواهید کاربر
     <b>{{ user.first_name }} {{ user.last_name }}</b>
     با کد پرسنلی <b>{{ user.personnel_code }}</b> را حذف کنید؟
   </p>
-  <form method="post">
+  <form method="post" class="profile-actions">
     {% csrf_token %}
-    <button type="submit" class="btn alert-error"><i class="fas fa-trash-alt" style="margin-left:0.4rem;"></i> بله، حذف شود</button>
+    <button type="submit" class="btn btn-danger"><i class="fas fa-trash-alt" style="margin-left:0.4rem;"></i> بله، حذف شود</button>
     <a href="{% url 'management_users' %}" class="btn" style="background:var(--color-muted);color:#fff;">انصراف</a>
   </form>
 </div>
