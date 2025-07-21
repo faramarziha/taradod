@@ -2,7 +2,7 @@
 {% load jformat %}
 {% block title %}درخواست‌های مرخصی{% endblock %}
 {% block content %}
-<div class="card page page-md">
+<div class="card page page-md fade-in">
   <h2 class="page-title">
     <i class="fas fa-calendar-check" style="margin-left:0.5rem;"></i>
     درخواست‌های مرخصی {{ user.get_full_name }}
@@ -12,7 +12,7 @@
   </div>
   {% if requests %}
   <div class="table-responsive">
-  <table class="management-table">
+  <table class="management-table responsive-table">
     <thead>
       <tr>
         <th>از</th>
@@ -26,14 +26,14 @@
     <tbody>
     {% for r in requests %}
       <tr>
-        <td>{{ r.start_date|jformat:"%Y/%m/%d" }}</td>
-        <td>{{ r.end_date|jformat:"%Y/%m/%d" }}</td>
-        <td>{{ r.reason|default:"-" }}</td>
-        <td>
+        <td data-label="از">{{ r.start_date|jformat:"%Y/%m/%d" }}</td>
+        <td data-label="تا">{{ r.end_date|jformat:"%Y/%m/%d" }}</td>
+        <td data-label="توضیح">{{ r.reason|default:"-" }}</td>
+        <td data-label="وضعیت">
           {% if r.status == 'pending' %}در انتظار{% elif r.status == 'approved' %}تأیید شده{% elif r.status == 'cancelled' %}لغو شده{% else %}رد شده{% endif %}
         </td>
-        <td>{{ r.manager_note|default:"-" }}</td>
-        <td>
+        <td data-label="توضیح مدیر">{{ r.manager_note|default:"-" }}</td>
+        <td data-label="لغو">
           {% if r.status == 'pending' %}
           <form method="post" action="{% url 'cancel_leave_request' r.id %}">
             {% csrf_token %}

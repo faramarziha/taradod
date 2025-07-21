@@ -2,18 +2,19 @@
 {% load jformat %}
 {% block title %}وضعیت حضور و غیاب{% endblock %}
 {% block management_content %}
-<h2 class="page-title">
-  <i class="fas fa-user-check"></i> وضعیت حضور و غیاب
-</h2>
-<form method="get" style="margin-bottom:1rem;text-align:right;">
-  {{ form.date.label_tag }}
-  {{ form.date }}
-  <button type="submit" class="btn">نمایش</button>
-</form>
-<div style="margin-bottom:1rem;text-align:right;">
-  تاریخ: {{ jdate }}
-</div>
-<div class="employee-lists">
+<div class="card page page-md fade-in">
+  <h2 class="page-title">
+    <i class="fas fa-user-check"></i> وضعیت حضور و غیاب
+  </h2>
+  <form method="get" style="margin-bottom:1rem;text-align:right;">
+    {{ form.date.label_tag }}
+    {{ form.date }}
+    <button type="submit" class="btn">نمایش</button>
+  </form>
+  <div style="margin-bottom:1rem;text-align:right;">
+    تاریخ: {{ jdate }}
+  </div>
+  <div class="employee-lists">
   <div>
     <h4>حاضرین</h4>
     <ul id="present-list">
@@ -44,6 +45,7 @@
       {% endfor %}
     </ul>
   </div>
+</div>
 </div>
 {% endblock %}
 {% block extra_js %}

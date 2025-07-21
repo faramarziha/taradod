@@ -179,6 +179,7 @@ button:hover, .btn:hover, input[type="submit"]:hover {
     color: #fff;
     text-decoration: none;
 }
+.btn i { margin-left: 0.4rem; }
 
 input, select, textarea {
   font-family: inherit;
@@ -209,6 +210,25 @@ label {
 .form-group {
   margin-bottom: 1.1rem;
 }
+
+/* flexible form grid used on management forms */
+.form-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 600px) {
+  .form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 900px) {
+  .form-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+.form-grid .form-group { margin-bottom: 0; }
 
 .card {
   background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-bg) 100%);
@@ -298,6 +318,7 @@ label {
   align-items: center;
   gap: 0.5rem;
   justify-content: flex-start;
+  font-size: clamp(1.2rem, 4vw, 1.8rem);
 }
 
 .error, .alert-error, .alert-success {
@@ -333,6 +354,22 @@ label {
 .fade-in { animation: fadeIn 0.3s forwards; }
 .fade-out { animation: fadeOut 0.4s forwards; }
 
+/* sticky table header for long logs */
+.sticky-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--color-bg);
+  z-index: 2;
+}
+
+/* hide elements on very small screens */
+.hide-xs {
+  display: table-cell;
+}
+@media (max-width: 650px) {
+  .hide-xs { display: none; }
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: translateY(0); }
@@ -345,7 +382,7 @@ label {
 @media (min-width: 800px) {
   .header-inner,
   #main-content {
-    max-width: 950px;
+    max-width: 1200px;
     margin: 0 auto;
     padding: 1.5rem 1rem;
     border-radius: var(--radius);
