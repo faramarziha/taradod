@@ -71,23 +71,43 @@
 }
 .dashboard-stats {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 1rem;
   margin-bottom: 2.4rem;
+}
+@media (min-width: 1000px) {
+  .dashboard-stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 .dashboard-card {
   background: var(--color-bg);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 1.3rem 1.1rem;
+  padding: 1rem 0.8rem;
   text-align: center;
   border: 1px solid var(--color-border);
-  font-size: 1.14rem;
+  font-size: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
 }
-.dashboard-card h3 {
-  font-size: 1.4rem;
-  margin-bottom: 0.7rem;
+.dashboard-card i {
   color: var(--color-primary-dark);
+  font-size: 1.3rem;
+  margin-bottom: 0.4rem;
+}
+.dashboard-card .value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+  color: var(--color-primary-dark);
+}
+.dashboard-card .label {
+  font-size: 0.9rem;
+  color: var(--color-muted);
 }
 .management-table {
   width: 100%;
@@ -142,21 +162,86 @@
 
 .employee-lists {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1rem;
   margin-top: 1rem;
 }
+.employee-lists > div {
+  padding: 0.6rem 0.8rem;
+  background: var(--color-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--color-border);
+  animation: fadeIn 0.4s both;
+}
+.employee-lists h4 {
+  margin-bottom: 0.6rem;
+  color: var(--color-primary-dark);
+  font-size: 1.05rem;
+}
 .employee-lists ul {
   list-style: none;
-  padding: 0.4rem 0.6rem;
-  border: 1px solid var(--color-border);
+  margin: 0;
+  padding: 0;
+}
+.employee-lists li + li {
+  border-top: 1px solid var(--color-border);
+  margin-top: 0.4rem;
+  padding-top: 0.4rem;
+}
+
+.employee-lists .present { border-right: 4px solid #4caf50; }
+.employee-lists .absent { border-right: 4px solid var(--color-error); }
+.employee-lists .leave { border-right: 4px solid #ffa726; }
+
+.panel-title {
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+  color: var(--color-primary-dark);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* responsive cards used for leave/edit requests */
+.request-cards { display: none; }
+.request-card {
+  background: var(--color-bg);
   border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--color-border);
+  padding: 1rem 0.8rem;
 }
-@media (min-width: 600px) {
-  .dashboard-stats {
-    grid-template-columns: repeat(2, 1fr);
-  }
+.request-card .row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.4rem;
+  font-size: 0.95rem;
 }
+.request-card .label { color: var(--color-muted); }
+.request-card .status { margin-right: 0.3rem; }
+.request-card .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+
+/* small-screen adjustments */
+@media (max-width: 650px) {
+  .table-responsive, .management-table { display: none; }
+  .request-cards { display: flex; flex-direction: column; gap: 1rem; }
+}
+
+/* charts container */
+.charts-grid {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+.charts-grid canvas { flex: 0 0 220px; }
 
 @media (min-width: 900px) {
   .management-layout {

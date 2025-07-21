@@ -11,7 +11,7 @@
 <a class="btn" href="{% url 'management_users' %}" style="margin-bottom:1.1rem;">
   <i class="fas fa-chevron-right" style="margin-left:0.4rem;"></i> بازگشت به لیست
 </a>
-<form method="post" enctype="multipart/form-data" class="card" autocomplete="off">
+<form method="post" enctype="multipart/form-data" class="card page page-sm form-grid" autocomplete="off">
   {% csrf_token %}
   {% for field in form %}
     <div class="form-group">
@@ -25,9 +25,11 @@
       {% endfor %}
     </div>
   {% endfor %}
-  <button type="submit" class="btn" style="margin-left:0.7rem;">
-    {% if form.instance.pk %}ذخیره تغییرات{% else %}ایجاد کاربر{% endif %}
-  </button>
-  <a href="{% url 'management_users' %}" class="btn" style="background:var(--color-muted);color:#fff;">لغو</a>
+  <div class="profile-actions">
+    <button type="submit" class="btn">
+      {% if form.instance.pk %}ذخیره تغییرات{% else %}ایجاد کاربر{% endif %}
+    </button>
+    <a href="{% url 'management_users' %}" class="btn" style="background:var(--color-muted);color:#fff;">لغو</a>
+  </div>
 </form>
 {% endblock %}
