@@ -4,6 +4,30 @@
   gap: 1rem;
   margin: 0;
   direction: rtl;
+  position: relative;
+}
+
+.sidebar-toggle {
+  background: var(--color-primary);
+  border: none;
+  color: #fff;
+  border-radius: 0.6rem;
+  padding: 0.4rem 0.8rem;
+  font-size: 1.2rem;
+  margin: 0.2rem 0.5rem;
+  cursor: pointer;
+  display: block;
+}
+
+.management-layout.sidebar-open .sidebar-toggle {
+  position: fixed;
+  top: 0.6rem;
+  right: 0.6rem;
+  z-index: 1001;
+}
+
+@media (min-width: 900px) {
+  .sidebar-toggle { display: none; }
 }
 .management-sidebar {
   width: 100%;
@@ -16,6 +40,31 @@
   flex-wrap: wrap;
   justify-content: center;
   margin: 0 0 1rem 0;
+  transition: transform var(--transition);
+}
+
+@media (max-width: 899px) {
+  .management-sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    width: 240px;
+    max-width: 80vw;
+    transform: translateX(110%);
+    overflow-y: auto;
+    z-index: 1000;
+  }
+  .management-layout.sidebar-open .management-sidebar {
+    transform: translateX(0);
+  }
+  .management-layout.sidebar-open::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 999;
+  }
 }
 .management-sidebar .sidebar-logo {
   width: 60px;
@@ -47,7 +96,7 @@
   font-weight: 500;
   padding: 0.4rem 0.7rem;
   border-radius: 0.6rem;
-  transition: background 0.2s, color 0.2s;
+  transition: background var(--transition), color var(--transition), transform var(--transition);
   display: flex;
   align-items: center;
   gap: 0.6rem;
@@ -56,6 +105,7 @@
 .management-sidebar nav a:hover {
   background: var(--color-primary);
   color: #fff;
+  transform: translateX(-2px);
 }
 .management-content {
   flex: 1;
@@ -71,23 +121,37 @@
 }
 .dashboard-stats {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 1rem;
   margin-bottom: 2.4rem;
 }
+
 .dashboard-card {
-  background: var(--color-bg);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: #fff;
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 1.3rem 1.1rem;
+  padding: 1.4rem 1.2rem;
   text-align: center;
-  border: 1px solid var(--color-border);
   font-size: 1.14rem;
+  animation: cardFade 0.6s ease both;
+  transition: transform var(--transition), box-shadow var(--transition);
 }
+
+.dashboard-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+
 .dashboard-card h3 {
-  font-size: 1.4rem;
+  font-size: 1.6rem;
   margin-bottom: 0.7rem;
-  color: var(--color-primary-dark);
+  color: #fff;
+}
+
+@keyframes cardFade {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .management-table {
   width: 100%;
@@ -146,15 +210,23 @@
   gap: 1rem;
   margin-top: 1rem;
 }
+.employee-lists > div {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.8rem;
+}
 .employee-lists ul {
   list-style: none;
-  padding: 0.4rem 0.6rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  padding: 0;
+  margin: 0;
+}
+.employee-lists li {
+  padding: 0.3rem 0;
 }
 @media (min-width: 600px) {
   .dashboard-stats {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   }
 }
 

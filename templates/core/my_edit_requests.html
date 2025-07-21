@@ -2,7 +2,7 @@
 {% load jformat %}
 {% block title %}درخواست‌های ویرایش{% endblock %}
 {% block content %}
-<div class="card page page-md">
+<div class="card page page-md fade-in">
   <h2 class="page-title">
     <i class="fas fa-edit" style="margin-left:0.5rem;"></i>
     درخواست‌های ویرایش {{ user.get_full_name }}
@@ -11,7 +11,7 @@
     کد پرسنلی: {{ user.personnel_code }}
   </div>
   {% if requests %}
-  <div class="table-responsive">
+  <div class="table-responsive fade-in">
   <table class="management-table">
     <thead>
       <tr>
@@ -30,7 +30,9 @@
         <td>{% if r.log_type == 'in' %}ورود{% else %}خروج{% endif %}</td>
         <td>{{ r.note|default:"-" }}</td>
         <td>
-          {% if r.status == 'pending' %}در انتظار{% elif r.status == 'approved' %}تأیید شده{% elif r.status == 'cancelled' %}لغو شده{% else %}رد شده{% endif %}
+          <span class="status status-{{ r.status }}">
+            {% if r.status == 'pending' %}در انتظار{% elif r.status == 'approved' %}تأیید شده{% elif r.status == 'cancelled' %}لغو شده{% else %}رد شده{% endif %}
+          </span>
         </td>
         <td>{{ r.manager_note|default:"-" }}</td>
         <td>

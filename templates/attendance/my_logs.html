@@ -2,7 +2,7 @@
 {% load jformat %}
 {% block title %}گزارش تردد من{% endblock %}
 {% block content %}
-<div class="card page page-md">
+<div class="card page page-md fade-in">
   <h2 class="page-title"><i class="fa fa-list-alt"></i> گزارش ترددهای {{ user.get_full_name }}</h2>
   <div class="profile-details" style="margin-top:0;">کد پرسنلی: {{ user.personnel_code }}</div>
   <div class="profile-actions" style="margin-bottom:1rem;">
@@ -10,7 +10,7 @@
     <span style="margin:0 1rem;">{{ jyear }}/{{ jmonth }}</span>
     <a class="btn" href="?month={{ next_month }}">ماه بعد <i class="fas fa-chevron-left"></i></a>
   </div>
-  <div class="table-responsive">
+  <div class="table-responsive fade-in">
     <table class="management-table">
       <thead>
         <tr><th>تاریخ</th><th>ورود</th><th>خروج</th></tr>

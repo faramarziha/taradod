@@ -5,6 +5,9 @@
 {% endblock %}
 {% block content %}
 <div class="management-layout">
+  <button id="sidebar-toggle" class="sidebar-toggle" aria-label="نمایش منو">
+    <i class="fas fa-bars"></i>
+  </button>
   <aside class="management-sidebar">
     <div class="sidebar-title">پنل مدیریت</div>
     <nav>
@@ -38,4 +41,7 @@
     {% block management_content %}{% endblock %}
   </section>
 </div>
+{% endblock %}
+{% block extra_js %}
+  <script src="{% static 'core/management.js' %}" defer></script>
 {% endblock %}
