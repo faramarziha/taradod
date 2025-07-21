@@ -4,57 +4,70 @@
 <h2 class="page-title">
   <i class="fas fa-chart-bar"></i> داشبورد مدیریت
 </h2>
-<div class="dashboard-stats">
-  <div class="dashboard-card">
-    <h3>{{ total_users }}</h3>
-    کل کاربران
-  </div>
-  <div class="dashboard-card">
-    <h3>{{ today_logs }}</h3>
-    تردد امروز
-  </div>
-  <div class="dashboard-card">
-    <h3>{{ users_without_face }}</h3>
-    بدون ثبت چهره
-  </div>
-  <div class="dashboard-card">
-    <h3>{{ present_count }}</h3>
-    حاضر امروز
-  </div>
-  <div class="dashboard-card">
-    <h3>{{ absent_count }}</h3>
-    غایب امروز
-  </div>
-  <div class="dashboard-card">
-    <h3>{{ leave_count }}</h3>
-    در مرخصی
-  </div>
-  <div class="dashboard-card">
-    <h3>{{ total_hours }}</h3>
-    مجموع ساعات
+
+<div class="card dashboard-panel fade-in">
+  <h3 class="panel-title"><i class="fas fa-chart-pie"></i> آمار کلی</h3>
+  <div class="dashboard-stats">
+    <div class="dashboard-card">
+      <i class="fas fa-users"></i>
+      <span class="value">{{ total_users }}</span>
+      <span class="label">کل کاربران</span>
+    </div>
+    <div class="dashboard-card">
+      <i class="fas fa-clock"></i>
+      <span class="value">{{ today_logs }}</span>
+      <span class="label">تردد امروز</span>
+    </div>
+    <div class="dashboard-card">
+      <i class="fas fa-user-slash"></i>
+      <span class="value">{{ users_without_face }}</span>
+      <span class="label">بدون ثبت چهره</span>
+    </div>
+    <div class="dashboard-card">
+      <i class="fas fa-user-check"></i>
+      <span class="value">{{ present_count }}</span>
+      <span class="label">حاضر امروز</span>
+    </div>
+    <div class="dashboard-card">
+      <i class="fas fa-user-times"></i>
+      <span class="value">{{ absent_count }}</span>
+      <span class="label">غایب امروز</span>
+    </div>
+    <div class="dashboard-card">
+      <i class="fas fa-plane"></i>
+      <span class="value">{{ leave_count }}</span>
+      <span class="label">در مرخصی</span>
+    </div>
+    <div class="dashboard-card">
+      <i class="fas fa-hourglass-half"></i>
+      <span class="value">{{ total_hours }}</span>
+      <span class="label">مجموع ساعات</span>
+    </div>
   </div>
 </div>
 
-<h3 style="margin-top:1.5rem;">هشدارها</h3>
-<ul class="alerts-list">
-  {% for u in tardy_users %}
-    <li>{{ u.get_full_name }} - {{ u.personnel_code }} دیرکرد در ورود</li>
-  {% endfor %}
-  {% if pending_edits %}
-    <li>{{ pending_edits }} درخواست ویرایش تردد در انتظار</li>
-  {% endif %}
-  {% if pending_leaves %}
-    <li>{{ pending_leaves }} درخواست مرخصی در انتظار</li>
-  {% endif %}
-  {% if suspicious_today %}
-    <li>{{ suspicious_today }} مورد عدم تطابق چهره</li>
-  {% endif %}
-  {% if not tardy_users and not pending_edits and not pending_leaves and not suspicious_today %}
-    <li>هشداری وجود ندارد.</li>
-  {% endif %}
-</ul>
+<div class="card fade-in">
+  <h3 class="panel-title"><i class="fas fa-bell"></i> هشدارها</h3>
+  <ul class="alerts-list">
+    {% for u in tardy_users %}
+      <li>{{ u.get_full_name }} - {{ u.personnel_code }} دیرکرد در ورود</li>
+    {% endfor %}
+    {% if pending_edits %}
+      <li>{{ pending_edits }} درخواست ویرایش تردد در انتظار</li>
+    {% endif %}
+    {% if pending_leaves %}
+      <li>{{ pending_leaves }} درخواست مرخصی در انتظار</li>
+    {% endif %}
+    {% if suspicious_today %}
+      <li>{{ suspicious_today }} مورد عدم تطابق چهره</li>
+    {% endif %}
+    {% if not tardy_users and not pending_edits and not pending_leaves and not suspicious_today %}
+      <li>هشداری وجود ندارد.</li>
+    {% endif %}
+  </ul>
+</div>
 
-<div class="employee-lists">
+<div class="employee-lists card fade-in">
   <div>
     <h4>حاضرین امروز</h4>
     <ul>
@@ -86,7 +99,8 @@
     </ul>
   </div>
 </div>
-<div style="margin-top:2rem;">
+
+<div class="card fade-in" style="margin-top:2rem;">
   <canvas id="logsChart" height="120"></canvas>
 </div>
 {% endblock %}
