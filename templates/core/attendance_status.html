@@ -2,6 +2,7 @@
 {% load jformat %}
 {% block title %}وضعیت حضور و غیاب{% endblock %}
 {% block management_content %}
+<div class="card page page-md fade-in">
 <h2 class="page-title">
   <i class="fas fa-user-check"></i> وضعیت حضور و غیاب
 </h2>
@@ -14,7 +15,7 @@
   تاریخ: {{ jdate }}
 </div>
 <div class="employee-lists">
-  <div>
+  <div class="status-card present fade-in">
     <h4>حاضرین</h4>
     <ul id="present-list">
       {% for u in present_users %}
@@ -24,7 +25,7 @@
       {% endfor %}
     </ul>
   </div>
-  <div>
+  <div class="status-card absent fade-in">
     <h4>غایبین</h4>
     <ul id="absent-list">
       {% for u in absent_users %}
@@ -34,7 +35,7 @@
       {% endfor %}
     </ul>
   </div>
-  <div>
+  <div class="status-card leave fade-in">
     <h4>مرخصی</h4>
     <ul id="leave-list">
       {% for u in leave_users %}
