@@ -6,6 +6,19 @@
   <i class="fas fa-exclamation-triangle"></i>
   تشخیص‌های مشکوک
 </h2>
+<div class="request-cards">
+  {% for log in logs %}
+  <div class="request-card fade-in">
+    <div class="row"><span class="label">کاربر:</span><span>{% if log.matched_user %}{{ log.matched_user.get_full_name }} - {{ log.matched_user.personnel_code }}{% else %}نامشخص{% endif %}</span></div>
+    <div class="row"><span class="label">فاصله:</span><span>{{ log.similarity|floatformat:3 }}</span></div>
+    <div class="row"><span class="label">زمان:</span><span>{{ log.timestamp|jformat:"%Y/%m/%d %H:%M" }}</span></div>
+    <div class="row"><span class="label">تصویر:</span>{% if log.image %}<img src="{{ log.image.url }}" height="60">{% else %}-{% endif %}</div>
+  </div>
+  {% empty %}
+  <div class="alert-error">موردی ثبت نشده است.</div>
+  {% endfor %}
+</div>
+<div class="table-responsive">
 <table class="management-table">
   <thead>
     <tr>
@@ -28,4 +41,5 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% endblock %}
