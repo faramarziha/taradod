@@ -35,8 +35,9 @@
   </div>
 </div>
 
-<h3 style="margin-top:1.5rem;">هشدارها</h3>
-<ul class="alerts-list">
+<details class="alerts-section" open>
+  <summary>هشدارها</summary>
+  <ul class="alerts-list">
   {% for u in tardy_users %}
     <li>{{ u.get_full_name }} - {{ u.personnel_code }} دیرکرد در ورود</li>
   {% endfor %}
@@ -53,6 +54,7 @@
     <li>هشداری وجود ندارد.</li>
   {% endif %}
 </ul>
+</details>
 
 <div class="employee-lists">
   <div>

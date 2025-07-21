@@ -8,10 +8,11 @@
 <a class="btn" href="{% url 'user_add' %}" style="margin-bottom:1.4rem;">
   <i class="fas fa-user-plus" style="margin-left:0.5rem;"></i> افزودن کاربر جدید
 </a>
+<div class="table-responsive">
 <table class="management-table">
   <thead>
     <tr>
-      <th>ردیف</th>
+      <th class="hide-xs">ردیف</th>
       <th>کد پرسنلی</th>
       <th>نام و نام خانوادگی</th>
       <th>وضعیت</th>
@@ -22,7 +23,7 @@
   <tbody>
     {% for user in users %}
       <tr>
-        <td>{{ forloop.counter }}</td>
+        <td class="hide-xs">{{ forloop.counter }}</td>
         <td>{{ user.personnel_code }}</td>
         <td>{{ user.get_full_name }}</td>
         <td>
@@ -39,7 +40,7 @@
             <i class="fa fa-times-circle" style="color: var(--color-error);"></i>
           {% endif %}
         </td>
-        <td>
+        <td class="action-icons">
           <a href="{% url 'user_update' user.pk %}" title="ویرایش"><i class="fas fa-edit"></i></a>
           <a href="{% url 'register_face_page_for_user' user.pk %}" title="ثبت چهره"><i class="fas fa-camera"></i></a>
           <a href="{% url 'user_logs_admin' user.pk %}" title="ترددها"><i class="fas fa-list"></i></a>
@@ -51,4 +52,5 @@
     {% endfor %}
   </tbody>
 </table>
+</div>
 {% endblock %}

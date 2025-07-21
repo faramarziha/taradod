@@ -254,17 +254,29 @@ label {
   overflow-x: auto;
 }
 
+@media (max-width: 600px) {
+  .hide-xs { display: none !important; }
+}
+
 /* profile page tweaks */
 .profile-card {
-  text-align: right;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: slideFade 0.4s ease both;
 }
 .profile-avatar {
-  width: 80px;
-  height: 80px;
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
   object-fit: cover;
   box-shadow: var(--shadow);
   margin-bottom: 1rem;
+  transition: transform 0.3s;
+}
+.profile-avatar:hover {
+  transform: rotate(3deg) scale(1.05);
 }
 .profile-details {
   list-style: none;
@@ -278,7 +290,8 @@ label {
   margin-top: 1.5rem;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  justify-content: center;
+  gap: 0.8rem;
 }
 
 /* general page wrapper for centering card layouts */
@@ -289,6 +302,7 @@ label {
 }
 .page-md { max-width: 500px; }
 .page-sm { max-width: 420px; }
+.page-lg { max-width: 900px; }
 
 .page-title {
   color: var(--color-primary-dark);
@@ -298,6 +312,7 @@ label {
   align-items: center;
   gap: 0.5rem;
   justify-content: flex-start;
+  font-size: clamp(1.25rem, 2.5vw, 1.8rem);
 }
 
 .error, .alert-error, .alert-success {
@@ -332,6 +347,7 @@ label {
 
 .fade-in { animation: fadeIn 0.3s forwards; }
 .fade-out { animation: fadeOut 0.4s forwards; }
+.slide-in { animation: slideFade 0.4s forwards; }
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-8px); }
@@ -341,11 +357,16 @@ label {
   from { opacity: 1; }
   to { opacity: 0; transform: translateY(-8px); }
 }
+@keyframes slideFade {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 @media (min-width: 800px) {
   .header-inner,
   #main-content {
-    max-width: 950px;
+    width: 100%;
+    max-width: 1200px;
     margin: 0 auto;
     padding: 1.5rem 1rem;
     border-radius: var(--radius);
