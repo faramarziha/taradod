@@ -5,15 +5,16 @@
 <h2 class="page-title">
   <i class="fas fa-user-check"></i> وضعیت حضور و غیاب
 </h2>
-<form method="get" style="margin-bottom:1rem;text-align:right;">
-  {{ form.date.label_tag }}
-  {{ form.date }}
-  <button type="submit" class="btn">نمایش</button>
-</form>
-<div style="margin-bottom:1rem;text-align:right;">
-  تاریخ: {{ jdate }}
-</div>
-<div class="employee-lists">
+<div class="card fade-in">
+  <form method="get" class="filter-form">
+    {{ form.date.label_tag }}
+    {{ form.date }}
+    <button type="submit" class="btn">نمایش</button>
+  </form>
+  <div style="margin-bottom:1rem;text-align:right;">
+    تاریخ: {{ jdate }}
+  </div>
+  <div class="employee-lists">
   <div>
     <h4>حاضرین</h4>
     <ul id="present-list">
@@ -43,6 +44,7 @@
         <li>موردی نیست</li>
       {% endfor %}
     </ul>
+  </div>
   </div>
 </div>
 {% endblock %}

@@ -2,7 +2,7 @@
 {% load jformat %}
 {% block title %}درخواست‌های ویرایش{% endblock %}
 {% block content %}
-<div class="card page page-md">
+<div class="card page page-lg fade-in">
   <h2 class="page-title">
     <i class="fas fa-edit" style="margin-left:0.5rem;"></i>
     درخواست‌های ویرایش {{ user.get_full_name }}
@@ -12,7 +12,7 @@
   </div>
   {% if requests %}
   <div class="table-responsive">
-  <table class="management-table">
+  <table class="management-table responsive-table">
     <thead>
       <tr>
         <th>زمان</th>
