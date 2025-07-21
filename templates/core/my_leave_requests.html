@@ -11,6 +11,28 @@
     کد پرسنلی: {{ user.personnel_code }}
   </div>
   {% if requests %}
+  <div class="request-cards">
+    {% for r in requests %}
+    <div class="request-card fade-in">
+      <div class="row"><span class="label">از:</span><span>{{ r.start_date|jformat:"%Y/%m/%d" }}</span></div>
+      <div class="row"><span class="label">تا:</span><span>{{ r.end_date|jformat:"%Y/%m/%d" }}</span></div>
+      <div class="row"><span class="label">توضیح:</span><span>{{ r.reason|default:"-" }}</span></div>
+      <div class="row"><span class="label">وضعیت:</span>
+        <span>{% if r.status == 'pending' %}در انتظار{% elif r.status == 'approved' %}تأیید شده{% elif r.status == 'cancelled' %}لغو شده{% else %}رد شده{% endif %}</span>
+      </div>
+      <div class="row"><span class="label">توضیح مدیر:</span><span>{{ r.manager_note|default:"-" }}</span></div>
+      <div class="actions">
+        {% if r.status == 'pending' %}
+        <form method="post" action="{% url 'cancel_leave_request' r.id %}" style="display:flex;gap:0.4rem;">
+          {% csrf_token %}
+          <button class="btn btn-danger" style="font-size:0.8rem;">لغو</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
   <div class="table-responsive">
   <table class="management-table">
     <thead>

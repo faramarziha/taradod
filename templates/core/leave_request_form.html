@@ -17,8 +17,10 @@
       {{ form.reason.label_tag }}<br>
       {{ form.reason }}
     </div>
-    <button type="submit" class="btn"><i class="fas fa-check" style="margin-left:0.4rem;"></i> ثبت درخواست</button>
-    <a class="btn" href="{% url 'user_profile' %}"><i class="fas fa-chevron-right" style="margin-left:0.4rem;"></i> بازگشت</a>
+    <div class="profile-actions">
+      <button type="submit" class="btn"><i class="fas fa-check" style="margin-left:0.4rem;"></i> ثبت درخواست</button>
+      <a class="btn" href="{% url 'user_profile' %}"><i class="fas fa-chevron-right" style="margin-left:0.4rem;"></i> بازگشت</a>
+    </div>
   </form>
 </div>
 {% endblock %}
