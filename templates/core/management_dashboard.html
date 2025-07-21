@@ -1,7 +1,7 @@
 {% extends "core/base_management.html" %}
 {% block title %}داشبورد مدیریت{% endblock %}
 {% block management_content %}
-<h2 class="page-title">
+<h2 class="page-title dashboard-title">
   <i class="fas fa-chart-bar"></i> داشبورد مدیریت
 </h2>
 <div class="dashboard-stats">
@@ -34,25 +34,26 @@
     مجموع ساعات
   </div>
 </div>
-
-<h3 style="margin-top:1.5rem;">هشدارها</h3>
-<ul class="alerts-list">
-  {% for u in tardy_users %}
-    <li>{{ u.get_full_name }} - {{ u.personnel_code }} دیرکرد در ورود</li>
-  {% endfor %}
-  {% if pending_edits %}
-    <li>{{ pending_edits }} درخواست ویرایش تردد در انتظار</li>
-  {% endif %}
-  {% if pending_leaves %}
-    <li>{{ pending_leaves }} درخواست مرخصی در انتظار</li>
-  {% endif %}
-  {% if suspicious_today %}
-    <li>{{ suspicious_today }} مورد عدم تطابق چهره</li>
-  {% endif %}
-  {% if not tardy_users and not pending_edits and not pending_leaves and not suspicious_today %}
-    <li>هشداری وجود ندارد.</li>
-  {% endif %}
-</ul>
+<details class="alerts-collapse"{% if not tardy_users and not pending_edits and not pending_leaves and not suspicious_today %} open{% endif %}>
+  <summary><i class="fas fa-bell"></i> هشدارها</summary>
+  <ul class="alerts-list">
+    {% for u in tardy_users %}
+      <li>{{ u.get_full_name }} - {{ u.personnel_code }} دیرکرد در ورود</li>
+    {% endfor %}
+    {% if pending_edits %}
+      <li>{{ pending_edits }} درخواست ویرایش تردد در انتظار</li>
+    {% endif %}
+    {% if pending_leaves %}
+      <li>{{ pending_leaves }} درخواست مرخصی در انتظار</li>
+    {% endif %}
+    {% if suspicious_today %}
+      <li>{{ suspicious_today }} مورد عدم تطابق چهره</li>
+    {% endif %}
+    {% if not tardy_users and not pending_edits and not pending_leaves and not suspicious_today %}
+      <li>هشداری وجود ندارد.</li>
+    {% endif %}
+  </ul>
+</details>
 
 <div class="employee-lists">
   <div>
