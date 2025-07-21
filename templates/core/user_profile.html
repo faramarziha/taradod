@@ -3,15 +3,12 @@
 {% block title %}پروفایل کاربر{% endblock %}
 {% block content %}
 <div class="card page page-md profile-card">
-  <h2 class="page-title">
-    <i class="fa fa-user"></i>
-    پروفایل {{ user.get_full_name }}
-  </h2>
-  <img class="profile-avatar" src="{% if user.face_image %}{{ user.face_image.url }}{% else %}{% static 'core/avatar.png' %}{% endif %}" alt="{{ user.get_full_name }}">
-  <ul class="profile-details">
-    <li>کد پرسنلی: {{ user.personnel_code }}</li>
-    <li>کد ملی: {{ user.national_id }}</li>
-  </ul>
+  <div class="profile-banner fade-in">
+    <img class="avatar" src="{% if user.face_image %}{{ user.face_image.url }}{% else %}{% static 'core/avatar.png' %}{% endif %}" alt="{{ user.get_full_name }}">
+    <div class="name">{{ user.get_full_name }}</div>
+    <div class="info">کد پرسنلی: {{ user.personnel_code }}</div>
+    <div class="info">کد ملی: {{ user.national_id }}</div>
+  </div>
   <div class="profile-actions">
     <a class="btn" href="{% url 'my_logs' %}"><i class="fa fa-list-alt" style="margin-left:0.4rem;"></i> مشاهده ترددها</a>
     <a class="btn" href="{% url 'user_leave_requests' %}"><i class="fa fa-calendar" style="margin-left:0.4rem;"></i> مرخصی‌های من</a>

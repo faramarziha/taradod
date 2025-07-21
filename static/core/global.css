@@ -281,6 +281,50 @@ label {
   gap: 0.5rem;
 }
 
+/* enhanced profile banner */
+.profile-banner {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 1.4rem 1rem;
+  text-align: center;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow);
+  animation: fadeIn 0.5s ease-in-out;
+}
+.profile-banner .avatar {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: var(--shadow);
+  border: 3px solid #fff;
+  margin: 0 auto 0.8rem auto;
+}
+.profile-banner .name {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+}
+.profile-banner .info { font-size: 0.95rem; }
+
+/* cards for log tables on small screens */
+.logs-cards { display: none; }
+.log-card {
+  background: var(--color-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--color-border);
+  padding: 0.8rem;
+}
+.log-card .row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.3rem;
+  font-size: 0.95rem;
+}
+.log-card .label { color: var(--color-muted); }
+
 /* general page wrapper for centering card layouts */
 .page {
   width: 100%;
@@ -390,6 +434,8 @@ label {
     font-size: 0.89rem !important;
     padding: 0.7rem 0 !important;
   }
+  .table-responsive, .management-table { display: none; }
+  .logs-cards { display: flex; flex-direction: column; gap: 1rem; }
 }
 
 @media (max-width: 480px) {
