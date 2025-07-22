@@ -210,6 +210,14 @@ label {
   margin-bottom: 1.1rem;
 }
 
+/* generic grid layout for forms */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+.form-grid-2 { grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); }
+
 .card {
   background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-bg) 100%);
   box-shadow: var(--shadow);
@@ -217,6 +225,19 @@ label {
   padding: 1.3rem 1.1rem;
   margin: 1rem 0;
   border: 1px solid var(--color-border);
+}
+
+/* card layout for log items */
+.log-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.6rem 0.8rem;
+  margin-bottom: 0.7rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 /* table layout used on both management and user pages */
@@ -254,13 +275,50 @@ label {
   overflow-x: auto;
 }
 
+/* table rows become cards on small screens */
+.card-table {
+  width: 100%;
+}
+.card-table tbody tr {
+  transition: background var(--transition);
+}
+@media (max-width: 650px) {
+  .card-table thead { display: none; }
+  .card-table tbody tr {
+    display: block;
+    margin-bottom: 0.8rem;
+    background: var(--color-surface);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 0.6rem 0.8rem;
+  }
+  .card-table tbody td {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.35rem 0;
+    border: none;
+  }
+  .card-table tbody td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--color-primary-dark);
+  }
+}
+
 /* profile page tweaks */
 .profile-card {
   text-align: right;
 }
-.profile-avatar {
-  width: 80px;
+.profile-banner {
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
   height: 80px;
+  border-radius: var(--radius) var(--radius) 0 0;
+  margin: -1.3rem -1.1rem 1rem -1.1rem;
+}
+.profile-avatar {
+  width: 96px;
+  height: 96px;
   border-radius: 50%;
   object-fit: cover;
   box-shadow: var(--shadow);
@@ -322,6 +380,27 @@ label {
 .alert-error::before { content: "\f071"; }
 .alert-success::before { content: "\f058"; }
 
+/* status pill utility */
+.pill {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+.pill-green { background: var(--color-secondary); color: #fff; }
+.pill-red { background: var(--color-error); color: #fff; }
+.pill-gray { background: var(--color-muted); color: #fff; }
+
+/* icon spacing for buttons */
+.btn i, button i { margin-left: 0.4rem; }
+
+/* utility shadows and borders */
+.shadow { box-shadow: var(--shadow); }
+.border { border: 1px solid var(--color-border); }
+.rounded { border-radius: var(--radius); }
+
 #main-alert {
   position: fixed;
   top: 2.2rem;
@@ -332,6 +411,8 @@ label {
 
 .fade-in { animation: fadeIn 0.3s forwards; }
 .fade-out { animation: fadeOut 0.4s forwards; }
+.slide-up { animation: slideUp 0.35s forwards; }
+.slide-right { animation: slideRight 0.35s forwards; }
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-8px); }
@@ -340,6 +421,14 @@ label {
 @keyframes fadeOut {
   from { opacity: 1; }
   to { opacity: 0; transform: translateY(-8px); }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideRight {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
 @media (min-width: 800px) {

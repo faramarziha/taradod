@@ -14,7 +14,7 @@
   تاریخ: {{ jdate }}
 </div>
 <div class="employee-lists">
-  <div>
+  <div class="card log-card fade-in">
     <h4>حاضرین</h4>
     <ul id="present-list">
       {% for u in present_users %}
@@ -24,7 +24,7 @@
       {% endfor %}
     </ul>
   </div>
-  <div>
+  <div class="card log-card fade-in">
     <h4>غایبین</h4>
     <ul id="absent-list">
       {% for u in absent_users %}
@@ -34,7 +34,7 @@
       {% endfor %}
     </ul>
   </div>
-  <div>
+  <div class="card log-card fade-in">
     <h4>مرخصی</h4>
     <ul id="leave-list">
       {% for u in leave_users %}

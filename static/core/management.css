@@ -148,9 +148,11 @@
 }
 .employee-lists ul {
   list-style: none;
-  padding: 0.4rem 0.6rem;
+  padding: 0.6rem 0.8rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  background: var(--color-surface);
 }
 @media (min-width: 600px) {
   .dashboard-stats {

@@ -2,20 +2,23 @@
 {% load static %}
 {% block title %}پروفایل کاربر{% endblock %}
 {% block content %}
-<div class="card page page-md profile-card">
+<div class="card page page-md profile-card fade-in slide-up">
+  <div class="profile-banner"></div>
   <h2 class="page-title">
     <i class="fa fa-user"></i>
     پروفایل {{ user.get_full_name }}
   </h2>
-  <img class="profile-avatar" src="{% if user.face_image %}{{ user.face_image.url }}{% else %}{% static 'core/avatar.png' %}{% endif %}" alt="{{ user.get_full_name }}">
-  <ul class="profile-details">
-    <li>کد پرسنلی: {{ user.personnel_code }}</li>
-    <li>کد ملی: {{ user.national_id }}</li>
-  </ul>
+  <div class="form-grid-2" style="align-items:center;">
+    <img class="profile-avatar" src="{% if user.face_image %}{{ user.face_image.url }}{% else %}{% static 'core/avatar.png' %}{% endif %}" alt="{{ user.get_full_name }}">
+    <ul class="profile-details">
+      <li>کد پرسنلی: {{ user.personnel_code }}</li>
+      <li>کد ملی: {{ user.national_id }}</li>
+    </ul>
+  </div>
   <div class="profile-actions">
-    <a class="btn" href="{% url 'my_logs' %}"><i class="fa fa-list-alt" style="margin-left:0.4rem;"></i> مشاهده ترددها</a>
-    <a class="btn" href="{% url 'user_leave_requests' %}"><i class="fa fa-calendar" style="margin-left:0.4rem;"></i> مرخصی‌های من</a>
-    <a class="btn" href="{% url 'user_inquiry' %}"><i class="fas fa-chevron-right" style="margin-left:0.4rem;"></i> خروج</a>
+    <a class="btn" href="{% url 'my_logs' %}"><i class="fa fa-list-alt"></i> مشاهده ترددها</a>
+    <a class="btn" href="{% url 'user_leave_requests' %}"><i class="fa fa-calendar"></i> مرخصی‌های من</a>
+    <a class="btn" href="{% url 'user_inquiry' %}"><i class="fas fa-chevron-right"></i> خروج</a>
   </div>
 </div>
 {% endblock %}
