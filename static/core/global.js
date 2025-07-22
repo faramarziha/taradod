@@ -34,6 +34,9 @@ document.addEventListener("DOMContentLoaded", () => {
     navToggle.addEventListener("click", () => {
       mainNav.classList.toggle("open");
     });
+    mainNav.querySelectorAll("a").forEach(link => {
+      link.addEventListener("click", () => mainNav.classList.remove("open"));
+    });
   }
 
 });

@@ -14,8 +14,16 @@
     {% for day, info in daily_logs.items %}
     <div class="log-card fade-in">
       <span>{{ jyear }}/{{ jmonth|stringformat:"02d" }}/{{ day|stringformat:"02d" }}</span>
-      <span>{% if info.in %}{{ info.in|time:"H:i" }}{% else %}-{% endif %}</span>
-      <span>{% if info.out %}{{ info.out|time:"H:i" }}{% else %}-{% endif %}</span>
+      <span>
+        {% if info.in %}
+          {% for t in info.in %}{{ t|time:"H:i" }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+        {% else %}-{% endif %}
+      </span>
+      <span>
+        {% if info.out %}
+          {% for t in info.out %}{{ t|time:"H:i" }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+        {% else %}-{% endif %}
+      </span>
     </div>
     {% endfor %}
   </div>
@@ -28,8 +36,16 @@
         {% for day, info in daily_logs.items %}
         <tr>
           <td>{{ jyear }}/{{ jmonth|stringformat:"02d" }}/{{ day|stringformat:"02d" }}</td>
-          <td>{% if info.in %}{{ info.in|time:"H:i" }}{% else %}-{% endif %}</td>
-          <td>{% if info.out %}{{ info.out|time:"H:i" }}{% else %}-{% endif %}</td>
+          <td>
+            {% if info.in %}
+              {% for t in info.in %}{{ t|time:"H:i" }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+            {% else %}-{% endif %}
+          </td>
+          <td>
+            {% if info.out %}
+              {% for t in info.out %}{{ t|time:"H:i" }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+            {% else %}-{% endif %}
+          </td>
         </tr>
         {% endfor %}
       </tbody>

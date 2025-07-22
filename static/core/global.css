@@ -5,6 +5,11 @@
   font-style: normal;
 }
 
+/* ensure padding doesn't cause overflow */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 /* Mobile-first redesign */
 :root {
   --color-bg: #f7fafd;
@@ -131,6 +136,14 @@ header nav a:hover {
 }
 #main-nav.open { display: flex; }
 
+@media (max-width: 650px) {
+  #main-nav {
+    left: 0.5rem;
+    right: 0.5rem;
+    width: auto;
+  }
+}
+
 #main-content {
   flex: 1;
   width: 100%;
@@ -139,6 +152,7 @@ header nav a:hover {
   background: var(--color-surface);
   border-radius: 0;
   box-shadow: var(--shadow);
+  overflow-x: hidden;
 }
 
 .site-footer {

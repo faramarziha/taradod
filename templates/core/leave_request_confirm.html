@@ -9,6 +9,9 @@
   <form method="post">
     {% csrf_token %}
     {% for f in form.hidden_fields %}{{ f }}{% endfor %}
+    {% for f in form.visible_fields %}
+      <input type="hidden" name="{{ f.name }}" value="{{ f.value }}">
+    {% endfor %}
     <input type="hidden" name="confirm" value="1">
     <button class="btn" type="submit">ثبت</button>
   </form>

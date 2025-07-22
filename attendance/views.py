@@ -20,15 +20,16 @@ def my_logs(request):
     days = jdatetime.j_days_in_month[jm - 1]
     start_g = jdatetime.date(jy, jm, 1).togregorian()
     end_g = jdatetime.date(jy, jm, days).togregorian()
-    qs = AttendanceLog.objects.filter(user=user, timestamp__date__range=(start_g, end_g)).order_by("timestamp")
-    daily = {d: {"in": None, "out": None} for d in range(1, days + 1)}
+    qs = AttendanceLog.objects.filter(
+        user=user, timestamp__date__range=(start_g, end_g)
+    ).order_by("timestamp")
+    daily = {d: {"in": [], "out": []} for d in range(1, days + 1)}
     for log in qs:
         jd = jdatetime.date.fromgregorian(date=log.timestamp.date())
-        info = daily.get(jd.day)
-        if log.log_type == "in" and info["in"] is None:
-            info["in"] = log.timestamp.time()
-        if log.log_type == "out":
-            info["out"] = log.timestamp.time()
+        if log.log_type == "in":
+            daily[jd.day]["in"].append(log.timestamp.time())
+        else:
+            daily[jd.day]["out"].append(log.timestamp.time())
     prev_m = (jdatetime.date(jy, jm, 1) - jdatetime.timedelta(days=1))
     next_m = (jdatetime.date(jy, jm, days) + jdatetime.timedelta(days=1))
     context = {
