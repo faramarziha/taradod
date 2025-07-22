@@ -8,47 +8,76 @@
 <a class="btn" href="{% url 'user_add' %}" style="margin-bottom:1.4rem;">
   <i class="fas fa-user-plus" style="margin-left:0.5rem;"></i> افزودن کاربر جدید
 </a>
-<table class="management-table">
-  <thead>
-    <tr>
-      <th>ردیف</th>
-      <th>کد پرسنلی</th>
-      <th>نام و نام خانوادگی</th>
-      <th>وضعیت</th>
-      <th>ثبت چهره</th>
-      <th>عملیات</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for user in users %}
+<div class="request-cards">
+  {% for user in users %}
+  <div class="request-card fade-in">
+    <div class="row"><span class="label">کد پرسنلی:</span><span>{{ user.personnel_code }}</span></div>
+    <div class="row"><span class="label">نام و نام خانوادگی:</span><span>{{ user.get_full_name }}</span></div>
+    <div class="row"><span class="label">وضعیت:</span>
+      <span>{% if user.is_active %}فعال{% else %}غیرفعال{% endif %}</span>
+    </div>
+    <div class="row"><span class="label">ثبت چهره:</span>
+      {% if user.face_encoding %}
+        <i class="fa fa-check-circle" style="color: var(--color-secondary);"></i>
+      {% else %}
+        <i class="fa fa-times-circle" style="color: var(--color-error);"></i>
+      {% endif %}
+    </div>
+    <div class="actions">
+      <a href="{% url 'user_update' user.pk %}" class="btn" style="font-size:0.9rem;">ویرایش</a>
+      <a href="{% url 'register_face_page_for_user' user.pk %}" class="btn" style="font-size:0.9rem;"><i class="fas fa-camera"></i></a>
+      <a href="{% url 'user_logs_admin' user.pk %}" class="btn" style="font-size:0.9rem;background:var(--color-muted);">ترددها</a>
+      <a href="{% url 'user_delete' user.pk %}" class="btn btn-danger" style="font-size:0.9rem;">حذف</a>
+    </div>
+  </div>
+  {% empty %}
+  <div class="alert-error">هیچ کاربری یافت نشد</div>
+  {% endfor %}
+</div>
+
+<div class="table-responsive">
+  <table class="management-table">
+    <thead>
       <tr>
-        <td>{{ forloop.counter }}</td>
-        <td>{{ user.personnel_code }}</td>
-        <td>{{ user.get_full_name }}</td>
-        <td>
-          {% if user.is_active %}
-            <span class="alert-success" style="padding:0.15rem 0.4rem;font-size:0.95em;">فعال</span>
-          {% else %}
-            <span class="alert-error" style="padding:0.15rem 0.4rem;font-size:0.95em;">غیرفعال</span>
-          {% endif %}
-        </td>
-        <td>
-          {% if user.face_encoding %}
-            <i class="fa fa-check-circle" style="color: var(--color-secondary);"></i>
-          {% else %}
-            <i class="fa fa-times-circle" style="color: var(--color-error);"></i>
-          {% endif %}
-        </td>
-        <td>
-          <a href="{% url 'user_update' user.pk %}" title="ویرایش"><i class="fas fa-edit"></i></a>
-          <a href="{% url 'register_face_page_for_user' user.pk %}" title="ثبت چهره"><i class="fas fa-camera"></i></a>
-          <a href="{% url 'user_logs_admin' user.pk %}" title="ترددها"><i class="fas fa-list"></i></a>
-          <a href="{% url 'user_delete' user.pk %}" title="حذف"><i class="fas fa-trash-alt"></i></a>
-        </td>
+        <th>ردیف</th>
+        <th>کد پرسنلی</th>
+        <th>نام و نام خانوادگی</th>
+        <th>وضعیت</th>
+        <th>ثبت چهره</th>
+        <th>عملیات</th>
       </tr>
-    {% empty %}
-      <tr><td colspan="6">هیچ کاربری یافت نشد</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
+    </thead>
+    <tbody>
+      {% for user in users %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ user.personnel_code }}</td>
+          <td>{{ user.get_full_name }}</td>
+          <td>
+            {% if user.is_active %}
+              <span class="alert-success" style="padding:0.15rem 0.4rem;font-size:0.95em;">فعال</span>
+            {% else %}
+              <span class="alert-error" style="padding:0.15rem 0.4rem;font-size:0.95em;">غیرفعال</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if user.face_encoding %}
+              <i class="fa fa-check-circle" style="color: var(--color-secondary);"></i>
+            {% else %}
+              <i class="fa fa-times-circle" style="color: var(--color-error);"></i>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{% url 'user_update' user.pk %}" title="ویرایش"><i class="fas fa-edit"></i></a>
+            <a href="{% url 'register_face_page_for_user' user.pk %}" title="ثبت چهره"><i class="fas fa-camera"></i></a>
+            <a href="{% url 'user_logs_admin' user.pk %}" title="ترددها"><i class="fas fa-list"></i></a>
+            <a href="{% url 'user_delete' user.pk %}" title="حذف"><i class="fas fa-trash-alt"></i></a>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6">هیچ کاربری یافت نشد</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
 {% endblock %}
