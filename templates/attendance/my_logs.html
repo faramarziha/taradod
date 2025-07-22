@@ -10,6 +10,15 @@
     <span style="margin:0 1rem;">{{ jyear }}/{{ jmonth }}</span>
     <a class="btn" href="?month={{ next_month }}">ماه بعد <i class="fas fa-chevron-left"></i></a>
   </div>
+  <div class="log-cards">
+    {% for day, info in daily_logs.items %}
+    <div class="log-card fade-in">
+      <span>{{ jyear }}/{{ jmonth|stringformat:"02d" }}/{{ day|stringformat:"02d" }}</span>
+      <span>{% if info.in %}{{ info.in|time:"H:i" }}{% else %}-{% endif %}</span>
+      <span>{% if info.out %}{{ info.out|time:"H:i" }}{% else %}-{% endif %}</span>
+    </div>
+    {% endfor %}
+  </div>
   <div class="table-responsive">
     <table class="management-table">
       <thead>
