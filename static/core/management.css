@@ -85,6 +85,21 @@
   background: var(--color-primary);
   color: #fff;
 }
+.management-sidebar .menu-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 1rem;
+}
+.management-sidebar .menu-section-title {
+  font-size: 0.95rem;
+  color: var(--color-muted);
+  margin: 0.2rem 0;
+  padding-right: 0.2rem;
+}
+.management-sidebar .menu-section a {
+  padding-right: 1.2rem;
+}
 .management-content {
   flex: 1;
   background: var(--color-surface);
