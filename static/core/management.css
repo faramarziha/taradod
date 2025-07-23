@@ -234,7 +234,7 @@
 }
 .charts-grid canvas { flex: 0 0 220px; }
 
-@media (min-width: 900px) {
+@media (min-width: 768px) {
   .management-layout {
     flex-direction: row-reverse;
     gap: 2rem;
@@ -260,6 +260,33 @@
   .management-content {
     padding: 2.2rem 1.6rem;
     margin-bottom: 1.5rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .management-sidebar {
+    position: fixed;
+    top: 0;
+    right: -250px;
+    height: 100%;
+    width: 220px;
+    max-width: 80%;
+    transition: right var(--transition);
+    z-index: 2000;
+    overflow-y: auto;
+  }
+  .management-sidebar.open {
+    right: 0;
+  }
+  .sidebar-overlay {
+    display: none;
+  }
+  body.sidebar-open .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 1500;
   }
 }
 

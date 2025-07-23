@@ -1,13 +1,17 @@
 {% extends "core/base.html" %}
 {% load static %}
+{% block header_nav_links %}
+  <a href="{% url 'home' %}"><i class="fas fa-home"></i> صفحه اصلی</a>
+{% endblock %}
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'core/management.css' %}">
 {% endblock %}
 {% block content %}
 <div class="management-layout">
-  <aside class="management-sidebar">
+  <aside id="management-sidebar" class="management-sidebar">
     <div class="sidebar-title">پنل مدیریت</div>
     <nav>
+      <a href="{% url 'home' %}"><i class="fas fa-home"></i> صفحه اصلی</a>
       <a href="{% url 'management_dashboard' %}" class="{% if request.resolver_match.url_name == 'management_dashboard' %}active{% endif %}">
         <i class="fas fa-chart-pie"></i> داشبورد
       </a>
@@ -32,10 +36,12 @@
         <a href="{% url 'weekly_holidays' %}" class="{% if request.resolver_match.url_name == 'weekly_holidays' %}active{% endif %}">
           <i class="fas fa-calendar-day"></i> تعطیلات هفتگی
         </a>
+        <a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> خروج</a>
       </nav>
   </aside>
   <section class="management-content">
     {% block management_content %}{% endblock %}
   </section>
 </div>
+<div id="sidebar-overlay" class="sidebar-overlay"></div>
 {% endblock %}
