@@ -944,3 +944,148 @@ def user_logs_admin(request, user_id):
         "form": form,
         "logs": logs,
     })
+
+
+@login_required
+@staff_required
+def management_cartable(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    today = timezone.now().date()
+    pending_edits = EditRequest.objects.filter(status="pending").count()
+    pending_leaves = LeaveRequest.objects.filter(status="pending").count()
+    suspicious_today = SuspiciousLog.objects.filter(timestamp__date=today).count()
+    context = {
+        "pending_edits": pending_edits,
+        "pending_leaves": pending_leaves,
+        "suspicious_today": suspicious_today,
+    }
+    return render(request, "core/management_cartable.html", context)
+
+
+@login_required
+@staff_required
+def daily_performance(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, "core/placeholder.html", {"title": "کارکرد روزانه"})
+
+
+@login_required
+@staff_required
+def management_requests(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, "core/placeholder.html", {"title": "درخواست‌ها"})
+
+
+@login_required
+@staff_required
+def periodic_performance(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, "core/placeholder.html", {"title": "کارکرد دوره‌ای"})
+
+
+@login_required
+@staff_required
+def device_settings(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, "core/placeholder.html", {"title": "تنظیمات دستگاه ثبت تردد"})
+
+
+@login_required
+@staff_required
+def shift_settings(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, "core/placeholder.html", {"title": "شیفت‌ها"})
+
+
+@login_required
+@staff_required
+def policy_settings(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, "core/placeholder.html", {"title": "سیاست‌های سازمانی"})
+
+
+@login_required
+@staff_required
+def group_settings(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, "core/placeholder.html", {"title": "گروه‌های کاری"})
+
+
+@login_required
+@staff_required
+def unit_settings(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, "core/placeholder.html", {"title": "واحدهای کاری"})
+
+
+@login_required
+@staff_required
+def request_type_settings(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, "core/placeholder.html", {"title": "انواع درخواست‌ها"})
+
+
+@login_required
+@staff_required
+def general_settings(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, "core/placeholder.html", {"title": "تنظیمات عمومی مجموعه"})
+
+
+@login_required
+@staff_required
+def report_requests(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, "core/placeholder.html", {"title": "درخواست‌های پرسنل"})
+
+
+@login_required
+@staff_required
+def report_daily(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, "core/placeholder.html", {"title": "کارکرد روزانه پرسنل"})
+
+
+@login_required
+@staff_required
+def report_calculation(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, "core/placeholder.html", {"title": "محاسبه کارکرد"})
+
+
+@login_required
+@staff_required
+def report_periodic(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, "core/placeholder.html", {"title": "کارکرد دوره‌ای پرسنل"})
+
+
+@login_required
+@staff_required
+def report_annual_requests(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, "core/placeholder.html", {"title": "گزارش سالیانه درخواست‌ها"})
+
+
+@login_required
+@staff_required
+def management_account(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, "core/placeholder.html", {"title": "حساب من"})
