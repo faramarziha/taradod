@@ -440,6 +440,44 @@ def cancel_leave_request(request, pk):
     return redirect("user_leave_requests")
 
 
+def my_performance(request):
+    """Show current user's working hours in a date range."""
+    uid = request.session.get("inquiry_user_id")
+    if not uid:
+        return redirect("user_inquiry")
+    u = get_object_or_404(User, id=uid)
+    form = UserLogsRangeForm(request.GET or None)
+    rows = []
+    total_seconds = 0
+    if form.is_valid():
+        start = form.cleaned_data.get("start_g")
+        end = form.cleaned_data.get("end_g")
+        if start and end:
+            day = start
+            while day <= end:
+                logs = AttendanceLog.objects.filter(user=u, timestamp__date=day).order_by("timestamp")
+                first_in = logs.filter(log_type="in").first()
+                last_out = logs.filter(log_type="out").last()
+                daily = 0
+                if first_in and last_out:
+                    daily = (last_out.timestamp - first_in.timestamp).total_seconds()
+                rows.append({
+                    "date": day,
+                    "in": first_in.timestamp.time() if first_in else None,
+                    "out": last_out.timestamp.time() if last_out else None,
+                    "hours": round(daily / 3600, 2),
+                })
+                total_seconds += daily
+                day += timedelta(days=1)
+
+    return render(request, "core/my_performance.html", {
+        "form": form,
+        "rows": rows,
+        "total_hours": round(total_seconds / 3600, 2),
+        "user": u,
+    })
+
+
 # —————————————————————————
 # پنل مدیریت کاربران
 # —————————————————————————
