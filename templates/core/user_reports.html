@@ -26,6 +26,19 @@
 <a class="btn" href="{% url 'export_logs_csv' %}" style="margin:1rem 0;display:inline-block;">
   <i class="fa fa-download" style="margin-left:0.4rem;"></i> دانلود گزارش CSV
 </a>
+<div class="request-cards">
+  {% for log in latest_logs %}
+  <div class="request-card fade-in">
+    <div class="row"><span class="label">کاربر:</span><span>{{ log.user.get_full_name }} - {{ log.user.personnel_code }}</span></div>
+    <div class="row"><span class="label">تاریخ:</span><span>{{ log.timestamp|jformat:"%Y/%m/%d" }}</span></div>
+    <div class="row"><span class="label">ساعت:</span><span>{{ log.timestamp|time:"H:i" }}</span></div>
+    <div class="row"><span class="label">نوع:</span><span>{% if log.log_type == 'in' %}ورود{% else %}خروج{% endif %}</span></div>
+    <div class="row"><span class="label">ثبت‌کننده:</span><span>{% if log.source == 'self' %}کاربر{% elif log.source == 'auto' %}سیستم{% else %}مدیر{% endif %}</span></div>
+  </div>
+  {% empty %}
+  <div class="alert-error">ترددی ثبت نشده است.</div>
+  {% endfor %}
+</div>
 <div class="table-responsive">
 <table class="management-table">
   <thead>

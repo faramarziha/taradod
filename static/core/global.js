@@ -30,9 +30,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const navToggle = document.getElementById("nav-toggle");
   const mainNav = document.getElementById("main-nav");
-  if (navToggle && mainNav) {
+  const sidebar = document.getElementById("management-sidebar");
+  const sidebarOverlay = document.getElementById("sidebar-overlay");
+  if (navToggle) {
     navToggle.addEventListener("click", () => {
-      mainNav.classList.toggle("open");
+      if (sidebar) {
+        sidebar.classList.toggle("open");
+        if (sidebarOverlay) sidebarOverlay.classList.toggle("open");
+      } else if (mainNav) {
+        mainNav.classList.toggle("open");
+      }
+    });
+  }
+  if (sidebarOverlay) {
+    sidebarOverlay.addEventListener("click", () => {
+      sidebar.classList.remove("open");
+      sidebarOverlay.classList.remove("open");
     });
   }
 
