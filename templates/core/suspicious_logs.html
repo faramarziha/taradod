@@ -6,26 +6,41 @@
   <i class="fas fa-exclamation-triangle"></i>
   تشخیص‌های مشکوک
 </h2>
-<table class="management-table">
-  <thead>
-    <tr>
-      <th>کاربر پیشنهادی</th>
-      <th>فاصله</th>
-      <th>زمان</th>
-      <th>تصویر</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for log in logs %}
-    <tr>
-      <td>{% if log.matched_user %}{{ log.matched_user.get_full_name }} - {{ log.matched_user.personnel_code }}{% else %}نامشخص{% endif %}</td>
-      <td>{{ log.similarity|floatformat:3 }}</td>
-      <td>{{ log.timestamp|jformat:"%Y/%m/%d %H:%M" }}</td>
-      <td>{% if log.image %}<img src="{{ log.image.url }}" height="40">{% else %}-{% endif %}</td>
-    </tr>
-    {% empty %}
-    <tr><td colspan="4">موردی ثبت نشده است.</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
+<div class="request-cards">
+  {% for log in logs %}
+  <div class="request-card fade-in">
+    <div class="row"><span class="label">کاربر پیشنهادی:</span><span>{% if log.matched_user %}{{ log.matched_user.get_full_name }} - {{ log.matched_user.personnel_code }}{% else %}نامشخص{% endif %}</span></div>
+    <div class="row"><span class="label">فاصله:</span><span>{{ log.similarity|floatformat:3 }}</span></div>
+    <div class="row"><span class="label">زمان:</span><span>{{ log.timestamp|jformat:"%Y/%m/%d %H:%M" }}</span></div>
+    <div class="row"><span class="label">تصویر:</span><span>{% if log.image %}<img src="{{ log.image.url }}" height="40">{% else %}-{% endif %}</span></div>
+  </div>
+  {% empty %}
+  <div class="alert-error">موردی ثبت نشده است.</div>
+  {% endfor %}
+</div>
+
+<div class="table-responsive">
+  <table class="management-table">
+    <thead>
+      <tr>
+        <th>کاربر پیشنهادی</th>
+        <th>فاصله</th>
+        <th>زمان</th>
+        <th>تصویر</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in logs %}
+      <tr>
+        <td>{% if log.matched_user %}{{ log.matched_user.get_full_name }} - {{ log.matched_user.personnel_code }}{% else %}نامشخص{% endif %}</td>
+        <td>{{ log.similarity|floatformat:3 }}</td>
+        <td>{{ log.timestamp|jformat:"%Y/%m/%d %H:%M" }}</td>
+        <td>{% if log.image %}<img src="{{ log.image.url }}" height="40">{% else %}-{% endif %}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4">موردی ثبت نشده است.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
 {% endblock %}
