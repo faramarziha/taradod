@@ -1,0 +1,40 @@
+{% extends "core/base_management.html" %}
+{% load jformat %}
+{% block title %}کارتابل من{% endblock %}
+{% block management_content %}
+<h2 class="page-title"><i class="fas fa-inbox"></i> کارتابل من</h2>
+<div class="request-cards">
+  {% for r in pending_edits %}
+  <div class="request-card fade-in">
+    <div class="row"><span class="label">کاربر:</span><span>{{ r.user.get_full_name }} - {{ r.user.personnel_code }}</span></div>
+    <div class="row"><span class="label">زمان:</span><span>{{ r.timestamp|jformat:"%Y/%m/%d %H:%M" }}</span></div>
+    <div class="row"><span class="label">نوع:</span><span>{% if r.log_type == 'in' %}ورود{% else %}خروج{% endif %}</span></div>
+    <div class="row"><span class="label">وضعیت:</span><span>در انتظار</span></div>
+  </div>
+  {% empty %}
+  <div class="alert-success">درخواست ویرایش معلقی وجود ندارد.</div>
+  {% endfor %}
+</div>
+<div class="request-cards">
+  {% for r in pending_leaves %}
+  <div class="request-card fade-in">
+    <div class="row"><span class="label">کاربر:</span><span>{{ r.user.get_full_name }} - {{ r.user.personnel_code }}</span></div>
+    <div class="row"><span class="label">از:</span><span>{{ r.start_date|jformat:"%Y/%m/%d" }}</span></div>
+    <div class="row"><span class="label">تا:</span><span>{{ r.end_date|jformat:"%Y/%m/%d" }}</span></div>
+    <div class="row"><span class="label">وضعیت:</span><span>در انتظار</span></div>
+  </div>
+  {% empty %}
+  <div class="alert-success">درخواست مرخصی معلقی وجود ندارد.</div>
+  {% endfor %}
+</div>
+<div class="request-cards">
+  {% for s in suspicious_logs %}
+  <div class="request-card fade-in">
+    <div class="row"><span class="label">شباهت:</span><span>{{ s.similarity|floatformat:3 }}</span></div>
+    <div class="row"><span class="label">زمان:</span><span>{{ s.timestamp|jformat:"%Y/%m/%d %H:%M" }}</span></div>
+  </div>
+  {% empty %}
+  <div class="alert-success">مورد مشکوکی وجود ندارد.</div>
+  {% endfor %}
+</div>
+{% endblock %}

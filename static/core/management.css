@@ -294,3 +294,19 @@
   }
 }
 
+
+.nav-group {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.nav-group-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  padding: 0.2rem 0.7rem;
+}
+.nav-group a {
+  padding-right: 1.2rem;
+}

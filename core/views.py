@@ -944,3 +944,144 @@ def user_logs_admin(request, user_id):
         "form": form,
         "logs": logs,
     })
+
+@login_required
+@staff_required
+def manager_cartable(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    edits = EditRequest.objects.filter(status='pending')[:10]
+    leaves = LeaveRequest.objects.filter(status='pending')[:10]
+    susp = SuspiciousLog.objects.order_by('-timestamp')[:10]
+    return render(request, 'core/manager_cartable.html', {
+        'pending_edits': edits,
+        'pending_leaves': leaves,
+        'suspicious_logs': susp,
+    })
+
+@login_required
+@staff_required
+def daily_performance(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, 'core/placeholder.html', {'title': 'کارکرد روزانه'})
+
+@login_required
+@staff_required
+def manager_requests(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, 'core/placeholder.html', {'title': 'درخواست‌ها'})
+
+@login_required
+@staff_required
+def periodic_performance(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, 'core/placeholder.html', {'title': 'کارکرد دوره ای'})
+
+@login_required
+@staff_required
+def device_settings(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, 'core/placeholder.html', {'title': 'تنظیمات دستگاه ثبت تردد'})
+
+@login_required
+@staff_required
+def shifts(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, 'core/placeholder.html', {'title': 'شیفت‌ها'})
+
+@login_required
+@staff_required
+def policies(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, 'core/placeholder.html', {'title': 'سیاست‌های سازمانی'})
+
+@login_required
+@staff_required
+def work_groups(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, 'core/placeholder.html', {'title': 'گروه‌های کاری'})
+
+@login_required
+@staff_required
+def units(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, 'core/placeholder.html', {'title': 'واحدهای کاری'})
+
+@login_required
+@staff_required
+def request_types(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, 'core/placeholder.html', {'title': 'انواع درخواست‌ها'})
+
+@login_required
+@staff_required
+def general_settings(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, 'core/weekly_holidays.html', {'form': WeeklyHolidayForm(), 'active_tab': 'general_settings'})
+
+@login_required
+@staff_required
+def my_account(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    if request.method == 'POST':
+        form = CustomUserSimpleForm(request.POST, request.FILES, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'حساب شما به‌روزرسانی شد.')
+            return redirect('my_account')
+    else:
+        form = CustomUserSimpleForm(instance=request.user)
+    return render(request, 'core/user_form.html', {'form': form, 'title': 'حساب من'})
+
+@login_required
+@staff_required
+def report_attendances(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, 'core/placeholder.html', {'title': 'گزارش ترددهای پرسنل'})
+
+@login_required
+@staff_required
+def report_requests(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, 'core/placeholder.html', {'title': 'گزارش درخواست‌های پرسنل'})
+
+@login_required
+@staff_required
+def report_daily_performance(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, 'core/placeholder.html', {'title': 'کارکرد روزانه پرسنل'})
+
+@login_required
+@staff_required
+def report_performance_calculation(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, 'core/placeholder.html', {'title': 'محاسبه کارکرد'})
+
+@login_required
+@staff_required
+def report_periodic_performance(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, 'core/placeholder.html', {'title': 'کارکرد دوره ای پرسنل'})
+
+@login_required
+@staff_required
+def report_annual_requests(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, 'core/placeholder.html', {'title': 'گزارش سالیانه درخواست‌ها'})
