@@ -45,7 +45,6 @@ urlpatterns = [
     path('management/reports/requests/', views.report_requests, name='report_requests'),
     path('management/reports/daily-performance/', views.report_daily_performance, name='report_daily_performance'),
     path('management/reports/performance-calculation/', views.report_performance_calculation, name='report_performance_calculation'),
-    path('management/reports/periodic-performance/', views.report_periodic_performance, name='report_periodic_performance'),
     path('management/reports/annual-requests/', views.report_annual_requests, name='report_annual_requests'),
     path('management/reports/', views.user_reports, name='management_reports'),
     path('management/suspicions/', views.suspicious_logs, name='suspicious_logs'),

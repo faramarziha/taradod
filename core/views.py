@@ -31,7 +31,6 @@ from core.forms import (
     ManualLeaveForm,
     AttendanceStatusForm,
     UserLogsRangeForm,
-    UserDateForm,
     UserRangeForm,
     WeeklyHolidayForm,
     AttendanceDeviceForm,
@@ -1432,24 +1431,41 @@ def report_requests(request):
 @login_required
 @staff_required
 def report_daily_performance(request):
+    """نمایش کارکرد پرسنل در بازه دلخواه"""
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
-    form = UserDateForm(request.GET or None)
-    results = []
+
+    form = UserRangeForm(request.GET or None)
+    rows = []
+    total_seconds = 0
     if form.is_valid():
         user = form.cleaned_data["user"]
-        target_date = form.cleaned_data["date"].togregorian()
-        logs = AttendanceLog.objects.filter(user=user, timestamp__date=target_date).order_by("timestamp")
-        first_in = logs.filter(log_type="in").first()
-        last_out = logs.filter(log_type="out").last()
-        hours = 0
-        if first_in and last_out:
-            hours = round((last_out.timestamp - first_in.timestamp).total_seconds() / 3600, 2)
-        results.append({"user": user, "in": first_in.timestamp.time() if first_in else None,
-                        "out": last_out.timestamp.time() if last_out else None, "hours": hours})
-    return render(request, 'core/daily_performance.html', {
-        'form': form,
-        'results': results,
+        start = form.cleaned_data.get("start_g")
+        end = form.cleaned_data.get("end_g")
+        if start and end:
+            day = start
+            while day <= end:
+                logs = AttendanceLog.objects.filter(
+                    user=user, timestamp__date=day
+                ).order_by("timestamp")
+                first_in = logs.filter(log_type="in").first()
+                last_out = logs.filter(log_type="out").last()
+                daily = 0
+                if first_in and last_out:
+                    daily = (last_out.timestamp - first_in.timestamp).total_seconds()
+                rows.append({
+                    "date": day,
+                    "in": first_in.timestamp.time() if first_in else None,
+                    "out": last_out.timestamp.time() if last_out else None,
+                    "hours": round(daily / 3600, 2),
+                })
+                total_seconds += daily
+                day += timedelta(days=1)
+
+    return render(request, "core/report_daily_performance.html", {
+        "form": form,
+        "rows": rows,
+        "total_hours": round(total_seconds / 3600, 2),
     })
 
 @login_required
@@ -1459,33 +1475,6 @@ def report_performance_calculation(request):
         return redirect("management_face_check")
     return periodic_performance(request)
 
-@login_required
-@staff_required
-def report_periodic_performance(request):
-    if not request.session.get("face_verified"):
-        return redirect("management_face_check")
-    form = UserRangeForm(request.GET or None)
-    results = []
-    if form.is_valid():
-        user = form.cleaned_data["user"]
-        sd = form.cleaned_data.get("start_g")
-        ed = form.cleaned_data.get("end_g")
-        if sd and ed:
-            logs = AttendanceLog.objects.filter(user=user, timestamp__date__gte=sd, timestamp__date__lte=ed).order_by("timestamp")
-            total = 0
-            start = None
-            for log in logs:
-                if log.log_type == "in":
-                    start = log.timestamp
-                elif log.log_type == "out" and start:
-                    total += (log.timestamp - start).total_seconds()
-                    start = None
-            hours = round(total / 3600, 2)
-            results.append({'user': user, 'hours': hours})
-    return render(request, 'core/periodic_performance.html', {
-        'form': form,
-        'results': results,
-    })
 
 @login_required
 @staff_required

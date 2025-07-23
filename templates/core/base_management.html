@@ -74,9 +74,6 @@
         <a href="{% url 'report_performance_calculation' %}" class="{% if request.resolver_match.url_name == 'report_performance_calculation' %}active{% endif %}">
           <i class="fas fa-calculator"></i> محاسبه کارکرد
         </a>
-        <a href="{% url 'report_periodic_performance' %}" class="{% if request.resolver_match.url_name == 'report_periodic_performance' %}active{% endif %}">
-          <i class="fas fa-calendar-alt"></i> کارکرد دوره ای پرسنل
-        </a>
         <a href="{% url 'report_annual_requests' %}" class="{% if request.resolver_match.url_name == 'report_annual_requests' %}active{% endif %}">
           <i class="fas fa-chart-line"></i> گزارش سالیانه درخواست‌ها
         </a>
