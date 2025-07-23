@@ -4,8 +4,9 @@
 {% block management_content %}
 <h2 class="page-title"><i class="fas fa-calendar-day"></i> کارکرد روزانه</h2>
 <form method="get" class="card page page-sm form-grid" style="margin-bottom:1rem;">
-  {{ form.date.label_tag }}
-  {{ form.date }}
+  {% for field in form %}
+  <div class="form-group">{{ field.label_tag }}{{ field }}</div>
+  {% endfor %}
   <button type="submit" class="btn">نمایش</button>
 </form>
 <div class="table-responsive">
