@@ -32,8 +32,17 @@ from core.forms import (
     AttendanceStatusForm,
     UserLogsRangeForm,
     WeeklyHolidayForm,
+    AttendanceDeviceForm,
+    WorkShiftForm,
+    CompanyPolicyForm,
+    WorkGroupForm,
+    WorkUnitForm,
+    RequestTypeForm,
 )
 from users.models import CustomUser
+from core.models import (
+    AttendanceDevice, WorkShift, CompanyPolicy, WorkGroup, WorkUnit, RequestType
+)
 
 
 User = get_user_model()
@@ -944,3 +953,515 @@ def user_logs_admin(request, user_id):
         "form": form,
         "logs": logs,
     })
+
+@login_required
+@staff_required
+def manager_cartable(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    edits = EditRequest.objects.filter(status='pending')[:10]
+    leaves = LeaveRequest.objects.filter(status='pending')[:10]
+    susp = SuspiciousLog.objects.order_by('-timestamp')[:10]
+    return render(request, 'core/manager_cartable.html', {
+        'pending_edits': edits,
+        'pending_leaves': leaves,
+        'suspicious_logs': susp,
+    })
+
+@login_required
+@staff_required
+def daily_performance(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    form = AttendanceStatusForm(request.GET or None)
+    if form.is_valid() and form.cleaned_data.get("date"):
+        target_date = form.cleaned_data["date"].togregorian()
+    else:
+        target_date = timezone.now().date()
+
+    results = []
+    for u in User.objects.all():
+        logs = AttendanceLog.objects.filter(user=u, timestamp__date=target_date).order_by("timestamp")
+        first_in = logs.filter(log_type="in").first()
+        last_out = logs.filter(log_type="out").last()
+        hours = 0
+        if first_in and last_out:
+            hours = round((last_out.timestamp - first_in.timestamp).total_seconds() / 3600, 2)
+        results.append({"user": u, "in": first_in.timestamp.time() if first_in else None,
+                        "out": last_out.timestamp.time() if last_out else None,
+                        "hours": hours})
+
+    return render(request, 'core/daily_performance.html', {
+        'form': form,
+        'results': results,
+    })
+
+@login_required
+@staff_required
+def manager_requests(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    pending_edits = EditRequest.objects.filter(status='pending')
+    pending_leaves = LeaveRequest.objects.filter(status='pending')
+    return render(request, 'core/manager_requests.html', {
+        'pending_edits': pending_edits,
+        'pending_leaves': pending_leaves,
+    })
+
+@login_required
+@staff_required
+def periodic_performance(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    form = UserLogsRangeForm(request.GET or None)
+    results = []
+    if form.is_valid():
+        sd = form.cleaned_data.get('start_g')
+        ed = form.cleaned_data.get('end_g')
+        if sd and ed:
+            for u in User.objects.all():
+                logs = AttendanceLog.objects.filter(user=u, timestamp__date__gte=sd, timestamp__date__lte=ed).order_by('timestamp')
+                total = 0
+                start = None
+                for log in logs:
+                    if log.log_type == 'in':
+                        start = log.timestamp
+                    elif log.log_type == 'out' and start:
+                        total += (log.timestamp - start).total_seconds()
+                        start = None
+                hours = round(total/3600, 2)
+                results.append({'user': u, 'hours': hours})
+    return render(request, 'core/periodic_performance.html', {
+        'form': form,
+        'results': results,
+    })
+
+@login_required
+@staff_required
+def device_settings(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    devices = AttendanceDevice.objects.all()
+    return render(request, 'core/device_list.html', {
+        'devices': devices,
+    })
+
+@login_required
+@staff_required
+def device_add(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    if request.method == 'POST':
+        form = AttendanceDeviceForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'دستگاه ذخیره شد.')
+            return redirect('device_settings')
+    else:
+        form = AttendanceDeviceForm()
+    return render(request, 'core/device_form.html', {
+        'form': form,
+        'title': 'افزودن دستگاه',
+    })
+
+@login_required
+@staff_required
+def device_edit(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    device = get_object_or_404(AttendanceDevice, pk=pk)
+    if request.method == 'POST':
+        form = AttendanceDeviceForm(request.POST, instance=device)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'دستگاه ویرایش شد.')
+            return redirect('device_settings')
+    else:
+        form = AttendanceDeviceForm(instance=device)
+    return render(request, 'core/device_form.html', {
+        'form': form,
+        'title': 'ویرایش دستگاه',
+    })
+
+@login_required
+@staff_required
+def device_delete(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    device = get_object_or_404(AttendanceDevice, pk=pk)
+    if request.method == 'POST':
+        device.delete()
+        messages.success(request, 'حذف شد.')
+        return redirect('device_settings')
+    return render(request, 'core/confirm_delete.html', {
+        'title': 'حذف دستگاه',
+        'object': device.name,
+        'cancel_url': reverse('device_settings'),
+    })
+
+@login_required
+@staff_required
+def shifts(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    shifts = WorkShift.objects.all()
+    return render(request, 'core/shift_list.html', {'shifts': shifts})
+
+@login_required
+@staff_required
+def shift_add(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    if request.method == 'POST':
+        form = WorkShiftForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'شیفت ذخیره شد.')
+            return redirect('shifts')
+    else:
+        form = WorkShiftForm()
+    return render(request, 'core/shift_form.html', {'form': form, 'title': 'افزودن شیفت'})
+
+@login_required
+@staff_required
+def shift_edit(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    obj = get_object_or_404(WorkShift, pk=pk)
+    if request.method == 'POST':
+        form = WorkShiftForm(request.POST, instance=obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'ذخیره شد.')
+            return redirect('shifts')
+    else:
+        form = WorkShiftForm(instance=obj)
+    return render(request, 'core/shift_form.html', {'form': form, 'title': 'ویرایش شیفت'})
+
+@login_required
+@staff_required
+def shift_delete(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    obj = get_object_or_404(WorkShift, pk=pk)
+    if request.method == 'POST':
+        obj.delete()
+        messages.success(request, 'حذف شد.')
+        return redirect('shifts')
+    return render(request, 'core/confirm_delete.html', {
+        'title': 'حذف شیفت',
+        'object': obj.name,
+        'cancel_url': reverse('shifts'),
+    })
+
+@login_required
+@staff_required
+def policies(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    policies = CompanyPolicy.objects.all()
+    return render(request, 'core/policy_list.html', {'policies': policies})
+
+@login_required
+@staff_required
+def policy_add(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    if request.method == 'POST':
+        form = CompanyPolicyForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'سیاست ذخیره شد.')
+            return redirect('policies')
+    else:
+        form = CompanyPolicyForm()
+    return render(request, 'core/policy_form.html', {'form': form, 'title': 'افزودن سیاست'})
+
+@login_required
+@staff_required
+def policy_edit(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    obj = get_object_or_404(CompanyPolicy, pk=pk)
+    if request.method == 'POST':
+        form = CompanyPolicyForm(request.POST, instance=obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'ذخیره شد.')
+            return redirect('policies')
+    else:
+        form = CompanyPolicyForm(instance=obj)
+    return render(request, 'core/policy_form.html', {'form': form, 'title': 'ویرایش سیاست'})
+
+@login_required
+@staff_required
+def policy_delete(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    obj = get_object_or_404(CompanyPolicy, pk=pk)
+    if request.method == 'POST':
+        obj.delete()
+        messages.success(request, 'حذف شد.')
+        return redirect('policies')
+    return render(request, 'core/confirm_delete.html', {
+        'title': 'حذف سیاست',
+        'object': obj.title,
+        'cancel_url': reverse('policies'),
+    })
+
+@login_required
+@staff_required
+def work_groups(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    groups = WorkGroup.objects.all()
+    return render(request, 'core/workgroup_list.html', {'groups': groups})
+
+@login_required
+@staff_required
+def workgroup_add(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    if request.method == 'POST':
+        form = WorkGroupForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'گروه ذخیره شد.')
+            return redirect('work_groups')
+    else:
+        form = WorkGroupForm()
+    return render(request, 'core/workgroup_form.html', {'form': form, 'title': 'افزودن گروه'})
+
+@login_required
+@staff_required
+def workgroup_edit(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    obj = get_object_or_404(WorkGroup, pk=pk)
+    if request.method == 'POST':
+        form = WorkGroupForm(request.POST, instance=obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'ذخیره شد.')
+            return redirect('work_groups')
+    else:
+        form = WorkGroupForm(instance=obj)
+    return render(request, 'core/workgroup_form.html', {'form': form, 'title': 'ویرایش گروه'})
+
+@login_required
+@staff_required
+def workgroup_delete(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    obj = get_object_or_404(WorkGroup, pk=pk)
+    if request.method == 'POST':
+        obj.delete()
+        messages.success(request, 'حذف شد.')
+        return redirect('work_groups')
+    return render(request, 'core/confirm_delete.html', {
+        'title': 'حذف گروه',
+        'object': obj.name,
+        'cancel_url': reverse('work_groups'),
+    })
+
+@login_required
+@staff_required
+def units(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    units = WorkUnit.objects.all()
+    return render(request, 'core/unit_list.html', {'units': units})
+
+@login_required
+@staff_required
+def unit_add(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    if request.method == 'POST':
+        form = WorkUnitForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'واحد ذخیره شد.')
+            return redirect('units')
+    else:
+        form = WorkUnitForm()
+    return render(request, 'core/unit_form.html', {'form': form, 'title': 'افزودن واحد'})
+
+@login_required
+@staff_required
+def unit_edit(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    obj = get_object_or_404(WorkUnit, pk=pk)
+    if request.method == 'POST':
+        form = WorkUnitForm(request.POST, instance=obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'ذخیره شد.')
+            return redirect('units')
+    else:
+        form = WorkUnitForm(instance=obj)
+    return render(request, 'core/unit_form.html', {'form': form, 'title': 'ویرایش واحد'})
+
+@login_required
+@staff_required
+def unit_delete(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    obj = get_object_or_404(WorkUnit, pk=pk)
+    if request.method == 'POST':
+        obj.delete()
+        messages.success(request, 'حذف شد.')
+        return redirect('units')
+    return render(request, 'core/confirm_delete.html', {
+        'title': 'حذف واحد',
+        'object': obj.name,
+        'cancel_url': reverse('units'),
+    })
+
+@login_required
+@staff_required
+def request_types(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    types = RequestType.objects.all()
+    return render(request, 'core/requesttype_list.html', {'types': types})
+
+@login_required
+@staff_required
+def requesttype_add(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    if request.method == 'POST':
+        form = RequestTypeForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'نوع درخواست ذخیره شد.')
+            return redirect('request_types')
+    else:
+        form = RequestTypeForm()
+    return render(request, 'core/requesttype_form.html', {'form': form, 'title': 'افزودن نوع درخواست'})
+
+@login_required
+@staff_required
+def requesttype_edit(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    obj = get_object_or_404(RequestType, pk=pk)
+    if request.method == 'POST':
+        form = RequestTypeForm(request.POST, instance=obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'ذخیره شد.')
+            return redirect('request_types')
+    else:
+        form = RequestTypeForm(instance=obj)
+    return render(request, 'core/requesttype_form.html', {'form': form, 'title': 'ویرایش نوع درخواست'})
+
+@login_required
+@staff_required
+def requesttype_delete(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    obj = get_object_or_404(RequestType, pk=pk)
+    if request.method == 'POST':
+        obj.delete()
+        messages.success(request, 'حذف شد.')
+        return redirect('request_types')
+    return render(request, 'core/confirm_delete.html', {
+        'title': 'حذف نوع درخواست',
+        'object': obj.name,
+        'cancel_url': reverse('request_types'),
+    })
+
+@login_required
+@staff_required
+def general_settings(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return render(request, 'core/weekly_holidays.html', {'form': WeeklyHolidayForm(), 'active_tab': 'general_settings'})
+
+@login_required
+@staff_required
+def my_account(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    if request.method == 'POST':
+        form = CustomUserSimpleForm(request.POST, request.FILES, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'حساب شما به‌روزرسانی شد.')
+            return redirect('my_account')
+    else:
+        form = CustomUserSimpleForm(instance=request.user)
+    return render(request, 'core/user_form.html', {'form': form, 'title': 'حساب من'})
+
+@login_required
+@staff_required
+def report_attendances(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    form = UserLogsRangeForm(request.GET or None)
+    logs = []
+    if form.is_valid():
+        sd = form.cleaned_data.get('start_g')
+        ed = form.cleaned_data.get('end_g')
+        if sd and ed:
+            logs = AttendanceLog.objects.select_related('user').filter(
+                timestamp__date__gte=sd, timestamp__date__lte=ed
+            ).order_by('-timestamp')
+    return render(request, 'core/report_attendances.html', {
+        'form': form,
+        'logs': logs,
+    })
+
+@login_required
+@staff_required
+def report_requests(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    edit_qs = EditRequest.objects.select_related('user').order_by('-created_at')
+    leave_qs = LeaveRequest.objects.select_related('user').order_by('-created_at')
+    return render(request, 'core/report_requests.html', {
+        'edits': edit_qs,
+        'leaves': leave_qs,
+    })
+
+@login_required
+@staff_required
+def report_daily_performance(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return daily_performance(request)
+
+@login_required
+@staff_required
+def report_performance_calculation(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return periodic_performance(request)
+
+@login_required
+@staff_required
+def report_periodic_performance(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    return periodic_performance(request)
+
+@login_required
+@staff_required
+def report_annual_requests(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    year = timezone.now().year
+    stats = []
+    for m in range(1,13):
+        start = datetime(year, m, 1).date()
+        if m == 12:
+            end = datetime(year+1, 1, 1).date() - timedelta(days=1)
+        else:
+            end = datetime(year, m+1, 1).date() - timedelta(days=1)
+        edits = EditRequest.objects.filter(created_at__date__range=(start, end)).count()
+        leaves = LeaveRequest.objects.filter(created_at__date__range=(start, end)).count()
+        stats.append({'month': m, 'edits': edits, 'leaves': leaves})
+    return render(request, 'core/report_annual_requests.html', {'stats': stats})

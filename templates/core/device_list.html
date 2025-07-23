@@ -1,0 +1,41 @@
+{% extends "core/base_management.html" %}
+{% block title %}دستگاه‌ها{% endblock %}
+{% block management_content %}
+<h2 class="page-title"><i class="fas fa-id-card"></i> تنظیمات دستگاه ثبت تردد</h2>
+<a class="btn" href="{% url 'device_add' %}" style="margin-bottom:1rem;"><i class="fas fa-plus"></i> افزودن دستگاه</a>
+<div class="request-cards">
+  {% for d in devices %}
+  <div class="request-card fade-in">
+    <div class="row"><span class="label">نام:</span><span>{{ d.name }}</span></div>
+    <div class="row"><span class="label">مکان:</span><span>{{ d.location|default:"-" }}</span></div>
+    <div class="row"><span class="label">فعال:</span><span>{% if d.is_active %}بله{% else %}خیر{% endif %}</span></div>
+    <div class="actions">
+      <a href="{% url 'device_edit' d.pk %}" class="btn" style="font-size:0.9rem;">ویرایش</a>
+      <a href="{% url 'device_delete' d.pk %}" class="btn btn-danger" style="font-size:0.9rem;">حذف</a>
+    </div>
+  </div>
+  {% empty %}
+  <div class="alert-error">دستگاهی ثبت نشده است.</div>
+  {% endfor %}
+</div>
+<div class="table-responsive">
+<table class="management-table">
+  <thead><tr><th>نام</th><th>مکان</th><th>فعال</th><th>عملیات</th></tr></thead>
+  <tbody>
+  {% for d in devices %}
+    <tr>
+      <td>{{ d.name }}</td>
+      <td>{{ d.location|default:"-" }}</td>
+      <td>{% if d.is_active %}بله{% else %}خیر{% endif %}</td>
+      <td>
+        <a href="{% url 'device_edit' d.pk %}"><i class="fas fa-edit"></i></a>
+        <a href="{% url 'device_delete' d.pk %}"><i class="fas fa-trash-alt"></i></a>
+      </td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="4">دستگاهی ثبت نشده.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

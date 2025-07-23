@@ -214,3 +214,46 @@ class WeeklyHolidayForm(forms.Form):
         required=False,
         label="روزهای تعطیل",
     )
+
+from .models import (
+    AttendanceDevice, WorkShift, CompanyPolicy, WorkGroup, WorkUnit, RequestType
+)
+
+class AttendanceDeviceForm(forms.ModelForm):
+    class Meta:
+        model = AttendanceDevice
+        fields = ["name", "location", "is_active"]
+
+class WorkShiftForm(forms.ModelForm):
+    class Meta:
+        model = WorkShift
+        fields = ["name", "start_time", "end_time"]
+        widgets = {
+            "start_time": forms.TimeInput(format="%H:%M", attrs={"type": "time"}),
+            "end_time": forms.TimeInput(format="%H:%M", attrs={"type": "time"}),
+        }
+
+class CompanyPolicyForm(forms.ModelForm):
+    class Meta:
+        model = CompanyPolicy
+        fields = ["title", "content"]
+        widgets = {"content": forms.Textarea(attrs={"rows":3})}
+
+class WorkGroupForm(forms.ModelForm):
+    class Meta:
+        model = WorkGroup
+        fields = ["name", "description"]
+        widgets = {"description": forms.Textarea(attrs={"rows":3})}
+
+class WorkUnitForm(forms.ModelForm):
+    class Meta:
+        model = WorkUnit
+        fields = ["name", "description"]
+        widgets = {"description": forms.Textarea(attrs={"rows":3})}
+
+class RequestTypeForm(forms.ModelForm):
+    class Meta:
+        model = RequestType
+        fields = ["name", "description"]
+        widgets = {"description": forms.Textarea(attrs={"rows":3})}
+

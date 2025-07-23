@@ -1,0 +1,29 @@
+{% extends "core/base_management.html" %}
+{% load jformat %}
+{% block title %}کارکرد روزانه{% endblock %}
+{% block management_content %}
+<h2 class="page-title"><i class="fas fa-calendar-day"></i> کارکرد روزانه</h2>
+<form method="get" class="card page page-sm form-grid" style="margin-bottom:1rem;">
+  {{ form.date.label_tag }}
+  {{ form.date }}
+  <button type="submit" class="btn">نمایش</button>
+</form>
+<div class="table-responsive">
+<table class="management-table">
+  <thead><tr><th>کاربر</th><th>ورود</th><th>خروج</th><th>ساعت کار</th></tr></thead>
+  <tbody>
+    {% for r in results %}
+    <tr>
+      <td>{{ r.user.get_full_name }} - {{ r.user.personnel_code }}</td>
+      <td>{{ r.in|default:"-" }}</td>
+      <td>{{ r.out|default:"-" }}</td>
+      <td>{{ r.hours }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="4">موردی یافت نشد.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}
+{% block extra_js %}{{ form.media }}{% endblock %}
