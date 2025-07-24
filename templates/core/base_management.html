@@ -11,33 +11,90 @@
   <div id="sidebar-overlay" class="sidebar-overlay"></div>
   <aside class="management-sidebar" id="management-sidebar">
     <div class="sidebar-title">پنل مدیریت</div>
-    <nav>
-      <a href="{% url 'management_dashboard' %}" class="{% if request.resolver_match.url_name == 'management_dashboard' %}active{% endif %}">
-        <i class="fas fa-chart-pie"></i> داشبورد
-      </a>
-      <a href="{% url 'attendance_status' %}" class="{% if request.resolver_match.url_name == 'attendance_status' %}active{% endif %}">
-        <i class="fas fa-user-check"></i> وضعیت حضور
-      </a>
-      <a href="{% url 'management_users' %}" class="{% if request.resolver_match.url_name == 'management_users' %}active{% endif %}">
-        <i class="fas fa-users"></i> کاربران
-      </a>
-      <a href="{% url 'management_reports' %}" class="{% if request.resolver_match.url_name == 'management_reports' %}active{% endif %}">
-        <i class="fas fa-file-alt"></i> گزارش‌ها
-      </a>
-        <a href="{% url 'suspicious_logs' %}" class="{% if request.resolver_match.url_name == 'suspicious_logs' %}active{% endif %}">
-          <i class="fas fa-exclamation-triangle"></i> موارد مشکوک
-        </a>
-        <a href="{% url 'edit_requests' %}" class="{% if request.resolver_match.url_name == 'edit_requests' %}active{% endif %}">
-          <i class="fas fa-edit"></i> درخواست‌های ویرایش
-        </a>
-      <a href="{% url 'leave_requests' %}" class="{% if request.resolver_match.url_name == 'leave_requests' %}active{% endif %}">
-        <i class="fas fa-calendar-check"></i> مرخصی‌ها
-      </a>
-      <a href="{% url 'weekly_holidays' %}" class="{% if request.resolver_match.url_name == 'weekly_holidays' %}active{% endif %}">
-        <i class="fas fa-calendar-day"></i> تعطیلات هفتگی
-      </a>
-      <a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> خروج</a>
-      </nav>
+    <div class="nav-carousel">
+      <button class="carousel-btn carousel-prev" aria-label="قبلی">&#10094;</button>
+      <div class="carousel-track">
+        <div class="carousel-item">
+          <a href="{% url 'management_dashboard' %}" class="{% if request.resolver_match.url_name == 'management_dashboard' %}active{% endif %}">
+            <i class="fas fa-chart-pie"></i> داشبورد
+          </a>
+          <a href="{% url 'manager_cartable' %}" class="{% if request.resolver_match.url_name == 'manager_cartable' %}active{% endif %}">
+            <i class="fas fa-inbox"></i> کارتابل من
+          </a>
+          <a href="{% url 'my_account' %}" class="{% if request.resolver_match.url_name == 'my_account' %}active{% endif %}">
+            <i class="fas fa-user-cog"></i> حساب من
+          </a>
+          <a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> خروج</a>
+        </div>
+        <div class="carousel-item">
+          <div class="nav-group">
+            <div class="nav-group-title">میزکار من</div>
+            <a href="{% url 'attendance_status' %}" class="{% if request.resolver_match.url_name == 'attendance_status' %}active{% endif %}">
+              <i class="fas fa-user-check"></i> ترددهای کارکنان
+            </a>
+            <a href="{% url 'daily_performance' %}" class="{% if request.resolver_match.url_name == 'daily_performance' %}active{% endif %}">
+              <i class="fas fa-calendar-day"></i> کارکرد روزانه
+            </a>
+            <a href="{% url 'manager_requests' %}" class="{% if request.resolver_match.url_name == 'manager_requests' %}active{% endif %}">
+              <i class="fas fa-list"></i> درخواست‌ها
+            </a>
+            <a href="{% url 'periodic_performance' %}" class="{% if request.resolver_match.url_name == 'periodic_performance' %}active{% endif %}">
+              <i class="fas fa-calendar-alt"></i> کارکرد دوره ای
+            </a>
+          </div>
+        </div>
+        <div class="carousel-item">
+          <div class="nav-group">
+            <div class="nav-group-title">تنظیمات مجموعه</div>
+            <a href="{% url 'device_settings' %}" class="{% if request.resolver_match.url_name == 'device_settings' %}active{% endif %}">
+              <i class="fas fa-id-card"></i> تنظیمات دستگاه ثبت تردد
+            </a>
+            <a href="{% url 'shifts' %}" class="{% if request.resolver_match.url_name == 'shifts' %}active{% endif %}">
+              <i class="fas fa-clock"></i> شیفت‌ها
+            </a>
+            <a href="{% url 'policies' %}" class="{% if request.resolver_match.url_name == 'policies' %}active{% endif %}">
+              <i class="fas fa-gavel"></i> سیاست‌های سازمانی
+            </a>
+            <a href="{% url 'work_groups' %}" class="{% if request.resolver_match.url_name == 'work_groups' %}active{% endif %}">
+              <i class="fas fa-layer-group"></i> گروه‌های کاری
+            </a>
+            <a href="{% url 'units' %}" class="{% if request.resolver_match.url_name == 'units' %}active{% endif %}">
+              <i class="fas fa-building"></i> واحدهای کاری
+            </a>
+            <a href="{% url 'management_users' %}" class="{% if request.resolver_match.url_name == 'management_users' %}active{% endif %}">
+              <i class="fas fa-users"></i> پرسنل
+            </a>
+            <a href="{% url 'request_types' %}" class="{% if request.resolver_match.url_name == 'request_types' %}active{% endif %}">
+              <i class="fas fa-list-alt"></i> انواع درخواست‌ها
+            </a>
+            <a href="{% url 'general_settings' %}" class="{% if request.resolver_match.url_name == 'general_settings' %}active{% endif %}">
+              <i class="fas fa-cogs"></i> تنظیمات عمومی مجموعه
+            </a>
+          </div>
+        </div>
+        <div class="carousel-item">
+          <div class="nav-group">
+            <div class="nav-group-title">گزارش‌ها</div>
+            <a href="{% url 'report_attendances' %}" class="{% if request.resolver_match.url_name == 'report_attendances' %}active{% endif %}">
+              <i class="fas fa-clock"></i> ترددهای پرسنل
+            </a>
+            <a href="{% url 'report_requests' %}" class="{% if request.resolver_match.url_name == 'report_requests' %}active{% endif %}">
+              <i class="fas fa-envelope-open-text"></i> درخواست‌های پرسنل
+            </a>
+            <a href="{% url 'report_daily_performance' %}" class="{% if request.resolver_match.url_name == 'report_daily_performance' %}active{% endif %}">
+              <i class="fas fa-calendar-day"></i> کارکرد روزانه پرسنل
+            </a>
+            <a href="{% url 'report_performance_calculation' %}" class="{% if request.resolver_match.url_name == 'report_performance_calculation' %}active{% endif %}">
+              <i class="fas fa-calculator"></i> محاسبه کارکرد
+            </a>
+            <a href="{% url 'report_annual_requests' %}" class="{% if request.resolver_match.url_name == 'report_annual_requests' %}active{% endif %}">
+              <i class="fas fa-chart-line"></i> گزارش سالیانه درخواست‌ها
+            </a>
+          </div>
+        </div>
+      </div>
+      <button class="carousel-btn carousel-next" aria-label="بعدی">&#10095;</button>
+    </div>
   </aside>
   <section class="management-content">
     {% block management_content %}{% endblock %}

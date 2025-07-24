@@ -94,8 +94,12 @@
   min-width: 0;
   min-height: 82vh;
   margin-bottom: 1rem;
-  overflow-x: auto;
+  overflow-x: hidden;
   direction: rtl;
+}
+
+@media (max-width: 700px) {
+  .management-content { overflow-x: auto; }
 }
 .dashboard-stats {
   display: grid;
@@ -264,7 +268,7 @@
 
 @media (min-width: 900px) {
   .management-layout {
-    flex-direction: row-reverse;
+    flex-direction: row;
     gap: 2rem;
   }
   .management-sidebar {
@@ -276,7 +280,7 @@
     flex-direction: column;
     align-items: stretch;
     min-height: 88vh;
-    margin-right: 1.1rem;
+    margin-left: 1.1rem;
     margin-bottom: 0;
   }
   .management-sidebar .sidebar-logo {
@@ -294,3 +298,52 @@
   }
 }
 
+
+.nav-group {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.nav-group-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  padding: 0.2rem 0.7rem;
+}
+.nav-group a {
+  padding-right: 1.2rem;
+}
+
+/* simple carousel for sidebar navigation */
+.nav-carousel {
+  position: relative;
+  overflow: hidden;
+}
+.nav-carousel .carousel-track {
+  display: flex;
+  width: 100%;
+  transition: transform var(--transition);
+}
+.nav-carousel .carousel-item {
+  flex: 0 0 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.2rem;
+}
+.nav-carousel .carousel-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0.9;
+}
+.nav-carousel .carousel-prev { right: 0.3rem; }
+.nav-carousel .carousel-next { left: 0.3rem; }

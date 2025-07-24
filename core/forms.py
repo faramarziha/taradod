@@ -199,6 +199,29 @@ class UserLogsRangeForm(forms.Form):
         return cleaned
 
 
+class UserDateForm(forms.Form):
+    user = forms.ModelChoiceField(queryset=User.objects.all(), label="کاربر")
+    date = jforms.jDateField(label="تاریخ", widget=AdminjDateWidget())
+
+
+class UserRangeForm(forms.Form):
+    user = forms.ModelChoiceField(queryset=User.objects.all(), label="کاربر")
+    start = jforms.jDateField(label="از تاریخ", widget=AdminjDateWidget())
+    end = jforms.jDateField(label="تا تاریخ", widget=AdminjDateWidget())
+
+    def clean(self):
+        cleaned = super().clean()
+        sd = cleaned.get("start")
+        ed = cleaned.get("end")
+        if sd:
+            cleaned["start_g"] = sd.togregorian()
+        if ed:
+            cleaned["end_g"] = ed.togregorian()
+        if sd and ed and cleaned["end_g"] < cleaned["start_g"]:
+            self.add_error("end", "بازه نامعتبر است")
+        return cleaned
+
+
 class WeeklyHolidayForm(forms.Form):
     days = forms.MultipleChoiceField(
         choices=[
@@ -214,3 +237,46 @@ class WeeklyHolidayForm(forms.Form):
         required=False,
         label="روزهای تعطیل",
     )
+
+from .models import (
+    AttendanceDevice, WorkShift, CompanyPolicy, WorkGroup, WorkUnit, RequestType
+)
+
+class AttendanceDeviceForm(forms.ModelForm):
+    class Meta:
+        model = AttendanceDevice
+        fields = ["name", "location", "is_active"]
+
+class WorkShiftForm(forms.ModelForm):
+    class Meta:
+        model = WorkShift
+        fields = ["name", "start_time", "end_time"]
+        widgets = {
+            "start_time": forms.TimeInput(format="%H:%M", attrs={"type": "time"}),
+            "end_time": forms.TimeInput(format="%H:%M", attrs={"type": "time"}),
+        }
+
+class CompanyPolicyForm(forms.ModelForm):
+    class Meta:
+        model = CompanyPolicy
+        fields = ["title", "content"]
+        widgets = {"content": forms.Textarea(attrs={"rows":3})}
+
+class WorkGroupForm(forms.ModelForm):
+    class Meta:
+        model = WorkGroup
+        fields = ["name", "description"]
+        widgets = {"description": forms.Textarea(attrs={"rows":3})}
+
+class WorkUnitForm(forms.ModelForm):
+    class Meta:
+        model = WorkUnit
+        fields = ["name", "description"]
+        widgets = {"description": forms.Textarea(attrs={"rows":3})}
+
+class RequestTypeForm(forms.ModelForm):
+    class Meta:
+        model = RequestType
+        fields = ["name", "description"]
+        widgets = {"description": forms.Textarea(attrs={"rows":3})}
+

@@ -1,0 +1,36 @@
+{% extends "core/base_management.html" %}
+{% block title %}گروه‌های کاری{% endblock %}
+{% block management_content %}
+<h2 class="page-title"><i class="fas fa-layer-group"></i> گروه‌های کاری</h2>
+<a class="btn" href="{% url 'workgroup_add' %}" style="margin-bottom:1rem;"><i class="fas fa-plus"></i> افزودن گروه</a>
+<div class="request-cards">
+  {% for g in groups %}
+  <div class="request-card fade-in">
+    <div class="row"><span class="label">نام:</span><span>{{ g.name }}</span></div>
+    <div class="row"><span class="label">توضیح:</span><span>{{ g.description|default:"-" }}</span></div>
+    <div class="actions">
+      <a href="{% url 'workgroup_edit' g.pk %}" class="btn" style="font-size:0.9rem;">ویرایش</a>
+      <a href="{% url 'workgroup_delete' g.pk %}" class="btn btn-danger" style="font-size:0.9rem;">حذف</a>
+    </div>
+  </div>
+  {% empty %}
+  <div class="alert-error">گروهی ثبت نشده.</div>
+  {% endfor %}
+</div>
+<div class="table-responsive">
+<table class="management-table">
+  <thead><tr><th>نام</th><th>توضیح</th><th>عملیات</th></tr></thead>
+  <tbody>
+  {% for g in groups %}
+    <tr>
+      <td>{{ g.name }}</td>
+      <td>{{ g.description|default:"-" }}</td>
+      <td><a href="{% url 'workgroup_edit' g.pk %}"><i class="fas fa-edit"></i></a> <a href="{% url 'workgroup_delete' g.pk %}"><i class="fas fa-trash-alt"></i></a></td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="3">گروهی ثبت نشده.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

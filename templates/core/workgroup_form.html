@@ -1,0 +1,16 @@
+{% extends "core/base_management.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block management_content %}
+<h2 class="page-title"><i class="fas fa-layer-group"></i> {{ title }}</h2>
+<form method="post" class="card page page-sm form-grid" autocomplete="off">
+  {% csrf_token %}
+  {% for field in form %}
+  <div class="form-group">{{ field.label_tag }}{{ field }}</div>
+  {% endfor %}
+  <div class="profile-actions">
+    <button type="submit" class="btn">ذخیره</button>
+    <a href="{% url 'work_groups' %}" class="btn" style="background:var(--color-muted);color:#fff;">لغو</a>
+  </div>
+</form>
+{% endblock %}
+{% block extra_js %}{{ form.media }}{% endblock %}
