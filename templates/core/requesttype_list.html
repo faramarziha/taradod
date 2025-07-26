@@ -1,0 +1,36 @@
+{% extends "core/base_management.html" %}
+{% block title %}انواع درخواست{% endblock %}
+{% block management_content %}
+<h2 class="page-title"><i class="fas fa-list-alt"></i> انواع درخواست</h2>
+<a class="btn" href="{% url 'requesttype_add' %}" style="margin-bottom:1rem;"><i class="fas fa-plus"></i> افزودن نوع</a>
+<div class="request-cards">
+  {% for t in types %}
+  <div class="request-card fade-in">
+    <div class="row"><span class="label">نام:</span><span>{{ t.name }}</span></div>
+    <div class="row"><span class="label">توضیح:</span><span>{{ t.description|default:"-" }}</span></div>
+    <div class="actions">
+      <a href="{% url 'requesttype_edit' t.pk %}" class="btn" style="font-size:0.9rem;">ویرایش</a>
+      <a href="{% url 'requesttype_delete' t.pk %}" class="btn btn-danger" style="font-size:0.9rem;">حذف</a>
+    </div>
+  </div>
+  {% empty %}
+  <div class="alert-error">موردی ثبت نشده.</div>
+  {% endfor %}
+</div>
+<div class="table-responsive">
+<table class="management-table">
+  <thead><tr><th>نام</th><th>توضیح</th><th>عملیات</th></tr></thead>
+  <tbody>
+  {% for t in types %}
+    <tr>
+      <td>{{ t.name }}</td>
+      <td>{{ t.description|default:"-" }}</td>
+      <td><a href="{% url 'requesttype_edit' t.pk %}"><i class="fas fa-edit"></i></a> <a href="{% url 'requesttype_delete' t.pk %}"><i class="fas fa-trash-alt"></i></a></td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="3">موردی ثبت نشده.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}
