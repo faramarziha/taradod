@@ -7,6 +7,20 @@ class CustomUser(AbstractUser):
     face_encoding  = models.BinaryField(null=True, blank=True)
     face_image = models.ImageField("تصویر چهره", upload_to="faces/", null=True, blank=True)
     # اگر قبلاً فیلد face_image هم اضافه کرده‌اید، بگذارید
+    group = models.ForeignKey(
+        "attendance.Group",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        verbose_name="گروه",
+    )
+    shift = models.ForeignKey(
+        "attendance.Shift",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        verbose_name="شیفت",
+    )
 
     def __str__(self):
         return f"{self.personnel_code} – {self.get_full_name()}"
