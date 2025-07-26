@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django_jalali import forms as jforms
 from django_jalali.admin.widgets import AdminjDateWidget
 import jdatetime
+from attendance import models as attendance_models
 from attendance.models import EditRequest, LeaveRequest, LOG_TYPE_CHOICES
 from attendance.models import WeeklyHoliday
 
@@ -21,6 +22,8 @@ class CustomUserSimpleForm(forms.ModelForm):
             "last_name",
             "personnel_code",
             "national_id",
+            "group",
+            "shift",
             "is_active",
             "is_staff",
         ]
@@ -214,3 +217,21 @@ class WeeklyHolidayForm(forms.Form):
         required=False,
         label="روزهای تعطیل",
     )
+
+
+class ShiftForm(forms.ModelForm):
+    class Meta:
+        model = attendance_models.Shift
+        fields = ["name", "start_time", "end_time"]
+
+
+class GroupForm(forms.ModelForm):
+    class Meta:
+        model = attendance_models.Group
+        fields = ["name", "shift"]
+
+
+class LeaveTypeForm(forms.ModelForm):
+    class Meta:
+        model = attendance_models.LeaveType
+        fields = ["name", "description"]

@@ -13,6 +13,8 @@
     <div class="row"><span class="label">کد پرسنلی:</span><span>{{ u.personnel_code }}</span></div>
     <div class="row"><span class="label">نام:</span><span>{{ u.get_full_name }}</span></div>
     <div class="row"><span class="label">نام کاربری:</span><span>{{ u.username }}</span></div>
+    <div class="row"><span class="label">گروه:</span><span>{{ u.group }}</span></div>
+    <div class="row"><span class="label">شیفت:</span><span>{{ u.shift }}</span></div>
     <div class="row"><span class="label">ثبت چهره:</span>
       {% if u.face_encoding %}
         <i class="fa fa-check-circle" style="color: var(--color-secondary);"></i>
@@ -40,6 +42,8 @@
       <th>نام</th>
       <th>نام خانوادگی</th>
       <th>نام کاربری</th>
+      <th>گروه</th>
+      <th>شیفت</th>
       <th>ثبت چهره</th>
       <th>عملیات</th>
     </tr>
@@ -50,8 +54,10 @@
         <td>{{ forloop.counter }}</td>
         <td>{{ u.personnel_code }}</td>
         <td>{{ u.first_name }}</td>
-        <td>{{ u.last_name }}</td>
-        <td>{{ u.username }}</td>
+       <td>{{ u.last_name }}</td>
+       <td>{{ u.username }}</td>
+        <td>{{ u.group }}</td>
+        <td>{{ u.shift }}</td>
         <td>
           {% if u.face_encoding %}
             <i class="fa fa-check-circle" style="color: var(--color-secondary);"></i>

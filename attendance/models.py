@@ -135,3 +135,36 @@ class WeeklyHoliday(models.Model):
     def __str__(self):
         return dict(self.WEEKDAY_CHOICES).get(self.weekday, str(self.weekday))
 
+
+class Shift(models.Model):
+    """Simple shift definition with start and end times."""
+
+    name = models.CharField(max_length=50)
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+
+    def __str__(self):
+        return self.name
+
+
+class Group(models.Model):
+    """Group of users optionally tied to a shift."""
+
+    name = models.CharField(max_length=50)
+    shift = models.ForeignKey(
+        Shift, null=True, blank=True, on_delete=models.SET_NULL, related_name="groups"
+    )
+
+    def __str__(self):
+        return self.name
+
+
+class LeaveType(models.Model):
+    """Types of leaves (e.g. vacation, sick)."""
+
+    name = models.CharField(max_length=50)
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.name
+
