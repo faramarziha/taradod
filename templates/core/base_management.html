@@ -36,7 +36,7 @@
       <a href="{% url 'weekly_holidays' %}" class="{% if request.resolver_match.url_name == 'weekly_holidays' %}active{% endif %}">
         <i class="fas fa-calendar-day"></i> تعطیلات هفتگی
       </a>
-      <details class="sidebar-group {% if request.resolver_match.url_name in ['shift_list','group_list','leave_type_list'] %}open{% endif %}">
+      <details class="sidebar-group {% if request.resolver_match.url_name == 'shift_list' or request.resolver_match.url_name == 'group_list' or request.resolver_match.url_name == 'leave_type_list' %}open{% endif %}">
         <summary><i class="fas fa-cogs"></i> تنظیمات مجموعه</summary>
         <nav class="sub-menu">
           <a href="{% url 'shift_list' %}" class="{% if request.resolver_match.url_name == 'shift_list' %}active{% endif %}">شیفت‌ها</a>
