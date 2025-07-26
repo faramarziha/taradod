@@ -594,23 +594,45 @@ def register_face_api(request, user_id):
 def management_dashboard(request):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
-    # آمار کلی
+
     today = timezone.now().date()
     is_holiday = WeeklyHoliday.objects.filter(weekday=today.weekday()).exists()
-    total_users = User.objects.count()
-    today_logs = AttendanceLog.objects.filter(timestamp__date=today).count()
-    users_without_face = User.objects.filter(face_encoding__isnull=True).count()
+
+    group_id = request.GET.get("group")
+    shift_id = request.GET.get("shift")
+
+    users_qs = User.objects.all()
+    if group_id:
+        users_qs = users_qs.filter(group_id=group_id)
+    if shift_id:
+        users_qs = users_qs.filter(shift_id=shift_id)
+
+    total_users = users_qs.count()
+    today_logs = AttendanceLog.objects.filter(user__in=users_qs, timestamp__date=today).count()
+    users_without_face = users_qs.filter(face_encoding__isnull=True).count()
 
     # لیست کارکنان حاضر، غایب و مرخصی
     if is_holiday:
-        present_users = leave_users = absent_users = User.objects.none()
+        present_users = leave_users = absent_users = users_qs.none()
         present_ids = []
     else:
-        present_ids = AttendanceLog.objects.filter(timestamp__date=today).values_list('user_id', flat=True).distinct()
-        leave_ids = LeaveRequest.objects.filter(start_date__lte=today, end_date__gte=today).values_list('user_id', flat=True).distinct()
-        present_users = User.objects.filter(id__in=present_ids)
-        leave_users = User.objects.filter(id__in=leave_ids)
-        absent_users = User.objects.filter(is_active=True).exclude(id__in=present_ids).exclude(id__in=leave_ids)
+        present_ids = (
+            AttendanceLog.objects.filter(user__in=users_qs, timestamp__date=today)
+            .values_list("user_id", flat=True)
+            .distinct()
+        )
+        leave_ids = (
+            LeaveRequest.objects.filter(
+                user__in=users_qs,
+                start_date__lte=today,
+                end_date__gte=today,
+            )
+            .values_list("user_id", flat=True)
+            .distinct()
+        )
+        present_users = users_qs.filter(id__in=present_ids)
+        leave_users = users_qs.filter(id__in=leave_ids)
+        absent_users = users_qs.exclude(id__in=present_ids).exclude(id__in=leave_ids)
 
     tardy_users = User.objects.none()
     total_hours = 0
@@ -622,27 +644,27 @@ def management_dashboard(request):
             first_log = AttendanceLog.objects.filter(user_id=uid, timestamp__date=today).order_by('timestamp').first()
             if first_log and first_log.timestamp.astimezone(timezone.get_current_timezone()).time() > start_time:
                 tardy_ids.append(uid)
-        tardy_users = User.objects.filter(id__in=tardy_ids)
+        tardy_users = users_qs.filter(id__in=tardy_ids)
 
         # مجموع ساعات کاری تخمینی (اختلاف اولین و آخرین تردد)
         total_seconds = 0
         for uid in present_ids:
-            logs = AttendanceLog.objects.filter(user_id=uid, timestamp__date=today).order_by('timestamp')
+            logs = AttendanceLog.objects.filter(user_id=uid, timestamp__date=today).order_by("timestamp")
             if logs.count() >= 2:
                 delta = logs.last().timestamp - logs.first().timestamp
                 total_seconds += delta.total_seconds()
         total_hours = round(total_seconds / 3600, 2)
 
     # هشدارها
-    pending_edits = EditRequest.objects.filter(status='pending').count()
-    pending_leaves = LeaveRequest.objects.filter(status='pending').count()
-    suspicious_today = SuspiciousLog.objects.filter(timestamp__date=today).count()
+    pending_edits = EditRequest.objects.filter(user__in=users_qs, status="pending").count()
+    pending_leaves = LeaveRequest.objects.filter(user__in=users_qs, status="pending").count()
+    suspicious_today = SuspiciousLog.objects.filter(matched_user__in=users_qs, timestamp__date=today).count()
 
     # نمودار تردد 7 روز اخیر
     date_range = [today - timedelta(days=i) for i in range(6, -1, -1)]
     daily_logs = []
     for date in date_range:
-        logs = AttendanceLog.objects.filter(timestamp__date=date).count()
+        logs = AttendanceLog.objects.filter(user__in=users_qs, timestamp__date=date).count()
         daily_logs.append(logs)
 
     # prepare JSON for chart rendering
@@ -669,6 +691,10 @@ def management_dashboard(request):
         'date_range_json': labels_json,
         'daily_logs_json': logs_json,
         'is_holiday': is_holiday,
+        'groups': Group.objects.all(),
+        'shifts': Shift.objects.all(),
+        'selected_group': group_id,
+        'selected_shift': shift_id,
     }
     return render(request, 'core/management_dashboard.html', context)
 
@@ -843,11 +869,26 @@ def edit_requests(request):
                 req.save()
                 messages.info(request, "درخواست لغو شد.")
         return redirect("edit_requests")
+    group_id = request.GET.get("group")
+    shift_id = request.GET.get("shift")
+
     requests = EditRequest.objects.select_related("user").filter(cancelled_by_user=False).order_by("-created_at")
-    return render(request, "core/edit_requests.html", {
-        'active_tab': 'edit_requests',
-        'requests': requests,
-    })
+    if group_id:
+        requests = requests.filter(user__group_id=group_id)
+    if shift_id:
+        requests = requests.filter(user__shift_id=shift_id)
+    return render(
+        request,
+        "core/edit_requests.html",
+        {
+            "active_tab": "edit_requests",
+            "requests": requests,
+            "groups": Group.objects.all(),
+            "shifts": Shift.objects.all(),
+            "selected_group": group_id,
+            "selected_shift": shift_id,
+        },
+    )
 
 
 @login_required
@@ -883,12 +924,32 @@ def leave_requests(request):
                 req.save()
                 messages.success(request, "وضعیت مرخصی به‌روزرسانی شد.")
         return redirect("leave_requests")
-    requests = LeaveRequest.objects.select_related("user", "leave_type").filter(cancelled_by_user=False).order_by("-created_at")
-    return render(request, "core/leave_requests.html", {
-        'active_tab': 'leave_requests',
-        'requests': requests,
-        'today': timezone.now().date(),
-    })
+    group_id = request.GET.get("group")
+    shift_id = request.GET.get("shift")
+
+    requests = (
+        LeaveRequest.objects.select_related("user", "leave_type")
+        .filter(cancelled_by_user=False)
+        .order_by("-created_at")
+    )
+    if group_id:
+        requests = requests.filter(user__group_id=group_id)
+    if shift_id:
+        requests = requests.filter(user__shift_id=shift_id)
+
+    return render(
+        request,
+        "core/leave_requests.html",
+        {
+            "active_tab": "leave_requests",
+            "requests": requests,
+            "today": timezone.now().date(),
+            "groups": Group.objects.all(),
+            "shifts": Shift.objects.all(),
+            "selected_group": group_id,
+            "selected_shift": shift_id,
+        },
+    )
 
 
 @login_required

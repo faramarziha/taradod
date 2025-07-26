@@ -6,6 +6,21 @@
   <i class="fas fa-edit"></i>
   درخواست‌های ویرایش
 </h2>
+<form method="get" class="form-inline" style="margin-bottom:1rem;">
+  <select name="group">
+    <option value="">همه گروه‌ها</option>
+    {% for g in groups %}
+      <option value="{{ g.id }}" {% if g.id|stringformat:'s' == selected_group %}selected{% endif %}>{{ g.name }}</option>
+    {% endfor %}
+  </select>
+  <select name="shift">
+    <option value="">همه شیفت‌ها</option>
+    {% for s in shifts %}
+      <option value="{{ s.id }}" {% if s.id|stringformat:'s' == selected_shift %}selected{% endif %}>{{ s.name }}</option>
+    {% endfor %}
+  </select>
+  <button class="btn" type="submit">اعمال</button>
+</form>
 <div class="request-cards">
   {% for r in requests %}
   <div class="request-card fade-in">
