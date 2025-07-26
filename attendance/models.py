@@ -92,6 +92,13 @@ class LeaveRequest(models.Model):
     start_date = models.DateField()
     end_date = models.DateField()
     reason = models.TextField(blank=True)
+    leave_type = models.ForeignKey(
+        "attendance.LeaveType",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        verbose_name="نوع مرخصی",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="pending")
     decision_at = models.DateTimeField(null=True, blank=True)
@@ -139,7 +146,7 @@ class WeeklyHoliday(models.Model):
 class Shift(models.Model):
     """Simple shift definition with start and end times."""
 
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=50, unique=True)
     start_time = models.TimeField()
     end_time = models.TimeField()
 
@@ -150,7 +157,7 @@ class Shift(models.Model):
 class Group(models.Model):
     """Group of users optionally tied to a shift."""
 
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=50, unique=True)
     shift = models.ForeignKey(
         Shift, null=True, blank=True, on_delete=models.SET_NULL, related_name="groups"
     )
@@ -162,7 +169,7 @@ class Group(models.Model):
 class LeaveType(models.Model):
     """Types of leaves (e.g. vacation, sick)."""
 
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=50, unique=True)
     description = models.TextField(blank=True)
 
     def __str__(self):

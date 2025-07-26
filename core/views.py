@@ -423,7 +423,7 @@ def user_leave_requests(request):
     if not uid:
         return redirect("user_inquiry")
     u = get_object_or_404(User, id=uid)
-    requests_qs = LeaveRequest.objects.filter(user=u).order_by("-created_at")
+    requests_qs = LeaveRequest.objects.select_related("leave_type").filter(user=u).order_by("-created_at")
     return render(request, "core/my_leave_requests.html", {"user": u, "requests": requests_qs})
 
 
@@ -883,7 +883,7 @@ def leave_requests(request):
                 req.save()
                 messages.success(request, "وضعیت مرخصی به‌روزرسانی شد.")
         return redirect("leave_requests")
-    requests = LeaveRequest.objects.select_related("user").filter(cancelled_by_user=False).order_by("-created_at")
+    requests = LeaveRequest.objects.select_related("user", "leave_type").filter(cancelled_by_user=False).order_by("-created_at")
     return render(request, "core/leave_requests.html", {
         'active_tab': 'leave_requests',
         'requests': requests,
