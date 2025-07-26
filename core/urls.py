@@ -15,8 +15,10 @@ urlpatterns = [
     path('management/suspicions/', views.suspicious_logs, name='suspicious_logs'),
     path('management/edit-requests/', views.edit_requests, name='edit_requests'),
     path('management/leave-requests/', views.leave_requests, name='leave_requests'),
+    path('management/requests/', views.unified_requests, name='unified_requests'),
     path('management/leave-requests/add/', views.add_leave, name='add_leave'),
     path('management/logs/export/', views.export_logs_csv, name='export_logs_csv'),
+    path('management/advanced-report/', views.attendance_report, name='attendance_report'),
     path('management/attendance-status/', views.attendance_status, name='attendance_status'),
     path('management/attendance-status/api/', views.api_attendance_status, name='api_attendance_status'),
 
@@ -33,6 +35,7 @@ urlpatterns = [
     # —————— کاربر عادی ——————
     path("user/inquiry/",           views.user_inquiry,                   name="user_inquiry"),
     path("user/profile/",           views.user_profile,                  name="user_profile"),
+    path("user/workspace/",        views.user_workspace,                name="user_workspace"),
     path("user/logs/",              views.my_logs,                        name="my_logs"),
     path("user/logs/export/",      views.export_my_logs_csv,             name="export_my_logs_csv"),
     path("user/edit-request/",     views.edit_request,                  name="edit_request"),
@@ -58,4 +61,32 @@ urlpatterns = [
          views.register_face_api,            name="register_face_api"),
     path("management/weekly-holidays/", views.weekly_holidays, name="weekly_holidays"),
     path("management/users/<int:user_id>/logs/", views.user_logs_admin, name="user_logs_admin"),
+
+    # مدیریت ساختار سازمانی و شیفت‌ها
+    path("management/work-groups/", views.work_groups, name="work_groups"),
+    path("management/work-groups/add/", views.work_group_add, name="work_group_add"),
+    path("management/work-groups/<int:pk>/edit/", views.work_group_edit, name="work_group_edit"),
+    path("management/work-groups/<int:pk>/delete/", views.work_group_delete, name="work_group_delete"),
+
+    path("management/work-units/", views.work_units, name="work_units"),
+    path("management/work-units/add/", views.work_unit_add, name="work_unit_add"),
+    path("management/work-units/<int:pk>/edit/", views.work_unit_edit, name="work_unit_edit"),
+    path("management/work-units/<int:pk>/delete/", views.work_unit_delete, name="work_unit_delete"),
+
+    path("management/shifts/", views.shifts, name="shifts"),
+    path("management/shifts/add/", views.shift_add, name="shift_add"),
+    path("management/shifts/<int:pk>/edit/", views.shift_edit, name="shift_edit"),
+    path("management/shifts/<int:pk>/delete/", views.shift_delete, name="shift_delete"),
+
+    path("management/policies/", views.policies, name="policies"),
+    path("management/policies/add/", views.policy_add, name="policy_add"),
+    path("management/policies/<int:pk>/edit/", views.policy_edit, name="policy_edit"),
+    path("management/policies/<int:pk>/delete/", views.policy_delete, name="policy_delete"),
+
+    path("management/calendars/", views.calendars, name="calendars"),
+    path("management/calendars/add/", views.calendar_add, name="calendar_add"),
+    path("management/calendars/<int:pk>/edit/", views.calendar_edit, name="calendar_edit"),
+    path("management/calendars/<int:pk>/delete/", views.calendar_delete, name="calendar_delete"),
+
+    path("management/settings/", views.general_settings, name="general_settings"),
 ]

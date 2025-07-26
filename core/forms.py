@@ -3,8 +3,18 @@ from django.contrib.auth import get_user_model
 from django_jalali import forms as jforms
 from django_jalali.admin.widgets import AdminjDateWidget
 import jdatetime
-from attendance.models import EditRequest, LeaveRequest, LOG_TYPE_CHOICES
-from attendance.models import WeeklyHoliday
+from attendance.models import (
+    EditRequest,
+    LeaveRequest,
+    LOG_TYPE_CHOICES,
+    WeeklyHoliday,
+    Policy,
+    WorkGroup,
+    WorkUnit,
+    Shift,
+    Calendar,
+    GeneralSetting,
+)
 
 User = get_user_model()
 
@@ -21,6 +31,11 @@ class CustomUserSimpleForm(forms.ModelForm):
             "last_name",
             "personnel_code",
             "national_id",
+            "group",
+            "default_shift",
+            "policy",
+            "is_supervisor",
+            "is_operator",
             "is_active",
             "is_staff",
         ]
@@ -214,3 +229,122 @@ class WeeklyHolidayForm(forms.Form):
         required=False,
         label="روزهای تعطیل",
     )
+
+
+class WorkGroupForm(forms.ModelForm):
+    class Meta:
+        model = WorkGroup
+        fields = ["name", "supervisor"]
+        labels = {
+            "name": "نام گروه",
+            "supervisor": "سرپرست",
+        }
+
+
+class WorkUnitForm(forms.ModelForm):
+    class Meta:
+        model = WorkUnit
+        fields = ["group", "name"]
+        labels = {
+            "group": "گروه",
+            "name": "نام واحد",
+        }
+
+
+class ShiftForm(forms.ModelForm):
+    class Meta:
+        model = Shift
+        fields = ["name", "start_time", "end_time", "break_minutes"]
+        labels = {
+            "name": "عنوان",
+            "start_time": "شروع",
+            "end_time": "پایان",
+            "break_minutes": "دقایق استراحت",
+        }
+        widgets = {
+            "start_time": forms.TimeInput(format="%H:%M", attrs={"type": "time"}),
+            "end_time": forms.TimeInput(format="%H:%M", attrs={"type": "time"}),
+        }
+
+
+class PolicyForm(forms.ModelForm):
+    class Meta:
+        model = Policy
+        fields = ["name", "late_tolerance", "overtime_rate", "annual_leave_days"]
+        labels = {
+            "name": "عنوان",
+            "late_tolerance": "تاخیر مجاز (دقیقه)",
+            "overtime_rate": "ضریب اضافه‌کاری",
+            "annual_leave_days": "مرخصی سالانه",
+        }
+
+
+class CalendarForm(forms.ModelForm):
+    date = jforms.jDateField(label="تاریخ", widget=AdminjDateWidget())
+
+    class Meta:
+        model = Calendar
+        fields = ["user", "work_unit", "date", "shift"]
+        labels = {
+            "user": "کاربر",
+            "work_unit": "واحد",
+            "date": "تاریخ",
+            "shift": "شیفت",
+        }
+
+    def clean_date(self):
+        jd = self.cleaned_data["date"]
+        return jd.togregorian()
+
+    def clean(self):
+        cleaned = super().clean()
+        user = cleaned.get("user")
+        unit = cleaned.get("work_unit")
+        if not user and not unit:
+            raise forms.ValidationError("کاربر یا واحد را مشخص کنید.")
+        if user and unit:
+            raise forms.ValidationError("فقط یکی از کاربر یا واحد باید انتخاب شود.")
+        return cleaned
+
+class GeneralSettingForm(forms.ModelForm):
+    class Meta:
+        model = GeneralSetting
+        fields = ["company_name", "timezone", "time_correction", "week_start"]
+        labels = {
+            "company_name": "نام شرکت",
+            "timezone": "منطقه زمانی",
+            "time_correction": "اصلاح زمان (دقیقه)",
+            "week_start": "شروع هفته",
+        }
+
+
+class AttendanceReportForm(forms.Form):
+    """Filter form for generating attendance reports."""
+    group = forms.ModelChoiceField(
+        queryset=WorkGroup.objects.all(),
+        label="گروه",
+        required=False,
+    )
+    user = forms.ModelChoiceField(
+        queryset=User.objects.all(),
+        label="کاربر",
+        required=False,
+    )
+    start = jforms.jDateField(label="از تاریخ", widget=AdminjDateWidget())
+    end = jforms.jDateField(label="تا تاریخ", widget=AdminjDateWidget())
+
+    def clean(self):
+        cleaned = super().clean()
+        sd = cleaned.get("start")
+        ed = cleaned.get("end")
+        if sd:
+            cleaned["start_g"] = sd.togregorian()
+        if ed:
+            cleaned["end_g"] = ed.togregorian()
+        if sd and ed and cleaned["end_g"] < cleaned["start_g"]:
+            self.add_error("end", "بازه نامعتبر است")
+        user = cleaned.get("user")
+        group = cleaned.get("group")
+        if user and group:
+            self.add_error("user", "فقط یکی از کاربر یا گروه را انتخاب کنید.")
+        return cleaned

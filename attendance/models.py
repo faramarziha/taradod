@@ -135,3 +135,62 @@ class WeeklyHoliday(models.Model):
     def __str__(self):
         return dict(self.WEEKDAY_CHOICES).get(self.weekday, str(self.weekday))
 
+
+class Policy(models.Model):
+    name = models.CharField(max_length=100)
+    late_tolerance = models.PositiveIntegerField(default=0, help_text="دقیقه مجاز تاخیر")
+    overtime_rate = models.FloatField(default=1.0, help_text="ضریب اضافه‌کاری")
+    annual_leave_days = models.PositiveIntegerField(default=0, help_text="مرخصی سالانه")
+
+    def __str__(self):
+        return self.name
+
+
+class WorkGroup(models.Model):
+    name = models.CharField(max_length=100)
+    supervisor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="supervised_groups")
+
+    def __str__(self):
+        return self.name
+
+
+class WorkUnit(models.Model):
+    group = models.ForeignKey(WorkGroup, on_delete=models.CASCADE, related_name="units")
+    name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return f"{self.group.name} - {self.name}"
+
+
+class Shift(models.Model):
+    name = models.CharField(max_length=50)
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    break_minutes = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return self.name
+
+
+class Calendar(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE)
+    work_unit = models.ForeignKey(WorkUnit, null=True, blank=True, on_delete=models.CASCADE)
+    date = models.DateField()
+    shift = models.ForeignKey(Shift, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = (('user', 'date'),)
+
+    def __str__(self):
+        target = self.user.get_full_name() if self.user else (self.work_unit.name if self.work_unit else '')
+        return f"{target} @ {self.date}"
+
+
+class GeneralSetting(models.Model):
+    company_name = models.CharField(max_length=100, blank=True)
+    timezone = models.CharField(max_length=100, default='Asia/Tehran')
+    time_correction = models.IntegerField(default=0, help_text='اصلاح زمان (دقیقه)')
+    week_start = models.PositiveSmallIntegerField(default=0, help_text='روز شروع هفته (0=شنبه)')
+
+    def __str__(self):
+        return 'تنظیمات عمومی'

@@ -6,6 +6,11 @@ class CustomUser(AbstractUser):
     national_id    = models.CharField("کد ملی", max_length=10, unique=True)
     face_encoding  = models.BinaryField(null=True, blank=True)
     face_image = models.ImageField("تصویر چهره", upload_to="faces/", null=True, blank=True)
+    group = models.ForeignKey('attendance.WorkGroup', null=True, blank=True, on_delete=models.SET_NULL, related_name='users')
+    default_shift = models.ForeignKey('attendance.Shift', null=True, blank=True, on_delete=models.SET_NULL)
+    policy = models.ForeignKey('attendance.Policy', null=True, blank=True, on_delete=models.SET_NULL)
+    is_supervisor = models.BooleanField(default=False)
+    is_operator = models.BooleanField(default=False)
     # اگر قبلاً فیلد face_image هم اضافه کرده‌اید، بگذارید
 
     def __str__(self):

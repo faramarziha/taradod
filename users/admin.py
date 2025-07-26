@@ -14,11 +14,19 @@ class CustomUserAdmin(UserAdmin):
             "fields": ("face_encoding", "face_image"),
             "classes": ("collapse",),
         }),
+        ("نقش‌ها", {
+            "fields": ("is_supervisor", "is_operator"),
+            "classes": ("collapse",),
+        }),
     )
     readonly_fields = ("face_encoding",)
     add_fieldsets = UserAdmin.add_fieldsets + (
         ("تشخیص چهره", {
             "fields": ("face_image",),
+            "classes": ("wide",),
+        }),
+        ("نقش‌ها", {
+            "fields": ("is_supervisor", "is_operator"),
             "classes": ("wide",),
         }),
     )
@@ -30,6 +38,8 @@ class CustomUserAdmin(UserAdmin):
         "last_name",
         "username",
         "national_id",
+        "is_supervisor",
+        "is_operator",
         "is_staff",
     )
     search_fields = (
@@ -38,4 +48,4 @@ class CustomUserAdmin(UserAdmin):
         "last_name",
         "national_id",
     )
-    list_filter = ("is_staff", "is_active")
+    list_filter = ("is_staff", "is_active", "is_supervisor", "is_operator")

@@ -2,6 +2,7 @@ import base64
 import io
 import json
 import secrets
+import asyncio
 from datetime import timedelta, datetime, time
 
 import face_recognition
@@ -22,7 +23,19 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from attendance.models import AttendanceLog, SuspiciousLog, EditRequest, LeaveRequest, WeeklyHoliday
+from attendance.models import (
+    AttendanceLog,
+    SuspiciousLog,
+    EditRequest,
+    LeaveRequest,
+    WeeklyHoliday,
+    WorkGroup,
+    WorkUnit,
+    Shift,
+    Policy,
+    Calendar,
+    GeneralSetting,
+)
 from core.forms import (
     CustomUserSimpleForm,
     InquiryForm,
@@ -32,7 +45,15 @@ from core.forms import (
     AttendanceStatusForm,
     UserLogsRangeForm,
     WeeklyHolidayForm,
+    WorkGroupForm,
+    WorkUnitForm,
+    ShiftForm,
+    PolicyForm,
+    CalendarForm,
+    GeneralSettingForm,
+    AttendanceReportForm,
 )
+from core import tasks
 from users.models import CustomUser
 
 
@@ -252,7 +273,7 @@ def user_inquiry(request):
                 form.add_error(None, "اطلاعات معتبر نیست")
             else:
                 request.session["inquiry_user_id"] = u.id
-                return redirect("user_profile")
+                return redirect("user_workspace")
     else:
         form = InquiryForm()
     return render(request, "core/user_inquiry.html", {"form": form})
@@ -264,6 +285,38 @@ def user_profile(request):
         return redirect("user_inquiry")
     u = get_object_or_404(User, id=uid)
     return render(request, "core/user_profile.html", {"user": u})
+
+
+def user_workspace(request):
+    uid = request.session.get("inquiry_user_id")
+    if not uid:
+        return redirect("user_inquiry")
+    u = get_object_or_404(User, id=uid)
+    today_j = jdatetime.date.today()
+    jy, jm = today_j.year, today_j.month
+    days = jdatetime.j_days_in_month[jm - 1]
+    start_g = jdatetime.date(jy, jm, 1).togregorian()
+    end_g = jdatetime.date(jy, jm, days).togregorian()
+    qs = AttendanceLog.objects.filter(user=u, timestamp__date__range=(start_g, end_g)).order_by("timestamp")
+    daily = {d: {"in": None, "out": None} for d in range(1, days + 1)}
+    for log in qs:
+        jd = jdatetime.date.fromgregorian(date=log.timestamp.date())
+        info = daily.get(jd.day)
+        if log.log_type == "in" and info["in"] is None:
+            info["in"] = log.timestamp.time()
+        if log.log_type == "out":
+            info["out"] = log.timestamp.time()
+    edit_requests = EditRequest.objects.filter(user=u).order_by("-created_at")[:5]
+    leave_requests = LeaveRequest.objects.filter(user=u).order_by("-created_at")[:5]
+    context = {
+        "user": u,
+        "daily_logs": daily,
+        "jyear": jy,
+        "jmonth": jm,
+        "edit_requests": edit_requests,
+        "leave_requests": leave_requests,
+    }
+    return render(request, "core/user_workspace.html", context)
 
 
 def my_logs(request):
@@ -367,7 +420,7 @@ def leave_request(request):
                 obj = form.save(commit=False)
                 obj.save()
                 messages.success(request, "درخواست مرخصی ثبت شد.")
-                return redirect("user_profile")
+                return redirect("user_workspace")
         else:
             if form.is_valid():
                 return render(
@@ -435,6 +488,8 @@ def cancel_leave_request(request, pk):
 # —————————————————————————
 
 staff_required = user_passes_test(lambda u: u.is_staff)
+supervisor_required = user_passes_test(lambda u: u.is_staff and u.is_supervisor)
+operator_required = user_passes_test(lambda u: u.is_staff and u.is_operator)
 
 @login_required
 @staff_required
@@ -719,6 +774,45 @@ def export_logs_csv(request):
 
 
 @login_required
+@operator_required
+def attendance_report(request):
+    """Advanced attendance report with filters."""
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    form = AttendanceReportForm(request.GET or None)
+    report = []
+    if form.is_valid():
+        sd = form.cleaned_data.get("start_g")
+        ed = form.cleaned_data.get("end_g")
+        user = form.cleaned_data.get("user")
+        group = form.cleaned_data.get("group")
+        report = asyncio.run(tasks.generate_attendance_report(sd, ed, user, group))
+        if "export" in request.GET:
+            import csv
+            from django.http import HttpResponse
+            import jdatetime
+            response = HttpResponse(content_type="text/csv")
+            filename = "attendance_report.csv"
+            response["Content-Disposition"] = f"attachment; filename={filename}"
+            writer = csv.writer(response)
+            writer.writerow(["کاربر", "تاریخ", "ساعت", "نوع"])
+            for row in report:
+                jd = jdatetime.datetime.fromgregorian(datetime=row["time"])
+                writer.writerow([
+                    row["user"],
+                    jd.strftime("%Y/%m/%d"),
+                    jd.strftime("%H:%M:%S"),
+                    "ورود" if row["type"] == "in" else "خروج",
+                ])
+            return response
+    return render(
+        request,
+        "core/attendance_report.html",
+        {"form": form, "report": report, "active_tab": "management_reports"},
+    )
+
+
+@login_required
 @staff_required
 def attendance_status(request):
     """Display attendance status for a given date."""
@@ -880,6 +974,23 @@ def leave_requests(request):
 
 
 @login_required
+@supervisor_required
+def unified_requests(request):
+    """Display edit and leave requests together for supervisors."""
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    edit_qs = EditRequest.objects.select_related("user").filter(cancelled_by_user=False)
+    leave_qs = LeaveRequest.objects.select_related("user").filter(cancelled_by_user=False)
+    edit_qs = edit_qs.order_by("-created_at")
+    leave_qs = leave_qs.order_by("-created_at")
+    return render(request, "core/unified_requests.html", {
+        'active_tab': 'unified_requests',
+        'edit_requests': edit_qs,
+        'leave_requests': leave_qs,
+    })
+
+
+@login_required
 @staff_required
 def add_leave(request):
     """Allow admin to manually register a leave for a user."""
@@ -943,4 +1054,366 @@ def user_logs_admin(request, user_id):
         "user": user,
         "form": form,
         "logs": logs,
+    })
+
+
+@login_required
+@staff_required
+def work_groups(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    groups = WorkGroup.objects.select_related("supervisor").all()
+    return render(request, "core/workgroup_list.html", {
+        "active_tab": "work_groups",
+        "groups": groups,
+    })
+
+
+@login_required
+@staff_required
+def work_group_add(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    if request.method == "POST":
+        form = WorkGroupForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "گروه جدید ایجاد شد.")
+            return redirect("work_groups")
+    else:
+        form = WorkGroupForm()
+    return render(request, "core/workgroup_form.html", {
+        "form": form,
+        "title": "ایجاد گروه",
+    })
+
+
+@login_required
+@staff_required
+def work_group_edit(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    obj = get_object_or_404(WorkGroup, pk=pk)
+    if request.method == "POST":
+        form = WorkGroupForm(request.POST, instance=obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "گروه ویرایش شد.")
+            return redirect("work_groups")
+    else:
+        form = WorkGroupForm(instance=obj)
+    return render(request, "core/workgroup_form.html", {
+        "form": form,
+        "title": "ویرایش گروه",
+    })
+
+
+@login_required
+@staff_required
+def work_group_delete(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    obj = get_object_or_404(WorkGroup, pk=pk)
+    if request.method == "POST":
+        obj.delete()
+        messages.success(request, "گروه حذف شد.")
+        return redirect("work_groups")
+    return render(request, "core/confirm_delete.html", {
+        "title": "حذف گروه",
+        "message": f"آیا مطمئن هستید که می‌خواهید گروه \u00ab{obj.name}\u00bb را حذف کنید؟",
+        "cancel_url": reverse("work_groups"),
+    })
+
+
+@login_required
+@staff_required
+def work_units(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    units = WorkUnit.objects.select_related("group").all()
+    return render(request, "core/workunit_list.html", {
+        "active_tab": "work_units",
+        "units": units,
+    })
+
+
+@login_required
+@staff_required
+def work_unit_add(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    if request.method == "POST":
+        form = WorkUnitForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "واحد جدید ایجاد شد.")
+            return redirect("work_units")
+    else:
+        form = WorkUnitForm()
+    return render(request, "core/workunit_form.html", {
+        "form": form,
+        "title": "ایجاد واحد",
+    })
+
+
+@login_required
+@staff_required
+def work_unit_edit(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    obj = get_object_or_404(WorkUnit, pk=pk)
+    if request.method == "POST":
+        form = WorkUnitForm(request.POST, instance=obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "واحد ویرایش شد.")
+            return redirect("work_units")
+    else:
+        form = WorkUnitForm(instance=obj)
+    return render(request, "core/workunit_form.html", {
+        "form": form,
+        "title": "ویرایش واحد",
+    })
+
+
+@login_required
+@staff_required
+def work_unit_delete(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    obj = get_object_or_404(WorkUnit, pk=pk)
+    if request.method == "POST":
+        obj.delete()
+        messages.success(request, "واحد حذف شد.")
+        return redirect("work_units")
+    return render(request, "core/confirm_delete.html", {
+        "title": "حذف واحد",
+        "message": f"آیا مطمئن هستید که می‌خواهید واحد \u00ab{obj.name}\u00bb را حذف کنید؟",
+        "cancel_url": reverse("work_units"),
+    })
+
+
+@login_required
+@staff_required
+def shifts(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    qs = Shift.objects.all()
+    return render(request, "core/shift_list.html", {
+        "active_tab": "shifts",
+        "shifts": qs,
+    })
+
+
+@login_required
+@staff_required
+def shift_add(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    if request.method == "POST":
+        form = ShiftForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "شیفت جدید ایجاد شد.")
+            return redirect("shifts")
+    else:
+        form = ShiftForm()
+    return render(request, "core/shift_form.html", {
+        "form": form,
+        "title": "ایجاد شیفت",
+    })
+
+
+@login_required
+@staff_required
+def shift_edit(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    obj = get_object_or_404(Shift, pk=pk)
+    if request.method == "POST":
+        form = ShiftForm(request.POST, instance=obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "شیفت ویرایش شد.")
+            return redirect("shifts")
+    else:
+        form = ShiftForm(instance=obj)
+    return render(request, "core/shift_form.html", {
+        "form": form,
+        "title": "ویرایش شیفت",
+    })
+
+
+@login_required
+@staff_required
+def shift_delete(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    obj = get_object_or_404(Shift, pk=pk)
+    if request.method == "POST":
+        obj.delete()
+        messages.success(request, "شیفت حذف شد.")
+        return redirect("shifts")
+    return render(request, "core/confirm_delete.html", {
+        "title": "حذف شیفت",
+        "message": f"آیا مطمئن هستید که می‌خواهید شیفت \u00ab{obj.name}\u00bb را حذف کنید؟",
+        "cancel_url": reverse("shifts"),
+    })
+
+
+@login_required
+@staff_required
+def policies(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    qs = Policy.objects.all()
+    return render(request, "core/policy_list.html", {
+        "active_tab": "policies",
+        "policies": qs,
+    })
+
+
+@login_required
+@staff_required
+def policy_add(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    if request.method == "POST":
+        form = PolicyForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "سیاست جدید ایجاد شد.")
+            return redirect("policies")
+    else:
+        form = PolicyForm()
+    return render(request, "core/policy_form.html", {
+        "form": form,
+        "title": "ایجاد سیاست",
+    })
+
+
+@login_required
+@staff_required
+def policy_edit(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    obj = get_object_or_404(Policy, pk=pk)
+    if request.method == "POST":
+        form = PolicyForm(request.POST, instance=obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "سیاست ویرایش شد.")
+            return redirect("policies")
+    else:
+        form = PolicyForm(instance=obj)
+    return render(request, "core/policy_form.html", {
+        "form": form,
+        "title": "ویرایش سیاست",
+    })
+
+
+@login_required
+@staff_required
+def policy_delete(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    obj = get_object_or_404(Policy, pk=pk)
+    if request.method == "POST":
+        obj.delete()
+        messages.success(request, "سیاست حذف شد.")
+        return redirect("policies")
+    return render(request, "core/confirm_delete.html", {
+        "title": "حذف سیاست",
+        "message": f"آیا مطمئن هستید که می‌خواهید سیاست \u00ab{obj.name}\u00bb را حذف کنید؟",
+        "cancel_url": reverse("policies"),
+    })
+
+
+@login_required
+@staff_required
+def calendars(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    qs = Calendar.objects.select_related("user", "work_unit", "shift").all()
+    return render(request, "core/calendar_list.html", {
+        "active_tab": "calendars",
+        "calendars": qs,
+    })
+
+
+@login_required
+@staff_required
+def calendar_add(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    if request.method == "POST":
+        form = CalendarForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "ورود تقویم ثبت شد.")
+            return redirect("calendars")
+    else:
+        form = CalendarForm()
+    return render(request, "core/calendar_form.html", {
+        "form": form,
+        "title": "ایجاد برنامه",
+    })
+
+
+@login_required
+@staff_required
+def calendar_edit(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    obj = get_object_or_404(Calendar, pk=pk)
+    if request.method == "POST":
+        form = CalendarForm(request.POST, instance=obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "برنامه ویرایش شد.")
+            return redirect("calendars")
+    else:
+        form = CalendarForm(instance=obj)
+    return render(request, "core/calendar_form.html", {
+        "form": form,
+        "title": "ویرایش برنامه",
+    })
+
+
+@login_required
+@staff_required
+def calendar_delete(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    obj = get_object_or_404(Calendar, pk=pk)
+    if request.method == "POST":
+        obj.delete()
+        messages.success(request, "برنامه حذف شد.")
+        return redirect("calendars")
+    target = obj.user.get_full_name() if obj.user else (obj.work_unit.name if obj.work_unit else "")
+    message = f"آیا مطمئن هستید که می‌خواهید برنامه \u00ab{target} {obj.date}\u00bb را حذف کنید؟"
+    return render(request, "core/confirm_delete.html", {
+        "title": "حذف برنامه",
+        "message": message,
+        "cancel_url": reverse("calendars"),
+    })
+
+
+@login_required
+@staff_required
+def general_settings(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    obj, _ = GeneralSetting.objects.get_or_create(pk=1)
+    if request.method == "POST":
+        form = GeneralSettingForm(request.POST, instance=obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "تنظیمات ذخیره شد.")
+            return redirect("general_settings")
+    else:
+        form = GeneralSettingForm(instance=obj)
+    return render(request, "core/general_settings_form.html", {
+        "form": form,
+        "title": "تنظیمات عمومی",
     })

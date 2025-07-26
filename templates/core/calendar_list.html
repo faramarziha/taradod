@@ -1,0 +1,33 @@
+{% extends "core/base_management.html" %}
+{% load jformat %}
+{% block title %}برنامه‌ها{% endblock %}
+{% block management_content %}
+<h2 class="page-title"><i class="fas fa-calendar"></i> برنامه‌ها</h2>
+<a class="btn" href="{% url 'calendar_add' %}" style="margin-bottom:1.4rem;">
+  <i class="fas fa-plus" style="margin-left:0.5rem;"></i> برنامه جدید
+</a>
+<div class="table-responsive">
+  <table class="management-table">
+    <thead>
+      <tr><th>تاریخ</th><th>کاربر/واحد</th><th>شیفت</th><th>عملیات</th></tr>
+    </thead>
+    <tbody>
+      {% for c in calendars %}
+      <tr>
+        <td>{{ c.date|jformat:"%Y/%m/%d" }}</td>
+        <td>
+          {% if c.user %}{{ c.user.get_full_name }}{% elif c.work_unit %}{{ c.work_unit.name }}{% endif %}
+        </td>
+        <td>{{ c.shift.name }}</td>
+        <td>
+          <a href="{% url 'calendar_edit' c.pk %}"><i class="fas fa-edit"></i></a>
+          <a href="{% url 'calendar_delete' c.pk %}" style="margin-right:0.5rem;"><i class="fas fa-trash-alt"></i></a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4">موردی یافت نشد</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

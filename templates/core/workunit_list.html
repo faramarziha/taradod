@@ -1,0 +1,29 @@
+{% extends "core/base_management.html" %}
+{% block title %}واحدها{% endblock %}
+{% block management_content %}
+<h2 class="page-title"><i class="fas fa-layer-group"></i> واحدها</h2>
+<a class="btn" href="{% url 'work_unit_add' %}" style="margin-bottom:1.4rem;">
+  <i class="fas fa-plus" style="margin-left:0.5rem;"></i> واحد جدید
+</a>
+<div class="table-responsive">
+  <table class="management-table">
+    <thead>
+      <tr><th>گروه</th><th>نام واحد</th><th>عملیات</th></tr>
+    </thead>
+    <tbody>
+      {% for u in units %}
+      <tr>
+        <td>{{ u.group.name }}</td>
+        <td>{{ u.name }}</td>
+        <td>
+          <a href="{% url 'work_unit_edit' u.pk %}"><i class="fas fa-edit"></i></a>
+          <a href="{% url 'work_unit_delete' u.pk %}" style="margin-right:0.5rem;"><i class="fas fa-trash-alt"></i></a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="3">موردی یافت نشد</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

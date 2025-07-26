@@ -1,0 +1,23 @@
+{% extends "core/base_management.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block management_content %}
+<h2 class="page-title"><i class="fas fa-clipboard-list"></i> {{ title }}</h2>
+<a class="btn" href="{% url 'policies' %}" style="margin-bottom:1.1rem;">
+  <i class="fas fa-chevron-right" style="margin-left:0.4rem;"></i> بازگشت
+</a>
+<form method="post" class="card page page-sm form-grid" autocomplete="off">
+  {% csrf_token %}
+  {% for field in form %}
+  <div class="form-group">
+    {{ field.label_tag }}
+    {{ field }}
+    {% if field.help_text %}<small style="color:var(--color-muted)">{{ field.help_text }}</small>{% endif %}
+    {% for error in field.errors %}<div class="error">{{ error }}</div>{% endfor %}
+  </div>
+  {% endfor %}
+  <div class="profile-actions">
+    <button type="submit" class="btn">ذخیره</button>
+    <a href="{% url 'policies' %}" class="btn" style="background:var(--color-muted);color:#fff;">لغو</a>
+  </div>
+</form>
+{% endblock %}
