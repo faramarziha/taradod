@@ -47,6 +47,7 @@ html, body {
   color: var(--color-text);
   transition: background 0.2s, color 0.2s;
   direction: rtl;
+  overflow-x: hidden;
 }
 
 body {
@@ -226,7 +227,6 @@ label {
   background: var(--color-surface);
   border-radius: var(--radius);
   overflow: hidden;
-  min-width: 580px;
   margin-bottom: 2rem;
   direction: rtl;
 }
@@ -252,12 +252,12 @@ label {
 
 /* wrapper for horizontal scroll when needed */
 .table-responsive {
-  overflow-x: auto;
+  overflow-x: hidden;
 }
 
 @media (min-width: 900px) {
   .table-responsive {
-    overflow-x: visible;
+    overflow-x: hidden;
   }
 }
 
