@@ -18,7 +18,7 @@
       <a href="{% url 'manager_cartable' %}" class="{% if request.resolver_match.url_name == 'manager_cartable' %}active{% endif %}">
         <i class="fas fa-inbox"></i> کارتابل من
       </a>
-      <div class="dropdown-section {% if request.resolver_match.url_name in ['attendance_status','daily_performance','manager_requests','periodic_performance'] %}open{% endif %}">
+      <div class="dropdown-section {% if request.resolver_match.url_name == 'attendance_status' or request.resolver_match.url_name == 'daily_performance' or request.resolver_match.url_name == 'manager_requests' or request.resolver_match.url_name == 'periodic_performance' %}open{% endif %}">
         <button type="button" class="dropdown-toggle">
           <i class="fas fa-briefcase"></i> میزکار من <i class="fas fa-chevron-down chevron"></i>
         </button>
@@ -37,7 +37,7 @@
           </a>
         </div>
       </div>
-      <div class="dropdown-section {% if request.resolver_match.url_name in ['device_settings','shifts','policies','work_groups','units','management_users','request_types','general_settings'] %}open{% endif %}">
+      <div class="dropdown-section {% if request.resolver_match.url_name == 'device_settings' or request.resolver_match.url_name == 'shifts' or request.resolver_match.url_name == 'policies' or request.resolver_match.url_name == 'work_groups' or request.resolver_match.url_name == 'units' or request.resolver_match.url_name == 'management_users' or request.resolver_match.url_name == 'request_types' or request.resolver_match.url_name == 'general_settings' %}open{% endif %}">
         <button type="button" class="dropdown-toggle">
           <i class="fas fa-cog"></i> تنظیمات مجموعه <i class="fas fa-chevron-down chevron"></i>
         </button>
@@ -68,7 +68,7 @@
           </a>
         </div>
       </div>
-      <div class="dropdown-section {% if request.resolver_match.url_name in ['report_attendances','report_requests','report_daily_performance','report_performance_calculation','report_annual_requests'] %}open{% endif %}">
+      <div class="dropdown-section {% if request.resolver_match.url_name == 'report_attendances' or request.resolver_match.url_name == 'report_requests' or request.resolver_match.url_name == 'report_daily_performance' or request.resolver_match.url_name == 'report_performance_calculation' or request.resolver_match.url_name == 'report_annual_requests' %}open{% endif %}">
         <button type="button" class="dropdown-toggle">
           <i class="fas fa-file-alt"></i> گزارش‌ها <i class="fas fa-chevron-down chevron"></i>
         </button>
