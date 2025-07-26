@@ -24,14 +24,32 @@
       <a href="{% url 'management_reports' %}" class="{% if request.resolver_match.url_name == 'management_reports' %}active{% endif %}">
         <i class="fas fa-file-alt"></i> گزارش‌ها
       </a>
-        <a href="{% url 'suspicious_logs' %}" class="{% if request.resolver_match.url_name == 'suspicious_logs' %}active{% endif %}">
-          <i class="fas fa-exclamation-triangle"></i> موارد مشکوک
-        </a>
-        <a href="{% url 'edit_requests' %}" class="{% if request.resolver_match.url_name == 'edit_requests' %}active{% endif %}">
-          <i class="fas fa-edit"></i> درخواست‌های ویرایش
-        </a>
-      <a href="{% url 'leave_requests' %}" class="{% if request.resolver_match.url_name == 'leave_requests' %}active{% endif %}">
-        <i class="fas fa-calendar-check"></i> مرخصی‌ها
+      <a href="{% url 'attendance_report' %}" class="{% if request.resolver_match.url_name == 'attendance_report' %}active{% endif %}">
+        <i class="fas fa-file-excel"></i> گزارش پیشرفته
+      </a>
+      <a href="{% url 'work_groups' %}" class="{% if request.resolver_match.url_name == 'work_groups' %}active{% endif %}">
+        <i class="fas fa-sitemap"></i> گروه‌ها
+      </a>
+      <a href="{% url 'work_units' %}" class="{% if request.resolver_match.url_name == 'work_units' %}active{% endif %}">
+        <i class="fas fa-layer-group"></i> واحدها
+      </a>
+      <a href="{% url 'shifts' %}" class="{% if request.resolver_match.url_name == 'shifts' %}active{% endif %}">
+        <i class="fas fa-clock"></i> شیفت‌ها
+      </a>
+      <a href="{% url 'policies' %}" class="{% if request.resolver_match.url_name == 'policies' %}active{% endif %}">
+        <i class="fas fa-clipboard-list"></i> سیاست‌ها
+      </a>
+      <a href="{% url 'calendars' %}" class="{% if request.resolver_match.url_name == 'calendars' %}active{% endif %}">
+        <i class="fas fa-calendar"></i> برنامه‌ها
+      </a>
+      <a href="{% url 'general_settings' %}" class="{% if request.resolver_match.url_name == 'general_settings' %}active{% endif %}">
+        <i class="fas fa-cog"></i> تنظیمات
+      </a>
+      <a href="{% url 'suspicious_logs' %}" class="{% if request.resolver_match.url_name == 'suspicious_logs' %}active{% endif %}">
+        <i class="fas fa-exclamation-triangle"></i> موارد مشکوک
+      </a>
+      <a href="{% url 'unified_requests' %}" class="{% if request.resolver_match.url_name == 'unified_requests' %}active{% endif %}">
+        <i class="fas fa-envelope"></i> درخواست‌ها
       </a>
       <a href="{% url 'weekly_holidays' %}" class="{% if request.resolver_match.url_name == 'weekly_holidays' %}active{% endif %}">
         <i class="fas fa-calendar-day"></i> تعطیلات هفتگی

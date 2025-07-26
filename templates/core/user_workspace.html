@@ -1,0 +1,52 @@
+{% extends "core/base.html" %}
+{% load jformat %}
+{% block title %}میزکار من{% endblock %}
+{% block content %}
+<div class="card page page-md">
+  <h2 class="page-title"><i class="fa fa-user" style="margin-left:0.5rem;"></i> میزکار {{ user.get_full_name }}</h2>
+  <div class="profile-details" style="margin-top:0;">کد پرسنلی: {{ user.personnel_code }}</div>
+
+  <h3 style="margin-top:1.5rem;">گزارش {{ jyear }}/{{ jmonth }}</h3>
+  <div class="table-responsive">
+    <table class="management-table">
+      <thead><tr><th>تاریخ</th><th>ورود</th><th>خروج</th></tr></thead>
+      <tbody>
+      {% for day, info in daily_logs.items %}
+      <tr>
+        <td>{{ jyear }}/{{ jmonth|stringformat:"02d" }}/{{ day|stringformat:"02d" }}</td>
+        <td>{% if info.in %}{{ info.in|time:"H:i" }}{% else %}-{% endif %}</td>
+        <td>{% if info.out %}{{ info.out|time:"H:i" }}{% else %}-{% endif %}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <h3 style="margin-top:1.5rem;">آخرین درخواست‌ها</h3>
+  {% if edit_requests or leave_requests %}
+  <div class="request-cards">
+    {% for r in edit_requests %}
+    <div class="request-card fade-in">
+      <div class="row"><span class="label">ویرایش:</span><span>{{ r.timestamp|jformat:"%Y/%m/%d %H:%M" }}</span></div>
+      <div class="row"><span class="label">وضعیت:</span><span>{% if r.status == 'pending' %}در انتظار{% elif r.status == 'approved' %}تأیید شده{% elif r.status == 'cancelled' %}لغو شده{% else %}رد شده{% endif %}</span></div>
+    </div>
+    {% endfor %}
+    {% for r in leave_requests %}
+    <div class="request-card fade-in">
+      <div class="row"><span class="label">مرخصی:</span><span>{{ r.start_date|jformat:"%Y/%m/%d" }} - {{ r.end_date|jformat:"%Y/%m/%d" }}</span></div>
+      <div class="row"><span class="label">وضعیت:</span><span>{% if r.status == 'pending' %}در انتظار{% elif r.status == 'approved' %}تأیید شده{% elif r.status == 'cancelled' %}لغو شده{% else %}رد شده{% endif %}</span></div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="alert-error" style="text-align:right;margin:1rem 0;">درخواستی ثبت نشده است.</div>
+  {% endif %}
+
+  <div class="profile-actions" style="margin-top:1rem;">
+    <a class="btn" href="{% url 'export_my_logs_csv' %}" style="margin-left:0.5rem;"><i class="fa fa-download" style="margin-left:0.4rem;"></i> دریافت CSV</a>
+    <a class="btn" href="{% url 'edit_request' %}" style="margin-left:0.5rem;"><i class="fa fa-edit" style="margin-left:0.4rem;"></i> درخواست ویرایش</a>
+    <a class="btn" href="{% url 'leave_request' %}" style="margin-left:0.5rem;"><i class="fa fa-calendar-plus" style="margin-left:0.4rem;"></i> درخواست مرخصی</a>
+    <a class="btn" href="{% url 'user_inquiry' %}"><i class="fas fa-chevron-right" style="margin-left:0.4rem;"></i> خروج</a>
+  </div>
+</div>
+{% endblock %}

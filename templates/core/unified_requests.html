@@ -1,0 +1,35 @@
+{% extends "core/base_management.html" %}
+{% load jformat %}
+{% block title %}درخواست‌ها{% endblock %}
+{% block management_content %}
+<h2 class="page-title">
+  <i class="fas fa-envelope"></i>
+  درخواست‌ها
+</h2>
+<h3>درخواست‌های ویرایش</h3>
+<div class="request-cards">
+  {% for r in edit_requests %}
+  <div class="request-card">
+    <div class="row"><span class="label">کاربر:</span><span>{{ r.user.get_full_name }} - {{ r.user.personnel_code }}</span></div>
+    <div class="row"><span class="label">زمان:</span><span>{{ r.timestamp|jformat:"%Y/%m/%d %H:%M" }}</span></div>
+    <div class="row"><span class="label">نوع:</span><span>{% if r.log_type == 'in' %}ورود{% else %}خروج{% endif %}</span></div>
+    <div class="row"><span class="label">وضعیت:</span><span>{{ r.get_status_display }}</span></div>
+  </div>
+  {% empty %}
+  <div class="alert-error">درخواستی وجود ندارد.</div>
+  {% endfor %}
+</div>
+<h3>درخواست‌های مرخصی</h3>
+<div class="request-cards">
+  {% for r in leave_requests %}
+  <div class="request-card">
+    <div class="row"><span class="label">کاربر:</span><span>{{ r.user.get_full_name }} - {{ r.user.personnel_code }}</span></div>
+    <div class="row"><span class="label">از:</span><span>{{ r.start_date|jformat:"%Y/%m/%d" }}</span></div>
+    <div class="row"><span class="label">تا:</span><span>{{ r.end_date|jformat:"%Y/%m/%d" }}</span></div>
+    <div class="row"><span class="label">وضعیت:</span><span>{{ r.get_status_display }}</span></div>
+  </div>
+  {% empty %}
+  <div class="alert-error">درخواستی وجود ندارد.</div>
+  {% endfor %}
+</div>
+{% endblock %}
