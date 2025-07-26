@@ -1,0 +1,38 @@
+{% extends "core/base_management.html" %}
+{% block title %}شیفت‌ها{% endblock %}
+{% block management_content %}
+<h2 class="page-title"><i class="fas fa-clock"></i> شیفت‌ها</h2>
+<a class="btn" href="{% url 'shift_add' %}" style="margin-bottom:1rem;"><i class="fas fa-plus"></i> افزودن شیفت</a>
+<div class="request-cards">
+  {% for s in shifts %}
+  <div class="request-card fade-in">
+    <div class="row"><span class="label">نام:</span><span>{{ s.name }}</span></div>
+    <div class="row"><span class="label">شروع:</span><span>{{ s.start_time }}</span></div>
+    <div class="row"><span class="label">پایان:</span><span>{{ s.end_time }}</span></div>
+    <div class="actions">
+      <a href="{% url 'shift_edit' s.pk %}" class="btn" style="font-size:0.9rem;">ویرایش</a>
+      <a href="{% url 'shift_delete' s.pk %}" class="btn btn-danger" style="font-size:0.9rem;">حذف</a>
+    </div>
+  </div>
+  {% empty %}
+  <div class="alert-error">شیفتی ثبت نشده است.</div>
+  {% endfor %}
+</div>
+<div class="table-responsive">
+<table class="management-table">
+  <thead><tr><th>نام</th><th>شروع</th><th>پایان</th><th>عملیات</th></tr></thead>
+  <tbody>
+  {% for s in shifts %}
+    <tr>
+      <td>{{ s.name }}</td>
+      <td>{{ s.start_time }}</td>
+      <td>{{ s.end_time }}</td>
+      <td><a href="{% url 'shift_edit' s.pk %}"><i class="fas fa-edit"></i></a> <a href="{% url 'shift_delete' s.pk %}"><i class="fas fa-trash-alt"></i></a></td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="4">شیفتی ثبت نشده.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

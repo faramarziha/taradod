@@ -1,0 +1,27 @@
+{% extends "core/base_management.html" %}
+{% load jformat %}
+{% block title %}گزارش درخواست‌ها{% endblock %}
+{% block management_content %}
+<h2 class="page-title"><i class="fas fa-envelope-open-text"></i> گزارش درخواست‌های پرسنل</h2>
+<h3 style="margin-top:1rem;">درخواست‌های ویرایش</h3>
+<div class="request-cards">
+  {% for r in edits %}
+  <div class="request-card fade-in">
+    <div class="row"><span class="label">کاربر:</span><span>{{ r.user.get_full_name }} - {{ r.user.personnel_code }}</span></div>
+    <div class="row"><span class="label">زمان:</span><span>{{ r.timestamp|jformat:"%Y/%m/%d %H:%M" }}</span></div>
+    <div class="row"><span class="label">وضعیت:</span><span>{{ r.get_status_display }}</span></div>
+  </div>
+  {% empty %}<div class="alert-success">موردی نیست.</div>{% endfor %}
+</div>
+<h3 style="margin-top:1rem;">درخواست‌های مرخصی</h3>
+<div class="request-cards">
+  {% for r in leaves %}
+  <div class="request-card fade-in">
+    <div class="row"><span class="label">کاربر:</span><span>{{ r.user.get_full_name }} - {{ r.user.personnel_code }}</span></div>
+    <div class="row"><span class="label">از:</span><span>{{ r.start_date|jformat:"%Y/%m/%d" }}</span></div>
+    <div class="row"><span class="label">تا:</span><span>{{ r.end_date|jformat:"%Y/%m/%d" }}</span></div>
+    <div class="row"><span class="label">وضعیت:</span><span>{{ r.get_status_display }}</span></div>
+  </div>
+  {% empty %}<div class="alert-success">موردی نیست.</div>{% endfor %}
+</div>
+{% endblock %}

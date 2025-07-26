@@ -49,4 +49,11 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  document.querySelectorAll('.dropdown-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const section = btn.closest('.dropdown-section');
+      section.classList.toggle('open');
+    });
+  });
+
 });
