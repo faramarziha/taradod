@@ -241,6 +241,10 @@ class ShiftForm(forms.ModelForm):
             "start_time": "شروع",
             "end_time": "پایان",
         }
+        widgets = {
+            "start_time": forms.TimeInput(format="%H:%M", attrs={"type": "time"}),
+            "end_time": forms.TimeInput(format="%H:%M", attrs={"type": "time"}),
+        }
 
 
 class GroupForm(forms.ModelForm):

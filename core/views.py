@@ -51,6 +51,27 @@ from users.models import CustomUser
 User = get_user_model()
 
 
+def _get_user_shift(user):
+    """Return the effective shift for a user."""
+    if getattr(user, "shift", None):
+        return user.shift
+    if getattr(user, "group", None) and user.group and user.group.shift:
+        return user.group.shift
+    return None
+
+
+def _shift_bounds(date, shift):
+    """Return aware start/end datetimes for the given date and shift."""
+    start_dt = datetime.combine(date, shift.start_time)
+    end_dt = datetime.combine(date, shift.end_time)
+    if shift.end_time <= shift.start_time:
+        end_dt += timedelta(days=1)
+    if settings.USE_TZ:
+        start_dt = timezone.make_aware(start_dt)
+        end_dt = timezone.make_aware(end_dt)
+    return start_dt, end_dt
+
+
 def _get_face_encoding_from_base64(data_url: str):
     """از Base64 خروجی بایت می‌گیرد و بردار چهره (128 بعدی) را برمی‌گرداند."""
     try:
@@ -637,22 +658,37 @@ def management_dashboard(request):
     tardy_users = User.objects.none()
     total_hours = 0
     if not is_holiday:
-        # محاسبه تاخیر ورود (بعد از ساعت 9)
         tardy_ids = []
-        start_time = time(9, 0)
-        for uid in present_ids:
-            first_log = AttendanceLog.objects.filter(user_id=uid, timestamp__date=today).order_by('timestamp').first()
-            if first_log and first_log.timestamp.astimezone(timezone.get_current_timezone()).time() > start_time:
-                tardy_ids.append(uid)
-        tardy_users = users_qs.filter(id__in=tardy_ids)
-
-        # مجموع ساعات کاری تخمینی (اختلاف اولین و آخرین تردد)
         total_seconds = 0
-        for uid in present_ids:
-            logs = AttendanceLog.objects.filter(user_id=uid, timestamp__date=today).order_by("timestamp")
-            if logs.count() >= 2:
-                delta = logs.last().timestamp - logs.first().timestamp
-                total_seconds += delta.total_seconds()
+        present_users_details = users_qs.filter(id__in=present_ids).select_related("shift", "group__shift")
+        for user in present_users_details:
+            shift = _get_user_shift(user)
+            shift_start = time(9, 0)
+            shift_end = time(17, 0)
+            if shift:
+                shift_start = shift.start_time
+                shift_end = shift.end_time
+            first_log = AttendanceLog.objects.filter(user=user, timestamp__date=today).order_by("timestamp").first()
+            last_log = AttendanceLog.objects.filter(user=user, timestamp__date=today).order_by("timestamp").last()
+            if first_log:
+                if shift:
+                    start_dt, end_dt = _shift_bounds(today, shift)
+                else:
+                    start_dt = timezone.make_aware(datetime.combine(today, shift_start))
+                    end_dt = timezone.make_aware(datetime.combine(today, shift_end))
+                tz = timezone.get_current_timezone()
+                first_dt = first_log.timestamp.astimezone(tz)
+                if first_dt > start_dt:
+                    tardy_ids.append(user.id)
+                if last_log and last_log != first_log:
+                    last_dt = last_log.timestamp.astimezone(tz)
+                    if last_dt < first_dt:
+                        last_dt = first_dt
+                    work_start = max(first_dt, start_dt)
+                    work_end = min(last_dt, end_dt)
+                    if work_end > work_start:
+                        total_seconds += (work_end - work_start).total_seconds()
+        tardy_users = users_qs.filter(id__in=tardy_ids)
         total_hours = round(total_seconds / 3600, 2)
 
     # هشدارها
