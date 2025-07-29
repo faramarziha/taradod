@@ -61,14 +61,11 @@ def _get_user_shift(user):
 
 
 def _shift_bounds(date, shift):
-    """Return aware start/end datetimes for the given date and shift."""
+    """Return start and end datetimes for the given date and shift."""
     start_dt = datetime.combine(date, shift.start_time)
     end_dt = datetime.combine(date, shift.end_time)
     if shift.end_time <= shift.start_time:
         end_dt += timedelta(days=1)
-    if settings.USE_TZ:
-        start_dt = timezone.make_aware(start_dt)
-        end_dt = timezone.make_aware(end_dt)
     return start_dt, end_dt
 
 
@@ -193,8 +190,8 @@ def api_verify_face(request):
                 today = timezone.now().date()
                 if last_log and last_log.log_type == 'in' and last_log.timestamp.date() < today:
                     end_of_day = datetime.combine(last_log.timestamp.date(), time(23, 59))
-                    if settings.USE_TZ:
-                        end_of_day = timezone.make_aware(end_of_day)
+                    if end_of_day.tzinfo is not None:
+                        end_of_day = end_of_day.replace(tzinfo=None)
                     AttendanceLog.objects.create(user=u, timestamp=end_of_day, log_type='out', source='auto')
 
                 log_type = 'out' if last_log and last_log.log_type == 'in' else 'in'
@@ -372,14 +369,8 @@ def edit_request(request):
         form = EditRequestForm(request.POST, user=u)
         if form.is_valid():
             obj = form.save(commit=False)
-            ts = obj.timestamp
-            if settings.USE_TZ:
-                if timezone.is_naive(ts):
-                    ts = timezone.make_aware(ts)
-            else:
-                if timezone.is_aware(ts):
-                    ts = timezone.make_naive(ts)
-            obj.timestamp = ts
+            if obj.timestamp.tzinfo is not None:
+                obj.timestamp = obj.timestamp.replace(tzinfo=None)
             obj.save()
             messages.success(request, "درخواست شما ثبت شد و در انتظار تأیید است.")
             return redirect("my_logs")
@@ -674,14 +665,17 @@ def management_dashboard(request):
                 if shift:
                     start_dt, end_dt = _shift_bounds(today, shift)
                 else:
-                    start_dt = timezone.make_aware(datetime.combine(today, shift_start))
-                    end_dt = timezone.make_aware(datetime.combine(today, shift_end))
-                tz = timezone.get_current_timezone()
-                first_dt = first_log.timestamp.astimezone(tz)
+                    start_dt = datetime.combine(today, shift_start)
+                    end_dt = datetime.combine(today, shift_end)
+                first_dt = first_log.timestamp
+                if first_dt.tzinfo is not None:
+                    first_dt = first_dt.replace(tzinfo=None)
                 if first_dt > start_dt:
                     tardy_ids.append(user.id)
                 if last_log and last_log != first_log:
-                    last_dt = last_log.timestamp.astimezone(tz)
+                    last_dt = last_log.timestamp
+                    if last_dt.tzinfo is not None:
+                        last_dt = last_dt.replace(tzinfo=None)
                     if last_dt < first_dt:
                         last_dt = first_dt
                     work_start = max(first_dt, start_dt)
