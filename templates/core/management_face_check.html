@@ -10,6 +10,16 @@
     const video = document.getElementById('video'),
         msgEl = document.getElementById('verifyResult'),
         btn   = document.getElementById('verifyBtn');
+    const preview = document.getElementById('capture-preview');
+    const previewImg = document.getElementById('capture-preview-img');
+
+    function showPreview(src){
+      if(preview && previewImg){
+        previewImg.src = src;
+        preview.style.display = 'flex';
+        setTimeout(() => preview.style.display = 'none', 1500);
+      }
+    }
 
 
     if (overlay) {
@@ -49,6 +59,7 @@
     canvas.height = video.videoHeight;
     canvas.getContext('2d').drawImage(video, 0, 0);
     const dataUrl = canvas.toDataURL('image/png');
+    showPreview(dataUrl);
 
 
     msgEl.textContent = 'لطفاً صبر کنید...';
@@ -104,4 +115,5 @@
   <button class="btn" id="verifyBtn"><i class="fa fa-user-check" style="margin-left:0.4rem;"></i> تأیید چهره</button>
   <div id="verifyResult" class="device-message"></div>
 </div>
+<div id="capture-preview"><img id="capture-preview-img" alt="preview"></div>
 {% endblock %}

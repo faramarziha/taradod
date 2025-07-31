@@ -12,6 +12,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const canvas = document.getElementById('canvas');
   const btn = document.getElementById('verifyBtn');
   const resultDiv = document.getElementById('verifyResult');
+  const preview = document.getElementById('capture-preview');
+  const previewImg = document.getElementById('capture-preview-img');
+
+  function showPreview(src) {
+    if (preview && previewImg) {
+      previewImg.src = src;
+      preview.style.display = 'flex';
+      setTimeout(() => preview.style.display = 'none', 1500);
+    }
+  }
 
   // راه‌اندازی دوربین
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -28,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
       canvas.height = video.videoHeight;
       canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL('image/jpeg');
+      showPreview(dataUrl);
       fetch("{% url 'api_device_verify_face' %}", {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-CSRFToken": getCsrfToken() },
@@ -69,4 +80,5 @@ document.addEventListener('DOMContentLoaded', () => {
   <button class="btn" id="verifyBtn"><i class="fa fa-user-check"></i> تأیید چهره</button>
   <div id="verifyResult" class="device-message"></div>
 </div>
+<div id="capture-preview"><img id="capture-preview-img" alt="preview"></div>
 {% endblock %}

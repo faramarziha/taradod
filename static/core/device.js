@@ -9,6 +9,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const userTime = document.getElementById('user-time');
   const managerControls = document.getElementById('manager-controls');
   const overlay = document.getElementById('device-overlay');
+  const preview = document.getElementById('capture-preview');
+  const previewImg = document.getElementById('capture-preview-img');
+
+  function showPreview(src) {
+    if (preview && previewImg) {
+      previewImg.src = src;
+      preview.style.display = 'flex';
+      setTimeout(() => { preview.style.display = 'none'; }, 1500);
+    }
+  }
 
   // راه‌اندازی دوربین
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -43,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .then(r => r.json())
       .then(data => {
+        showPreview(dataUrl);
         if (data.ok) {
           const actionText = data.log_type === 'in' ? 'ورود' : 'خروج';
           message.textContent = `تردد ${actionText} ثبت شد!`;
