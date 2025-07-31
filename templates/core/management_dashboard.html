@@ -4,6 +4,21 @@
 <h2 class="page-title">
   <i class="fas fa-chart-bar"></i> داشبورد مدیریت
 </h2>
+<form method="get" class="form-inline" style="margin-bottom:1rem;">
+  <select name="group">
+    <option value="">همه گروه‌ها</option>
+    {% for g in groups %}
+      <option value="{{ g.id }}" {% if g.id|stringformat:'s' == selected_group %}selected{% endif %}>{{ g.name }}</option>
+    {% endfor %}
+  </select>
+  <select name="shift">
+    <option value="">همه شیفت‌ها</option>
+    {% for s in shifts %}
+      <option value="{{ s.id }}" {% if s.id|stringformat:'s' == selected_shift %}selected{% endif %}>{{ s.name }}</option>
+    {% endfor %}
+  </select>
+  <button class="btn" type="submit">فیلتر</button>
+</form>
 
 <div class="card dashboard-panel fade-in">
   <h3 class="panel-title"><i class="fas fa-chart-pie"></i> آمار کلی</h3>

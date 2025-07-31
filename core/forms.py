@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django_jalali import forms as jforms
 from django_jalali.admin.widgets import AdminjDateWidget
 import jdatetime
+from attendance import models as attendance_models
 from attendance.models import EditRequest, LeaveRequest, LOG_TYPE_CHOICES
 from attendance.models import WeeklyHoliday
 
@@ -21,6 +22,8 @@ class CustomUserSimpleForm(forms.ModelForm):
             "last_name",
             "personnel_code",
             "national_id",
+            "group",
+            "shift",
             "is_active",
             "is_staff",
         ]
@@ -92,11 +95,17 @@ class EditRequestForm(forms.ModelForm):
 class LeaveRequestForm(forms.ModelForm):
     start_date = jforms.jDateField(label="از تاریخ", widget=AdminjDateWidget())
     duration = forms.IntegerField(label="مدت (روز)", min_value=1)
+    leave_type = forms.ModelChoiceField(
+        queryset=attendance_models.LeaveType.objects.all(),
+        label="نوع مرخصی",
+        required=False,
+    )
 
     class Meta:
         model = LeaveRequest
-        fields = ["start_date", "duration", "reason"]
+        fields = ["leave_type", "start_date", "duration", "reason"]
         labels = {
+            "leave_type": "نوع مرخصی",
             "reason": "توضیح",
         }
         widgets = {
@@ -129,6 +138,7 @@ class LeaveRequestForm(forms.ModelForm):
         instance.end_date = self.cleaned_data["end_date"]
         if self.user is not None:
             instance.user = self.user
+        instance.leave_type = self.cleaned_data.get("leave_type")
         if commit:
             instance.save()
         return instance
@@ -141,10 +151,16 @@ class ManualLeaveForm(forms.ModelForm):
     start_date = jforms.jDateField(label="از تاریخ", widget=AdminjDateWidget())
     end_date = jforms.jDateField(label="تا تاریخ", widget=AdminjDateWidget())
 
+    leave_type = forms.ModelChoiceField(
+        queryset=attendance_models.LeaveType.objects.all(),
+        label="نوع مرخصی",
+        required=False,
+    )
+
     class Meta:
         model = LeaveRequest
-        fields = ["user", "start_date", "end_date", "reason"]
-        labels = {"reason": "توضیح"}
+        fields = ["user", "leave_type", "start_date", "end_date", "reason"]
+        labels = {"reason": "توضیح", "leave_type": "نوع مرخصی"}
         widgets = {"reason": forms.Textarea(attrs={"rows": 3})}
 
     def clean(self):
@@ -214,3 +230,35 @@ class WeeklyHolidayForm(forms.Form):
         required=False,
         label="روزهای تعطیل",
     )
+
+
+class ShiftForm(forms.ModelForm):
+    class Meta:
+        model = attendance_models.Shift
+        fields = ["name", "start_time", "end_time"]
+        labels = {
+            "name": "نام",
+            "start_time": "شروع",
+            "end_time": "پایان",
+        }
+        widgets = {
+            "start_time": forms.TimeInput(format="%H:%M", attrs={"type": "time"}),
+            "end_time": forms.TimeInput(format="%H:%M", attrs={"type": "time"}),
+        }
+
+
+class GroupForm(forms.ModelForm):
+    class Meta:
+        model = attendance_models.Group
+        fields = ["name", "shift"]
+        labels = {
+            "name": "نام",
+            "shift": "شیفت",
+        }
+
+
+class LeaveTypeForm(forms.ModelForm):
+    class Meta:
+        model = attendance_models.LeaveType
+        fields = ["name", "description"]
+        labels = {"name": "نام", "description": "توضیح"}

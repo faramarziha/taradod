@@ -22,7 +22,16 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from attendance.models import AttendanceLog, SuspiciousLog, EditRequest, LeaveRequest, WeeklyHoliday
+from attendance.models import (
+    AttendanceLog,
+    SuspiciousLog,
+    EditRequest,
+    LeaveRequest,
+    WeeklyHoliday,
+    Shift,
+    Group,
+    LeaveType,
+)
 from core.forms import (
     CustomUserSimpleForm,
     InquiryForm,
@@ -32,11 +41,32 @@ from core.forms import (
     AttendanceStatusForm,
     UserLogsRangeForm,
     WeeklyHolidayForm,
+    ShiftForm,
+    GroupForm,
+    LeaveTypeForm,
 )
 from users.models import CustomUser
 
 
 User = get_user_model()
+
+
+def _get_user_shift(user):
+    """Return the effective shift for a user."""
+    if getattr(user, "shift", None):
+        return user.shift
+    if getattr(user, "group", None) and user.group and user.group.shift:
+        return user.group.shift
+    return None
+
+
+def _shift_bounds(date, shift):
+    """Return start and end datetimes for the given date and shift."""
+    start_dt = datetime.combine(date, shift.start_time)
+    end_dt = datetime.combine(date, shift.end_time)
+    if shift.end_time <= shift.start_time:
+        end_dt += timedelta(days=1)
+    return start_dt, end_dt
 
 
 def _get_face_encoding_from_base64(data_url: str):
@@ -160,8 +190,8 @@ def api_verify_face(request):
                 today = timezone.now().date()
                 if last_log and last_log.log_type == 'in' and last_log.timestamp.date() < today:
                     end_of_day = datetime.combine(last_log.timestamp.date(), time(23, 59))
-                    if settings.USE_TZ:
-                        end_of_day = timezone.make_aware(end_of_day)
+                    if end_of_day.tzinfo is not None:
+                        end_of_day = end_of_day.replace(tzinfo=None)
                     AttendanceLog.objects.create(user=u, timestamp=end_of_day, log_type='out', source='auto')
 
                 log_type = 'out' if last_log and last_log.log_type == 'in' else 'in'
@@ -339,14 +369,8 @@ def edit_request(request):
         form = EditRequestForm(request.POST, user=u)
         if form.is_valid():
             obj = form.save(commit=False)
-            ts = obj.timestamp
-            if settings.USE_TZ:
-                if timezone.is_naive(ts):
-                    ts = timezone.make_aware(ts)
-            else:
-                if timezone.is_aware(ts):
-                    ts = timezone.make_naive(ts)
-            obj.timestamp = ts
+            if obj.timestamp.tzinfo is not None:
+                obj.timestamp = obj.timestamp.replace(tzinfo=None)
             obj.save()
             messages.success(request, "درخواست شما ثبت شد و در انتظار تأیید است.")
             return redirect("my_logs")
@@ -411,7 +435,7 @@ def user_leave_requests(request):
     if not uid:
         return redirect("user_inquiry")
     u = get_object_or_404(User, id=uid)
-    requests_qs = LeaveRequest.objects.filter(user=u).order_by("-created_at")
+    requests_qs = LeaveRequest.objects.select_related("leave_type").filter(user=u).order_by("-created_at")
     return render(request, "core/my_leave_requests.html", {"user": u, "requests": requests_qs})
 
 
@@ -582,55 +606,95 @@ def register_face_api(request, user_id):
 def management_dashboard(request):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
-    # آمار کلی
+
     today = timezone.now().date()
     is_holiday = WeeklyHoliday.objects.filter(weekday=today.weekday()).exists()
-    total_users = User.objects.count()
-    today_logs = AttendanceLog.objects.filter(timestamp__date=today).count()
-    users_without_face = User.objects.filter(face_encoding__isnull=True).count()
+
+    group_id = request.GET.get("group")
+    shift_id = request.GET.get("shift")
+
+    users_qs = User.objects.all()
+    if group_id:
+        users_qs = users_qs.filter(group_id=group_id)
+    if shift_id:
+        users_qs = users_qs.filter(shift_id=shift_id)
+
+    total_users = users_qs.count()
+    today_logs = AttendanceLog.objects.filter(user__in=users_qs, timestamp__date=today).count()
+    users_without_face = users_qs.filter(face_encoding__isnull=True).count()
 
     # لیست کارکنان حاضر، غایب و مرخصی
     if is_holiday:
-        present_users = leave_users = absent_users = User.objects.none()
+        present_users = leave_users = absent_users = users_qs.none()
         present_ids = []
     else:
-        present_ids = AttendanceLog.objects.filter(timestamp__date=today).values_list('user_id', flat=True).distinct()
-        leave_ids = LeaveRequest.objects.filter(start_date__lte=today, end_date__gte=today).values_list('user_id', flat=True).distinct()
-        present_users = User.objects.filter(id__in=present_ids)
-        leave_users = User.objects.filter(id__in=leave_ids)
-        absent_users = User.objects.filter(is_active=True).exclude(id__in=present_ids).exclude(id__in=leave_ids)
+        present_ids = (
+            AttendanceLog.objects.filter(user__in=users_qs, timestamp__date=today)
+            .values_list("user_id", flat=True)
+            .distinct()
+        )
+        leave_ids = (
+            LeaveRequest.objects.filter(
+                user__in=users_qs,
+                start_date__lte=today,
+                end_date__gte=today,
+            )
+            .values_list("user_id", flat=True)
+            .distinct()
+        )
+        present_users = users_qs.filter(id__in=present_ids)
+        leave_users = users_qs.filter(id__in=leave_ids)
+        absent_users = users_qs.exclude(id__in=present_ids).exclude(id__in=leave_ids)
 
     tardy_users = User.objects.none()
     total_hours = 0
     if not is_holiday:
-        # محاسبه تاخیر ورود (بعد از ساعت 9)
         tardy_ids = []
-        start_time = time(9, 0)
-        for uid in present_ids:
-            first_log = AttendanceLog.objects.filter(user_id=uid, timestamp__date=today).order_by('timestamp').first()
-            if first_log and first_log.timestamp.astimezone(timezone.get_current_timezone()).time() > start_time:
-                tardy_ids.append(uid)
-        tardy_users = User.objects.filter(id__in=tardy_ids)
-
-        # مجموع ساعات کاری تخمینی (اختلاف اولین و آخرین تردد)
         total_seconds = 0
-        for uid in present_ids:
-            logs = AttendanceLog.objects.filter(user_id=uid, timestamp__date=today).order_by('timestamp')
-            if logs.count() >= 2:
-                delta = logs.last().timestamp - logs.first().timestamp
-                total_seconds += delta.total_seconds()
+        present_users_details = users_qs.filter(id__in=present_ids).select_related("shift", "group__shift")
+        for user in present_users_details:
+            shift = _get_user_shift(user)
+            shift_start = time(9, 0)
+            shift_end = time(17, 0)
+            if shift:
+                shift_start = shift.start_time
+                shift_end = shift.end_time
+            first_log = AttendanceLog.objects.filter(user=user, timestamp__date=today).order_by("timestamp").first()
+            last_log = AttendanceLog.objects.filter(user=user, timestamp__date=today).order_by("timestamp").last()
+            if first_log:
+                if shift:
+                    start_dt, end_dt = _shift_bounds(today, shift)
+                else:
+                    start_dt = datetime.combine(today, shift_start)
+                    end_dt = datetime.combine(today, shift_end)
+                first_dt = first_log.timestamp
+                if first_dt.tzinfo is not None:
+                    first_dt = first_dt.replace(tzinfo=None)
+                if first_dt > start_dt:
+                    tardy_ids.append(user.id)
+                if last_log and last_log != first_log:
+                    last_dt = last_log.timestamp
+                    if last_dt.tzinfo is not None:
+                        last_dt = last_dt.replace(tzinfo=None)
+                    if last_dt < first_dt:
+                        last_dt = first_dt
+                    work_start = max(first_dt, start_dt)
+                    work_end = min(last_dt, end_dt)
+                    if work_end > work_start:
+                        total_seconds += (work_end - work_start).total_seconds()
+        tardy_users = users_qs.filter(id__in=tardy_ids)
         total_hours = round(total_seconds / 3600, 2)
 
     # هشدارها
-    pending_edits = EditRequest.objects.filter(status='pending').count()
-    pending_leaves = LeaveRequest.objects.filter(status='pending').count()
-    suspicious_today = SuspiciousLog.objects.filter(timestamp__date=today).count()
+    pending_edits = EditRequest.objects.filter(user__in=users_qs, status="pending").count()
+    pending_leaves = LeaveRequest.objects.filter(user__in=users_qs, status="pending").count()
+    suspicious_today = SuspiciousLog.objects.filter(matched_user__in=users_qs, timestamp__date=today).count()
 
     # نمودار تردد 7 روز اخیر
     date_range = [today - timedelta(days=i) for i in range(6, -1, -1)]
     daily_logs = []
     for date in date_range:
-        logs = AttendanceLog.objects.filter(timestamp__date=date).count()
+        logs = AttendanceLog.objects.filter(user__in=users_qs, timestamp__date=date).count()
         daily_logs.append(logs)
 
     # prepare JSON for chart rendering
@@ -657,6 +721,10 @@ def management_dashboard(request):
         'date_range_json': labels_json,
         'daily_logs_json': logs_json,
         'is_holiday': is_holiday,
+        'groups': Group.objects.all(),
+        'shifts': Shift.objects.all(),
+        'selected_group': group_id,
+        'selected_shift': shift_id,
     }
     return render(request, 'core/management_dashboard.html', context)
 
@@ -831,11 +899,26 @@ def edit_requests(request):
                 req.save()
                 messages.info(request, "درخواست لغو شد.")
         return redirect("edit_requests")
+    group_id = request.GET.get("group")
+    shift_id = request.GET.get("shift")
+
     requests = EditRequest.objects.select_related("user").filter(cancelled_by_user=False).order_by("-created_at")
-    return render(request, "core/edit_requests.html", {
-        'active_tab': 'edit_requests',
-        'requests': requests,
-    })
+    if group_id:
+        requests = requests.filter(user__group_id=group_id)
+    if shift_id:
+        requests = requests.filter(user__shift_id=shift_id)
+    return render(
+        request,
+        "core/edit_requests.html",
+        {
+            "active_tab": "edit_requests",
+            "requests": requests,
+            "groups": Group.objects.all(),
+            "shifts": Shift.objects.all(),
+            "selected_group": group_id,
+            "selected_shift": shift_id,
+        },
+    )
 
 
 @login_required
@@ -871,12 +954,32 @@ def leave_requests(request):
                 req.save()
                 messages.success(request, "وضعیت مرخصی به‌روزرسانی شد.")
         return redirect("leave_requests")
-    requests = LeaveRequest.objects.select_related("user").filter(cancelled_by_user=False).order_by("-created_at")
-    return render(request, "core/leave_requests.html", {
-        'active_tab': 'leave_requests',
-        'requests': requests,
-        'today': timezone.now().date(),
-    })
+    group_id = request.GET.get("group")
+    shift_id = request.GET.get("shift")
+
+    requests = (
+        LeaveRequest.objects.select_related("user", "leave_type")
+        .filter(cancelled_by_user=False)
+        .order_by("-created_at")
+    )
+    if group_id:
+        requests = requests.filter(user__group_id=group_id)
+    if shift_id:
+        requests = requests.filter(user__shift_id=shift_id)
+
+    return render(
+        request,
+        "core/leave_requests.html",
+        {
+            "active_tab": "leave_requests",
+            "requests": requests,
+            "today": timezone.now().date(),
+            "groups": Group.objects.all(),
+            "shifts": Shift.objects.all(),
+            "selected_group": group_id,
+            "selected_shift": shift_id,
+        },
+    )
 
 
 @login_required
@@ -944,3 +1047,120 @@ def user_logs_admin(request, user_id):
         "form": form,
         "logs": logs,
     })
+
+
+@login_required
+@staff_required
+def shift_list(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    shifts = Shift.objects.all()
+    return render(request, "core/shift_list.html", {"shifts": shifts, "active_tab": "settings"})
+
+
+@login_required
+@staff_required
+def shift_edit(request, pk=None):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    instance = Shift.objects.filter(pk=pk).first()
+    if request.method == "POST":
+        form = ShiftForm(request.POST, instance=instance)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "شیفت ذخیره شد.")
+            return redirect("shift_list")
+    else:
+        form = ShiftForm(instance=instance)
+    return render(request, "core/shift_form.html", {"form": form, "active_tab": "settings"})
+
+
+@login_required
+@staff_required
+def shift_delete(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    shift = get_object_or_404(Shift, pk=pk)
+    if request.method == "POST":
+        shift.delete()
+        messages.success(request, "حذف شد.")
+        return redirect("shift_list")
+    return render(request, "core/confirm_delete.html", {"object": shift, "cancel_url": "shift_list"})
+
+
+@login_required
+@staff_required
+def group_list(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    groups = Group.objects.select_related("shift").all()
+    return render(request, "core/group_list.html", {"groups": groups, "active_tab": "settings"})
+
+
+@login_required
+@staff_required
+def group_edit(request, pk=None):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    instance = Group.objects.filter(pk=pk).first()
+    if request.method == "POST":
+        form = GroupForm(request.POST, instance=instance)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "گروه ذخیره شد.")
+            return redirect("group_list")
+    else:
+        form = GroupForm(instance=instance)
+    return render(request, "core/group_form.html", {"form": form, "active_tab": "settings"})
+
+
+@login_required
+@staff_required
+def group_delete(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    grp = get_object_or_404(Group, pk=pk)
+    if request.method == "POST":
+        grp.delete()
+        messages.success(request, "حذف شد.")
+        return redirect("group_list")
+    return render(request, "core/confirm_delete.html", {"object": grp, "cancel_url": "group_list"})
+
+
+@login_required
+@staff_required
+def leave_type_list(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    types = LeaveType.objects.all()
+    return render(request, "core/leave_type_list.html", {"types": types, "active_tab": "settings"})
+
+
+@login_required
+@staff_required
+def leave_type_edit(request, pk=None):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    instance = LeaveType.objects.filter(pk=pk).first()
+    if request.method == "POST":
+        form = LeaveTypeForm(request.POST, instance=instance)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "نوع مرخصی ذخیره شد.")
+            return redirect("leave_type_list")
+    else:
+        form = LeaveTypeForm(instance=instance)
+    return render(request, "core/leave_type_form.html", {"form": form, "active_tab": "settings"})
+
+
+@login_required
+@staff_required
+def leave_type_delete(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    obj = get_object_or_404(LeaveType, pk=pk)
+    if request.method == "POST":
+        obj.delete()
+        messages.success(request, "حذف شد.")
+        return redirect("leave_type_list")
+    return render(request, "core/confirm_delete.html", {"object": obj, "cancel_url": "leave_type_list"})

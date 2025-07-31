@@ -15,8 +15,9 @@
     {% for r in requests %}
     <div class="request-card fade-in">
       <div class="row"><span class="label">از:</span><span>{{ r.start_date|jformat:"%Y/%m/%d" }}</span></div>
-      <div class="row"><span class="label">تا:</span><span>{{ r.end_date|jformat:"%Y/%m/%d" }}</span></div>
-      <div class="row"><span class="label">توضیح:</span><span>{{ r.reason|default:"-" }}</span></div>
+    <div class="row"><span class="label">تا:</span><span>{{ r.end_date|jformat:"%Y/%m/%d" }}</span></div>
+    {% if r.leave_type %}<div class="row"><span class="label">نوع:</span><span>{{ r.leave_type }}</span></div>{% endif %}
+    <div class="row"><span class="label">توضیح:</span><span>{{ r.reason|default:"-" }}</span></div>
       <div class="row"><span class="label">وضعیت:</span>
         <span>{% if r.status == 'pending' %}در انتظار{% elif r.status == 'approved' %}تأیید شده{% elif r.status == 'cancelled' %}لغو شده{% else %}رد شده{% endif %}</span>
       </div>
@@ -39,6 +40,7 @@
       <tr>
         <th>از</th>
         <th>تا</th>
+        <th>نوع</th>
         <th>توضیح</th>
         <th>وضعیت</th>
         <th>توضیح مدیر</th>
@@ -50,6 +52,7 @@
       <tr>
         <td>{{ r.start_date|jformat:"%Y/%m/%d" }}</td>
         <td>{{ r.end_date|jformat:"%Y/%m/%d" }}</td>
+        <td>{{ r.leave_type|default:"-" }}</td>
         <td>{{ r.reason|default:"-" }}</td>
         <td>
           {% if r.status == 'pending' %}در انتظار{% elif r.status == 'approved' %}تأیید شده{% elif r.status == 'cancelled' %}لغو شده{% else %}رد شده{% endif %}

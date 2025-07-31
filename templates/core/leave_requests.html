@@ -6,6 +6,21 @@
   <i class="fas fa-calendar-check"></i>
   درخواست‌های مرخصی
 </h2>
+<form method="get" class="form-inline" style="margin-bottom:1rem;">
+  <select name="group">
+    <option value="">همه گروه‌ها</option>
+    {% for g in groups %}
+      <option value="{{ g.id }}" {% if g.id|stringformat:'s' == selected_group %}selected{% endif %}>{{ g.name }}</option>
+    {% endfor %}
+  </select>
+  <select name="shift">
+    <option value="">همه شیفت‌ها</option>
+    {% for s in shifts %}
+      <option value="{{ s.id }}" {% if s.id|stringformat:'s' == selected_shift %}selected{% endif %}>{{ s.name }}</option>
+    {% endfor %}
+  </select>
+  <button class="btn" type="submit">اعمال</button>
+</form>
 <a class="btn" href="{% url 'add_leave' %}" style="margin-bottom:1rem;">
   <i class="fas fa-plus" style="margin-left:0.4rem;"></i> ثبت دستی مرخصی
 </a>
@@ -15,6 +30,7 @@
     <div class="row"><span class="label">کاربر:</span><span>{{ r.user.get_full_name }} - {{ r.user.personnel_code }}</span></div>
     <div class="row"><span class="label">از:</span><span>{{ r.start_date|jformat:"%Y/%m/%d" }}</span></div>
     <div class="row"><span class="label">تا:</span><span>{{ r.end_date|jformat:"%Y/%m/%d" }}</span></div>
+    {% if r.leave_type %}<div class="row"><span class="label">نوع:</span><span>{{ r.leave_type }}</span></div>{% endif %}
     <div class="row"><span class="label">توضیح:</span><span>{{ r.reason|default:"-" }}</span></div>
     <div class="row"><span class="label">وضعیت:</span>
       <span>
@@ -61,6 +77,7 @@
       <th>کاربر</th>
       <th>از</th>
       <th>تا</th>
+      <th>نوع</th>
       <th>توضیح</th>
       <th>وضعیت</th>
       <th>اقدام / توضیح مدیر</th>
@@ -72,6 +89,7 @@
       <td>{{ r.user.get_full_name }} - {{ r.user.personnel_code }}</td>
       <td>{{ r.start_date|jformat:"%Y/%m/%d" }}</td>
       <td>{{ r.end_date|jformat:"%Y/%m/%d" }}</td>
+      <td>{{ r.leave_type|default:"-" }}</td>
       <td>{{ r.reason|default:"-" }}</td>
       <td>
         {% if r.status == 'pending' %}در انتظار{% elif r.status == 'approved' %}تأیید شده{% elif r.status == 'cancelled' %}لغو شده{% else %}رد شده{% endif %}
@@ -105,7 +123,7 @@
       </td>
     </tr>
     {% empty %}
-    <tr><td colspan="6">درخواستی وجود ندارد.</td></tr>
+    <tr><td colspan="7">درخواستی وجود ندارد.</td></tr>
     {% endfor %}
   </tbody>
 </table>

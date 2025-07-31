@@ -251,7 +251,7 @@ label {
 
 /* wrapper for horizontal scroll when needed */
 .table-responsive {
-  overflow-x: auto;
+  overflow-x: visible;
 }
 
 /* profile page tweaks */
