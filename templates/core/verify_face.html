@@ -3,6 +3,7 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'core/device.css' %}">
 {% endblock %}
+{% block body_class %}device-fullscreen{% endblock %}
 {% block extra_js %}
 <script>
 // اسکریپت مشابه صفحات ثبت چهره و face check، فقط URL و نتیجه متفاوت است
@@ -51,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 {% endblock %}
 {% block content %}
-<div class="device-page card">
+<div class="device-page card fullscreen">
   <h2><i class="fa fa-user-check"></i> تأیید چهره</h2>
   <div class="device-video-area">
     <video id="video" autoplay muted playsinline></video>
