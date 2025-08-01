@@ -4,6 +4,7 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'core/device.css' %}">
 {% endblock %}
+{% block body_class %}device-fullscreen{% endblock %}
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -86,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 {% endblock %}
 {% block content %}
-<div class="device-page card">
+<div class="device-page card fullscreen">
   <h2 class="page-title">
     <i class="fas fa-camera"></i> ثبت چهره
   </h2>

@@ -4,6 +4,7 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'core/device.css' %}">
 {% endblock %}
+{% block body_class %}device-fullscreen{% endblock %}
 {% block extra_js %}
 <script>
     const overlay = document.getElementById('device-overlay');
@@ -90,7 +91,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="device-page card">
+<div class="device-page card fullscreen">
   <h2 style="text-align:right;">
     <i class="fas fa-user-check" style="margin-left:0.5rem;"></i> تأیید چهره مدیر
   </h2>
