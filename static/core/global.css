@@ -357,7 +357,7 @@ label {
 @media (min-width: 800px) {
   .header-inner,
   #main-content {
-    max-width: 950px;
+    max-width: 1200px;
     margin: 0 auto;
     padding: 1.5rem 1rem;
     border-radius: var(--radius);
