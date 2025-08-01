@@ -11,6 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const canvas = document.getElementById('canvas');
   const btn = document.getElementById('captureBtn');
   const resultDiv = document.getElementById('captureResult');
+  const preview = document.getElementById('capture-preview');
+  const previewImg = document.getElementById('capture-preview-img');
 
   const steps = [
     'لطفاً مستقیم نگاه کنید و دکمه را بزنید.',
@@ -28,12 +30,22 @@ document.addEventListener('DOMContentLoaded', () => {
     resultDiv.textContent = "دوربین توسط مرورگر پشتیبانی نمی‌شود.";
   }
 
+  function showPreview(src) {
+    if (preview && previewImg) {
+      previewImg.src = src;
+      preview.style.display = 'flex';
+      setTimeout(() => preview.style.display = 'none', 1500);
+    }
+  }
+
   btn.onclick = () => {
     if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-    captures.push(canvas.toDataURL('image/jpeg'));
+    const imgData = canvas.toDataURL('image/jpeg');
+    showPreview(imgData);
+    captures.push(imgData);
     step++;
     if (step < steps.length) {
       resultDiv.textContent = steps[step];
@@ -102,4 +114,5 @@ document.addEventListener('DOMContentLoaded', () => {
     </ul>
   </div>
 </div>
+<div id="capture-preview"><img id="capture-preview-img" alt="preview"></div>
 {% endblock %}

@@ -12,6 +12,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const btn = document.getElementById('captureBtn');
   const message = document.getElementById('captureResult');
   const overlay = document.getElementById('device-overlay');
+  const preview = document.getElementById('capture-preview');
+  const previewImg = document.getElementById('capture-preview-img');
+
+  function showPreview(src) {
+    if (preview && previewImg) {
+      previewImg.src = src;
+      preview.style.display = 'flex';
+      setTimeout(() => preview.style.display = 'none', 1500);
+    }
+  }
 
   const steps = [
     'اکنون مستقیم نگاه کنید و دکمه را بزنید.',
@@ -41,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+    showPreview(canvas.toDataURL('image/jpeg'));
     captures.push(canvas.toDataURL('image/jpeg'));
     step++;
     if (step < steps.length) {
@@ -110,4 +121,5 @@ document.addEventListener('DOMContentLoaded', () => {
     </ul>
   </div>
 </div>
+<div id="capture-preview"><img id="capture-preview-img" alt="preview"></div>
 {% endblock %}
