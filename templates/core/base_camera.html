@@ -1,0 +1,16 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}دوربین{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'core/camera_full.css' %}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+  {% block content %}{% endblock %}
+  <script src="{% static 'core/global.js' %}" defer></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

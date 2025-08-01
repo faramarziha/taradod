@@ -1,22 +1,15 @@
-{% extends "core/base.html" %}
+{% extends "core/base_camera.html" %}
 {% load static %}
 {% block title %}ثبت چهره{% endblock %}
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'core/device.css' %}">
-{% endblock %}
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
   const btn = document.getElementById('captureBtn');
-  const message = document.getElementById('captureResult');
-  const overlay = document.getElementById('device-overlay');
+  const message = document.getElementById('status');
 
-  const steps = [
-    'اکنون مستقیم نگاه کنید و دکمه را بزنید.',
-    'حالا سرتان را کمی به چپ یا راست بچرخانید و دوباره بزنید.'
-  ];
+  const steps = ['لطفاً در وسط تصویر قرار بگیرید', 'کمی به چپ یا راست بچرخید'];
   let captures = [];
   let step = 0;
   message.textContent = steps[0];
@@ -24,16 +17,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
       .then(stream => { video.srcObject = stream; })
-      .catch(() => { message.textContent = "دسترسی به دوربین ممکن نشد."; });
+      .catch(() => { message.textContent = 'دسترسی به دوربین ممکن نشد.'; });
   } else {
-    message.textContent = "دوربین توسط مرورگر پشتیبانی نمی‌شود.";
-  }
-
-  if (overlay) {
-    setTimeout(() => {
-      overlay.style.opacity = '0';
-      setTimeout(() => overlay.style.display = 'none', 500);
-    }, 2000);
+    message.textContent = 'دوربین توسط مرورگر پشتیبانی نمی‌شود.';
   }
 
   btn.onclick = () => {
@@ -49,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     btn.disabled = true;
     message.textContent = 'در حال ثبت...';
-    fetch("{% url 'api_register_face' %}", {
+    fetch('{% url "api_register_face" %}', {
       method: 'POST',
       headers: { 'X-CSRFToken': getCsrfToken() },
       body: new URLSearchParams({ image1: captures[0], image2: captures[1] })
@@ -58,56 +44,29 @@ document.addEventListener('DOMContentLoaded', () => {
     .then(data => {
       if (data.ok) {
         message.textContent = 'چهره با موفقیت ثبت شد.';
-        if (data.redirect) {
-          setTimeout(() => { window.location.href = data.redirect; }, 1200);
-        }
       } else {
         message.textContent = data.msg || 'ثبت چهره ناموفق بود.';
-        btn.disabled = false;
-        step = 0;
-        captures = [];
+        btn.disabled = false; step = 0; captures = [];
       }
     }).catch(() => {
       message.textContent = 'ارتباط با سرور برقرار نشد.';
-      btn.disabled = false;
-      step = 0;
-      captures = [];
+      btn.disabled = false; step = 0; captures = [];
     });
   };
 
   function getCsrfToken() {
-    let value = "; " + document.cookie;
-    let parts = value.split("; csrftoken=");
-    if (parts.length === 2) return parts.pop().split(";").shift();
+    let value = '; ' + document.cookie;
+    let parts = value.split('; csrftoken=');
+    if (parts.length === 2) return parts.pop().split(';').shift();
     return '';
   }
 });
-
 </script>
 {% endblock %}
 {% block content %}
-<div class="device-page card">
-  <h2 class="page-title">
-    <i class="fas fa-camera"></i> ثبت چهره
-  </h2>
-  <div class="device-video-area">
-    <video id="video" autoplay muted playsinline></video>
-    <canvas id="canvas" style="display:none"></canvas>
-    <div id="device-overlay">
-      <span>صورت خود را در مرکز کادر قرار دهید</span>
-    </div>
-  </div>
-  <button class="btn" id="captureBtn"><i class="fa fa-camera" style="margin-left:0.4rem;"></i> ثبت تصویر</button>
-  <div id="captureResult" class="device-message"></div>
-  <div class="card" style="margin-top:1.3rem;">
-    <b>راهنمای ثبت چهره:</b>
-    <ul>
-      <li>نور کافی و یکنواخت داشته باشید</li>
-      <li>بدون عینک، کلاه، ماسک</li>
-      <li>صورت کاملاً در کادر باشد</li>
-      <li>پس‌زمینه ساده باشد</li>
-      <li>بعد از اولین عکس، طبق دستور سر خود را کمی حرکت دهید</li>
-    </ul>
-  </div>
-</div>
+<video id="video" autoplay muted playsinline class="fullscreen-video"></video>
+<canvas id="canvas" style="display:none"></canvas>
+<div id="device-overlay"><span>صورت خود را در مرکز کادر قرار دهید</span></div>
+<button id="captureBtn" class="camera-btn">ثبت چهره</button>
+<div id="status" class="status-box"></div>
 {% endblock %}
