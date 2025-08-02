@@ -85,11 +85,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 </script>
 {% endblock %}
+{% block body_class %}fullscreen{% endblock %}
 {% block content %}
-<div class="device-page card">
-  <h2 class="page-title">
-    <i class="fas fa-camera"></i> ثبت چهره
-  </h2>
+<div class="device-page">
   <div class="device-video-area">
     <video id="video" autoplay muted playsinline></video>
     <canvas id="canvas" style="display:none"></canvas>
@@ -97,17 +95,9 @@ document.addEventListener('DOMContentLoaded', () => {
       <span>صورت خود را در مرکز کادر قرار دهید</span>
     </div>
   </div>
-  <button class="btn" id="captureBtn"><i class="fa fa-camera" style="margin-left:0.4rem;"></i> ثبت تصویر</button>
-  <div id="captureResult" class="device-message"></div>
-  <div class="card" style="margin-top:1.3rem;">
-    <b>راهنمای ثبت چهره:</b>
-    <ul>
-      <li>نور کافی و یکنواخت داشته باشید</li>
-      <li>بدون عینک، کلاه، ماسک</li>
-      <li>صورت کاملاً در کادر باشد</li>
-      <li>پس‌زمینه ساده باشد</li>
-      <li>بعد از اولین عکس، طبق دستور سر خود را کمی حرکت دهید</li>
-    </ul>
+  <div class="bottom-panel">
+    <div id="captureResult" class="device-message"></div>
+    <button class="btn" id="captureBtn"><i class="fa fa-camera" style="margin-left:0.4rem;"></i> ثبت تصویر</button>
   </div>
 </div>
 {% endblock %}
