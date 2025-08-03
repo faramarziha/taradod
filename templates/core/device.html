@@ -1,28 +1,16 @@
-{% extends "core/base.html" %}
+{% extends "core/base_device.html" %}
 {% load static %}
 {% block title %}ثبت تردد{% endblock %}
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'core/device.css' %}">
-{% endblock %}
 {% block extra_js %}
-    <script>
+<script>
   const VERIFY_FACE_URL = "{% url 'api_verify_face' %}";
-    </script>
+</script>
 <script src="{% static 'core/device.js' %}"></script>
 {% endblock %}
 {% block content %}
-<div class="device-page card">
-  <h2 class="page-title">
-    <i class="fa fa-id-badge"></i> ثبت تردد
-  </h2>
-  <div class="device-video-area">
-    <video id="video" autoplay muted playsinline></video>
-    <canvas id="canvas" style="display:none"></canvas>
-    <div id="device-overlay">
-      <span>لطفاً صورت خود را در کادر قرار دهید</span>
-    </div>
-  </div>
-  <div class="device-message" id="message"></div>
+<div class="fullscreen-container">
+  <video id="video" autoplay muted playsinline></video>
+  <canvas id="canvas" style="display:none"></canvas>
   <div class="user-info" id="user-info" style="display:none">
     <img id="user-face" src="{% static 'core/avatar.png' %}" alt="چهره">
     <div id="user-details">
@@ -31,9 +19,10 @@
       <div id="user-time"></div>
     </div>
   </div>
-  <div id="manager-controls" style="display:none;margin-top:1.8rem;">
+  <div id="manager-controls" style="display:none;">
     <a href="{% url 'management_login' %}" class="btn"><i class="fas fa-cogs" style="margin-left:0.4rem;"></i> پنل مدیریت</a>
     <a href="{% url 'home' %}" class="btn"><i class="fas fa-sign-out-alt" style="margin-left:0.4rem;"></i>صفحه اصلی</a>
   </div>
+  <div class="status-bar" id="message"></div>
 </div>
 {% endblock %}
