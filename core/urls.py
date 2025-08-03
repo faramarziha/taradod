@@ -57,6 +57,7 @@ urlpatterns = [
     path("management/users/<int:user_id>/register-face/api/",
          views.register_face_api,            name="register_face_api"),
     path("management/weekly-holidays/", views.weekly_holidays, name="weekly_holidays"),
+    path("management/device/", views.device_settings, name="device_settings"),
     path("management/shifts/", views.shift_list, name="shift_list"),
     path("management/shifts/add/", views.shift_edit, name="shift_add"),
     path("management/shifts/<int:pk>/edit/", views.shift_edit, name="shift_edit"),
