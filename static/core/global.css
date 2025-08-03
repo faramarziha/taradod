@@ -487,3 +487,33 @@ label {
   overflow-y: auto;
 }
 
+#video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+  direction: ltr;
+}
+
+.action-btn {
+  position: fixed;
+  bottom: 4.2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.6rem 1.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+  z-index: 10;
+  transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+}
+
+.action-btn:hover {
+  background: var(--color-primary-dark);
+  transform: translateX(-50%) scale(1.05);
+  box-shadow: 0 0.4rem 0.8rem rgba(0,0,0,0.3);
+}
+
