@@ -1,50 +1,54 @@
-{% extends "core/base.html" %}
+{% extends "core/base_device.html" %}
 {% load static %}
-
 {% block title %}تأیید چهره مدیر{% endblock %}
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'core/device.css' %}">
-{% endblock %}
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
   const btn = document.getElementById('verifyBtn');
-  const resultDiv = document.getElementById('verifyResult');
+  const message = document.getElementById('verifyResult');
 
-  // راه‌اندازی دوربین
+  message.textContent = 'صورت خود را در مرکز کادر قرار دهید و دکمه تأیید را بزنید';
+
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
-      .then(stream => { video.srcObject = stream; })
-      .catch(() => { resultDiv.textContent = "دسترسی به دوربین ممکن نشد."; });
+      .then(stream => { video.srcObject = stream; message.textContent = ''; })
+      .catch(() => { message.textContent = 'دسترسی به دوربین ممکن نشد.'; btn.disabled = true; });
   } else {
-    resultDiv.textContent = "دوربین توسط مرورگر پشتیبانی نمی‌شود.";
+    message.textContent = 'دوربین توسط مرورگر پشتیبانی نمی‌شود.';
+    btn.disabled = true;
   }
 
   btn.onclick = () => {
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/jpeg');
-      fetch("{% url 'api_device_verify_face' %}", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-CSRFToken": getCsrfToken() },
-        body: JSON.stringify({ image: dataUrl })
-      })
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) {
-          resultDiv.textContent = "چهره تأیید شد. کیوسک فعال شد.";
-          setTimeout(() => { window.location.href = data.redirect; }, 1000);
-        } else {
-          resultDiv.textContent = data.error || "چهره مطابقت نداشت.";
-        }
-      }).catch(() => {
-        resultDiv.textContent = "ارتباط با سرور برقرار نشد.";
-      });
+    if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+      message.textContent = 'لطفاً صبر کنید تا تصویر دوربین آماده شود';
+      return;
     }
+    btn.disabled = true;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL('image/jpeg');
+    message.textContent = 'لطفاً صبر کنید...';
+    fetch("{% url 'api_device_verify_face' %}", {
+      method: 'POST',
+      headers: { "Content-Type": "application/json", "X-CSRFToken": getCsrfToken() },
+      body: JSON.stringify({ image: dataUrl })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        message.textContent = "چهره تأیید شد. کیوسک فعال شد.";
+        setTimeout(() => { window.location.href = data.redirect; }, 1000);
+      } else {
+        message.textContent = data.error || "چهره مطابقت نداشت.";
+        btn.disabled = false;
+      }
+    }).catch(() => {
+      message.textContent = "ارتباط با سرور برقرار نشد.";
+      btn.disabled = false;
+    });
   };
 
   function getCsrfToken() {
@@ -57,16 +61,11 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 {% endblock %}
 {% block content %}
-<div class="device-page card">
-  <h2><i class="fas fa-user-check"></i> تأیید چهره مدیر</h2>
-  <div class="device-video-area">
-    <video id="video" autoplay muted playsinline></video>
-    <canvas id="canvas" style="display:none"></canvas>
-    <div id="device-overlay">
-      <span>صورت خود را در مرکز کادر قرار دهید و دکمه تأیید را بزنید</span>
-    </div>
-  </div>
-  <button class="btn" id="verifyBtn"><i class="fa fa-user-check"></i> تأیید چهره</button>
-  <div id="verifyResult" class="device-message"></div>
+<div class="fullscreen-container">
+  <video id="video" autoplay muted playsinline></video>
+  <canvas id="canvas" style="display:none"></canvas>
+  <button class="action-btn" id="verifyBtn"><i class="fa fa-user-check" style="margin-left:0.4rem;"></i> تأیید چهره</button>
+  <div id="verifyResult" class="status-bar"></div>
 </div>
 {% endblock %}
+
