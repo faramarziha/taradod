@@ -1,31 +1,28 @@
-{% extends "core/base_management.html" %}
+{% extends "core/base_device.html" %}
 {% load static %}
 {% block title %}ثبت چهره برای کاربر{% endblock %}
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'core/device.css' %}">
-{% endblock %}
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
   const btn = document.getElementById('captureBtn');
-  const resultDiv = document.getElementById('captureResult');
+  const message = document.getElementById('captureResult');
 
   const steps = [
-    'لطفاً مستقیم نگاه کنید و دکمه را بزنید.',
-    'حالا سر را کمی بچرخانید و دوباره بزنید.'
+    'اکنون مستقیم نگاه کنید و دکمه را بزنید.',
+    'حالا سرتان را کمی به چپ یا راست بچرخانید و دوباره بزنید.'
   ];
   let captures = [];
   let step = 0;
-  resultDiv.textContent = steps[0];
+  message.textContent = steps[0];
 
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
       .then(stream => { video.srcObject = stream; })
-      .catch(() => { resultDiv.textContent = "دسترسی به دوربین ممکن نشد."; });
+      .catch(() => { message.textContent = "دسترسی به دوربین ممکن نشد."; });
   } else {
-    resultDiv.textContent = "دوربین توسط مرورگر پشتیبانی نمی‌شود.";
+    message.textContent = "دوربین توسط مرورگر پشتیبانی نمی‌شود.";
   }
 
   btn.onclick = () => {
@@ -36,11 +33,11 @@ document.addEventListener('DOMContentLoaded', () => {
     captures.push(canvas.toDataURL('image/jpeg'));
     step++;
     if (step < steps.length) {
-      resultDiv.textContent = steps[step];
+      message.textContent = steps[step];
       return;
     }
     btn.disabled = true;
-    resultDiv.textContent = 'در حال ثبت...';
+    message.textContent = 'در حال ثبت...';
     fetch("{% url 'register_face_api' user_to_register.pk %}", {
       method: 'POST',
       headers: { 'X-CSRFToken': getCsrfToken() },
@@ -49,15 +46,15 @@ document.addEventListener('DOMContentLoaded', () => {
     .then(r => r.json())
     .then(data => {
       if (data.ok) {
-        resultDiv.textContent = "چهره کاربر با موفقیت ثبت شد.";
+        message.textContent = 'چهره کاربر با موفقیت ثبت شد.';
       } else {
-        resultDiv.textContent = data.msg || "ثبت چهره ناموفق بود.";
+        message.textContent = data.msg || 'ثبت چهره ناموفق بود.';
         btn.disabled = false;
         step = 0;
         captures = [];
       }
     }).catch(() => {
-      resultDiv.textContent = "ارتباط با سرور برقرار نشد.";
+      message.textContent = 'ارتباط با سرور برقرار نشد.';
       btn.disabled = false;
       step = 0;
       captures = [];
@@ -73,33 +70,15 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 {% endblock %}
-{% block management_content %}
-<div class="device-page card">
-  <h2 class="page-title">
-    <i class="fas fa-camera"></i> ثبت چهره برای {{ user_to_register.get_full_name }}
-  </h2>
-  <div style="margin-bottom:0.9rem;">
-    کد پرسنلی: <b>{{ user_to_register.personnel_code }}</b> |
-    کد ملی: <b>{{ user_to_register.national_id }}</b>
+{% block content %}
+<div class="fullscreen-container">
+  <video id="video" autoplay muted playsinline></video>
+  <canvas id="canvas" style="display:none"></canvas>
+  <div class="user-info" style="flex-direction:column; gap:0.2rem;">
+    <div>{{ user_to_register.get_full_name }}</div>
+    <div>کد پرسنلی: {{ user_to_register.personnel_code }}</div>
   </div>
-  <div class="device-video-area">
-    <video id="video" autoplay muted playsinline></video>
-    <canvas id="canvas" style="display:none"></canvas>
-    <div id="device-overlay">
-      <span>صورت کاربر باید کامل در کادر باشد</span>
-    </div>
-  </div>
-  <button class="btn" id="captureBtn"><i class="fa fa-camera" style="margin-left:0.4rem;"></i> ثبت چهره</button>
-  <div id="captureResult" class="device-message"></div>
-  <div class="card" style="margin-top:1.3rem;">
-    <b>راهنمای ثبت چهره:</b>
-    <ul>
-      <li>نور کافی و یکنواخت</li>
-      <li>بدون عینک، کلاه، ماسک</li>
-      <li>صورت کاملاً در کادر باشد</li>
-      <li>پس‌زمینه ساده باشد</li>
-      <li>بعد از اولین عکس، طبق دستور سر کاربر را کمی حرکت دهید</li>
-    </ul>
-  </div>
+  <button class="action-btn" id="captureBtn"><i class="fa fa-camera" style="margin-left:0.4rem;"></i> ثبت چهره</button>
+  <div id="captureResult" class="status-bar"></div>
 </div>
 {% endblock %}

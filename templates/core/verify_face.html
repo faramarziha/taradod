@@ -1,16 +1,13 @@
-{% extends "core/base.html" %}
+{% extends "core/base_device.html" %}
+{% load static %}
 {% block title %}تأیید چهره{% endblock %}
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'core/device.css' %}">
-{% endblock %}
 {% block extra_js %}
 <script>
-// اسکریپت مشابه صفحات ثبت چهره و face check، فقط URL و نتیجه متفاوت است
 document.addEventListener('DOMContentLoaded', () => {
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
-  const btn = document.getElementById('verifyBtn');
   const resultDiv = document.getElementById('verifyResult');
+
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
       .then(stream => { video.srcObject = stream; })
@@ -18,7 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
   } else {
     resultDiv.textContent = "دوربین توسط مرورگر پشتیبانی نمی‌شود.";
   }
-  btn.onclick = () => {
+
+  setInterval(() => {
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -40,7 +38,8 @@ document.addEventListener('DOMContentLoaded', () => {
         resultDiv.textContent = "ارتباط با سرور برقرار نشد.";
       });
     }
-  };
+  }, 4000);
+
   function getCsrfToken() {
     let value = "; " + document.cookie;
     let parts = value.split("; csrftoken=");
@@ -51,16 +50,9 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 {% endblock %}
 {% block content %}
-<div class="device-page card">
-  <h2><i class="fa fa-user-check"></i> تأیید چهره</h2>
-  <div class="device-video-area">
-    <video id="video" autoplay muted playsinline></video>
-    <canvas id="canvas" style="display:none"></canvas>
-    <div id="device-overlay">
-      <span>صورت خود را در مرکز کادر قرار دهید و دکمه تأیید را بزنید</span>
-    </div>
-  </div>
-  <button class="btn" id="verifyBtn"><i class="fa fa-user-check"></i> تأیید چهره</button>
-  <div id="verifyResult" class="device-message"></div>
+<div class="fullscreen-container">
+  <video id="video" autoplay muted playsinline></video>
+  <canvas id="canvas" style="display:none"></canvas>
+  <div id="verifyResult" class="status-bar"></div>
 </div>
 {% endblock %}
