@@ -12,6 +12,7 @@
   <aside class="management-sidebar" id="management-sidebar">
     <div class="sidebar-title">پنل مدیریت</div>
     <nav>
+      <a href="{% url 'home' %}"><i class="fas fa-home"></i> صفحه اصلی</a>
       <a href="{% url 'management_dashboard' %}" class="{% if request.resolver_match.url_name == 'management_dashboard' %}active{% endif %}">
         <i class="fas fa-chart-pie"></i> داشبورد
       </a>

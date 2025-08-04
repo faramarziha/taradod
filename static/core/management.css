@@ -47,15 +47,6 @@
     padding: 1.5rem 0.8rem !important;
   }
 }
-.management-sidebar .sidebar-logo {
-  width: 60px;
-  height: 60px;
-  object-fit: contain;
-  border-radius: 1rem;
-  background: #fff;
-  margin: 0 auto 1.7rem auto;
-  display: block;
-}
 .management-sidebar .sidebar-title {
   text-align: center;
   font-weight: 600;
@@ -309,9 +300,6 @@
     min-height: 88vh;
     margin-left: 1.1rem;
     margin-bottom: 0;
-  }
-  .management-sidebar .sidebar-logo {
-    margin: 0 auto 1.7rem auto;
   }
   .management-sidebar nav {
     flex-direction: column;

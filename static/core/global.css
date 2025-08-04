@@ -70,32 +70,25 @@ body {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  justify-content: space-between;
-}
-
-.site-logo {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: var(--shadow);
-  object-fit: cover;
-  margin-left: 0.7rem;
+  justify-content: flex-start;
 }
 
 .site-title {
   font-size: 1.3rem;
   font-weight: 700;
   color: #fff;
-  margin-left: 1.5rem;
+  margin-right: 1rem;
 }
 
 .nav-toggle {
   display: block;
-  background: none;
+  background: #fff;
   border: none;
-  color: #fff;
-  font-size: 1.4rem;
+  color: var(--color-primary-dark);
+  font-size: 1.2rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 0.4rem;
   cursor: pointer;
 }
 
@@ -362,7 +355,6 @@ label {
     padding: 1.5rem 1rem;
     border-radius: var(--radius);
   }
-  .site-logo { width: 44px; height: 44px; }
   .site-title { font-size: 1.3rem; }
   .nav-toggle { display: none; }
   #main-nav {
