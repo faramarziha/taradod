@@ -1,0 +1,19 @@
+{% extends "core/base_management.html" %}
+{% block title %}تنظیمات دستگاه{% endblock %}
+{% block management_content %}
+<h1>دستگاه ثبت تردد</h1>
+<p>وضعیت اتصال: {{ device.online|yesno:"آنلاین,آفلاین" }}</p>
+<p>وضعیت فعالیت: {{ device.is_active|yesno:"فعال,غیرفعال" }}</p>
+<form method="post">
+  {% csrf_token %}
+  {% if device.online %}
+    {% if device.is_active %}
+      <button type="submit" name="action" value="deactivate" class="btn">غیرفعال کردن</button>
+    {% else %}
+      <button type="submit" name="action" value="activate" class="btn">فعال کردن</button>
+    {% endif %}
+  {% else %}
+    <button class="btn" disabled>دستگاه آفلاین است</button>
+  {% endif %}
+</form>
+{% endblock %}

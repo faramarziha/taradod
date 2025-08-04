@@ -45,6 +45,8 @@ from core.forms import (
     GroupForm,
     LeaveTypeForm,
 )
+from .models import Device
+
 from users.models import CustomUser
 
 
@@ -166,6 +168,11 @@ def api_device_verify_face(request):
 @require_POST
 @login_required
 def api_verify_face(request):
+    device, _ = Device.objects.get_or_create(id=1, defaults={"name": "Main device"})
+    device.last_seen = timezone.now()
+    device.save(update_fields=["last_seen"])
+    if not device.is_active:
+        return JsonResponse({"ok": False, "msg": "دستگاه غیرفعال است."})
     try:
         data = json.loads(request.body)
         enc = _get_face_encoding_from_base64(data.get("image", ""))
@@ -1048,6 +1055,19 @@ def user_logs_admin(request, user_id):
         "logs": logs,
     })
 
+
+@login_required
+@staff_required
+def device_settings(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    device, _ = Device.objects.get_or_create(id=1, defaults={"name": "Main device"})
+    if request.method == "POST" and device.online:
+        action = request.POST.get('action')
+        device.is_active = action != 'deactivate'
+        device.save(update_fields=['is_active'])
+        return redirect('device_settings')
+    return render(request, 'core/device_settings.html', {'device': device, 'active_tab': 'settings'})
 
 @login_required
 @staff_required
