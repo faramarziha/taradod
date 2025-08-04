@@ -46,15 +46,7 @@
     margin: 0 !important;
     padding: 1.5rem 0.8rem !important;
   }
-}
-.management-sidebar .sidebar-logo {
-  width: 60px;
-  height: 60px;
-  object-fit: contain;
-  border-radius: 1rem;
-  background: #fff;
-  margin: 0 auto 1.7rem auto;
-  display: block;
+  .management-sidebar .sidebar-footer { display: flex; }
 }
 .management-sidebar .sidebar-title {
   text-align: center;
@@ -70,6 +62,13 @@
   gap: 0.8rem;
   align-items: flex-start;
   direction: rtl;
+}
+
+.management-sidebar .sidebar-footer {
+  margin-top: auto;
+  display: none;
+  flex-direction: column;
+  gap: 0.8rem;
 }
 .management-sidebar nav a {
   color: var(--color-primary);
@@ -309,9 +308,6 @@
     min-height: 88vh;
     margin-left: 1.1rem;
     margin-bottom: 0;
-  }
-  .management-sidebar .sidebar-logo {
-    margin: 0 auto 1.7rem auto;
   }
   .management-sidebar nav {
     flex-direction: column;
