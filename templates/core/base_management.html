@@ -3,16 +3,12 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'core/management.css' %}">
 {% endblock %}
-{% block nav_links %}
-<a href="{% url 'home' %}"><i class="fas fa-home"></i> صفحه اصلی</a>
-{% endblock %}
 {% block content %}
 <div class="management-layout">
   <div id="sidebar-overlay" class="sidebar-overlay"></div>
   <aside class="management-sidebar" id="management-sidebar">
     <div class="sidebar-title">پنل مدیریت</div>
     <nav>
-      <a href="{% url 'home' %}"><i class="fas fa-home"></i> صفحه اصلی</a>
       <a href="{% url 'management_dashboard' %}" class="{% if request.resolver_match.url_name == 'management_dashboard' %}active{% endif %}">
         <i class="fas fa-chart-pie"></i> داشبورد
       </a>
@@ -42,11 +38,12 @@
         <nav class="sub-menu">
           <a href="{% url 'shift_list' %}" class="{% if request.resolver_match.url_name == 'shift_list' or request.resolver_match.url_name == 'shift_add' or request.resolver_match.url_name == 'shift_edit' %}active{% endif %}">شیفت‌ها</a>
           <a href="{% url 'group_list' %}" class="{% if request.resolver_match.url_name == 'group_list' or request.resolver_match.url_name == 'group_add' or request.resolver_match.url_name == 'group_edit' %}active{% endif %}">گروه‌ها</a>
-          <a href="{% url 'leave_type_list' %}" class="{% if request.resolver_match.url_name == 'leave_type_list' or request.resolver_match.url_name == 'leave_type_add' or request.resolver_match.url_name == 'leave_type_edit' %}active{% endif %}">انواع مرخصی</a>
+        <a href="{% url 'leave_type_list' %}" class="{% if request.resolver_match.url_name == 'leave_type_list' or request.resolver_match.url_name == 'leave_type_add' or request.resolver_match.url_name == 'leave_type_edit' %}active{% endif %}">انواع مرخصی</a>
           <a href="{% url 'device_settings' %}" class="{% if request.resolver_match.url_name == 'device_settings' %}active{% endif %}">دستگاه</a>
         </nav>
       </details>
-      <a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> خروج</a>
+      <a href="{% url 'home' %}" class="mobile-only"><i class="fas fa-home"></i> صفحه اصلی</a>
+      <a href="{% url 'logout' %}" class="mobile-only"><i class="fas fa-sign-out-alt"></i> خروج</a>
       </nav>
   </aside>
   <section class="management-content">

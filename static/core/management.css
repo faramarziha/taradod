@@ -27,11 +27,11 @@
   gap: 1rem;
   direction: ltr;
   position: fixed;
-  top: 0;
+  top: calc(var(--header-height) + 0.5rem);
   right: 0;
   width: 220px;
   max-width: 85vw;
-  height: 100vh;
+  height: calc(100vh - var(--header-height) - 0.5rem);
   overflow-y: auto;
   transform: translateX(100%);
   transition: transform var(--transition);
@@ -118,6 +118,12 @@
   margin-bottom: 1rem;
   overflow-x: visible;
   direction: rtl;
+}
+
+@media (min-width: 900px) {
+  .mobile-only {
+    display: none !important;
+  }
 }
 .dashboard-stats {
   display: grid;
