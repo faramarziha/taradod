@@ -45,6 +45,7 @@ from core.forms import (
     GroupForm,
     LeaveTypeForm,
 )
+from core.models import Device
 from users.models import CustomUser
 
 
@@ -161,6 +162,15 @@ def api_device_verify_face(request):
 
     except Exception:
         return JsonResponse({"success": False, "error": "خطا در پردازش تصویر."})
+
+@login_required
+@user_passes_test(lambda u: u.is_staff)
+@require_POST
+def api_device_ping(request):
+    device, _ = Device.objects.get_or_create(name="main")
+    device.last_seen = timezone.now()
+    device.save(update_fields=["last_seen"])
+    return JsonResponse({"is_active": device.is_active})
 
 @csrf_exempt
 @require_POST
@@ -1164,3 +1174,23 @@ def leave_type_delete(request, pk):
         messages.success(request, "حذف شد.")
         return redirect("leave_type_list")
     return render(request, "core/confirm_delete.html", {"object": obj, "cancel_url": "leave_type_list"})
+
+
+@login_required
+@staff_required
+def device_settings(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    device, _ = Device.objects.get_or_create(name="main")
+    online = device.last_seen and timezone.now() - device.last_seen < timedelta(seconds=20)
+    if request.method == "POST" and online:
+        device.is_active = not device.is_active
+        device.save(update_fields=["is_active"])
+        msg = "دستگاه فعال شد." if device.is_active else "دستگاه غیرفعال شد."
+        messages.success(request, msg)
+        return redirect("device_settings")
+    return render(
+        request,
+        "core/device_settings.html",
+        {"device": device, "online": online, "active_tab": "settings"},
+    )

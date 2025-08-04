@@ -4,6 +4,7 @@
 {% block extra_js %}
 <script>
   const VERIFY_FACE_URL = "{% url 'api_verify_face' %}";
+  const DEVICE_PING_URL = "{% url 'api_device_ping' %}";
 </script>
 <script src="{% static 'core/device.js' %}"></script>
 {% endblock %}

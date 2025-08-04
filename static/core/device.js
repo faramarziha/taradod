@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const userTime = document.getElementById('user-time');
   const managerControls = document.getElementById('manager-controls');
   const overlay = document.getElementById('device-overlay');
+  let deviceActive = true;
 
   // راه‌اندازی دوربین
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -29,8 +30,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function hideUserInfo() { userInfo.style.display = 'none'; }
 
+  function pingServer() {
+    fetch(DEVICE_PING_URL, { method: 'POST', headers: { 'X-CSRFToken': getCsrfToken() } })
+      .then(r => r.json())
+      .then(data => {
+        deviceActive = data.is_active;
+        if (!deviceActive) {
+          message.textContent = 'دستگاه غیرفعال است.';
+          hideUserInfo();
+          managerControls.style.display = 'none';
+        }
+      }).catch(() => {});
+  }
+  setInterval(pingServer, 5000);
+  pingServer();
+
   // ارسال تصویر هر چند ثانیه برای بررسی چهره
   setInterval(() => {
+    if (!deviceActive) return;
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;

@@ -27,6 +27,7 @@ urlpatterns = [
     path("device/",                 views.device_page,                    name="device_page"),
 
     # API ثبت تردد عادی (کیوسک)
+    path("api/device/ping/",        views.api_device_ping,              name="api_device_ping"),
     path("api/verify-face/",        views.api_verify_face,                name="api_verify_face"),
     path("api/register-face/",      views.api_register_face,              name="api_register_face"),
 
@@ -69,5 +70,6 @@ urlpatterns = [
     path("management/leave-types/add/", views.leave_type_edit, name="leave_type_add"),
     path("management/leave-types/<int:pk>/edit/", views.leave_type_edit, name="leave_type_edit"),
     path("management/leave-types/<int:pk>/delete/", views.leave_type_delete, name="leave_type_delete"),
+    path("management/device/", views.device_settings, name="device_settings"),
     path("management/users/<int:user_id>/logs/", views.user_logs_admin, name="user_logs_admin"),
 ]
