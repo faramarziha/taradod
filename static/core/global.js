@@ -33,12 +33,24 @@ document.addEventListener("DOMContentLoaded", () => {
   const sidebar = document.getElementById("management-sidebar");
   const sidebarOverlay = document.getElementById("sidebar-overlay");
   if (navToggle) {
+    const icon = navToggle.querySelector("i");
     navToggle.addEventListener("click", () => {
+      navToggle.classList.toggle("open");
       if (sidebar) {
-        sidebar.classList.toggle("open");
-        if (sidebarOverlay) sidebarOverlay.classList.toggle("open");
+        const isOpen = sidebar.classList.toggle("open");
+        if (sidebarOverlay) sidebarOverlay.classList.toggle("open", isOpen);
+        navToggle.setAttribute("aria-expanded", isOpen);
+        if (icon) {
+          icon.classList.toggle("fa-bars", !isOpen);
+          icon.classList.toggle("fa-times", isOpen);
+        }
       } else if (mainNav) {
-        mainNav.classList.toggle("open");
+        const isOpen = mainNav.classList.toggle("open");
+        navToggle.setAttribute("aria-expanded", isOpen);
+        if (icon) {
+          icon.classList.toggle("fa-bars", !isOpen);
+          icon.classList.toggle("fa-times", isOpen);
+        }
       }
     });
   }
@@ -46,6 +58,15 @@ document.addEventListener("DOMContentLoaded", () => {
     sidebarOverlay.addEventListener("click", () => {
       sidebar.classList.remove("open");
       sidebarOverlay.classList.remove("open");
+      if (navToggle) {
+        navToggle.classList.remove("open");
+        navToggle.setAttribute("aria-expanded", "false");
+        const icon = navToggle.querySelector("i");
+        if (icon) {
+          icon.classList.add("fa-bars");
+          icon.classList.remove("fa-times");
+        }
+      }
     });
   }
 
