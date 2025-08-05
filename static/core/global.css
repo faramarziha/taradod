@@ -348,8 +348,10 @@ label {
   #main-content {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 1.5rem 1rem;
     border-radius: var(--radius);
+  }
+  #main-content {
+    padding: 1.5rem 1rem;
   }
   .site-title { font-size: 1.3rem; }
 }
