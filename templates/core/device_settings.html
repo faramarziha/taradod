@@ -2,8 +2,16 @@
 {% block title %}تنظیمات دستگاه{% endblock %}
 {% block management_content %}
 <h1>دستگاه ثبت تردد</h1>
-<p>وضعیت اتصال: {{ device.online|yesno:"آنلاین,آفلاین" }}</p>
-<p>وضعیت فعالیت: {{ device.is_active|yesno:"فعال,غیرفعال" }}</p>
+<p>وضعیت اتصال:
+  <span class="badge {% if device.online %}badge-success{% else %}badge-error{% endif %}">
+    {{ device.online|yesno:"آنلاین,آفلاین" }}
+  </span>
+</p>
+<p>وضعیت فعالیت:
+  <span class="badge {% if device.is_active %}badge-success{% else %}badge-error{% endif %}">
+    {{ device.is_active|yesno:"فعال,غیرفعال" }}
+  </span>
+</p>
 <form method="post">
   {% csrf_token %}
   {% if device.online %}

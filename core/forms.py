@@ -198,18 +198,34 @@ class AttendanceStatusForm(forms.Form):
     )
 
 
+class ManualLogForm(forms.Form):
+    """Form for managers to manually add an attendance log."""
+    user = forms.ModelChoiceField(label="کاربر", queryset=User.objects.all())
+    timestamp = forms.DateTimeField(
+        label="زمان",
+        widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
+    )
+    log_type = forms.ChoiceField(label="نوع", choices=LOG_TYPE_CHOICES)
+
+
 class UserLogsRangeForm(forms.Form):
-    start = jforms.jDateField(label="از تاریخ", widget=AdminjDateWidget())
-    end = jforms.jDateField(label="تا تاریخ", widget=AdminjDateWidget())
+    start = forms.DateField(
+        label="از تاریخ",
+        widget=forms.DateInput(attrs={"type": "date"}),
+    )
+    end = forms.DateField(
+        label="تا تاریخ",
+        widget=forms.DateInput(attrs={"type": "date"}),
+    )
 
     def clean(self):
         cleaned = super().clean()
         sd = cleaned.get("start")
         ed = cleaned.get("end")
         if sd:
-            cleaned["start_g"] = sd.togregorian()
+            cleaned["start_g"] = sd
         if ed:
-            cleaned["end_g"] = ed.togregorian()
+            cleaned["end_g"] = ed
         if sd and ed and cleaned["end_g"] < cleaned["start_g"]:
             self.add_error("end", "بازه نامعتبر است")
         return cleaned

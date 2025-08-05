@@ -14,6 +14,7 @@ urlpatterns = [
     path('management/reports/', views.user_reports, name='management_reports'),
     path('management/suspicions/', views.suspicious_logs, name='suspicious_logs'),
     path('management/edit-requests/', views.edit_requests, name='edit_requests'),
+    path('management/manual-log/', views.manual_log, name='manual_log'),
     path('management/leave-requests/', views.leave_requests, name='leave_requests'),
     path('management/leave-requests/add/', views.add_leave, name='add_leave'),
     path('management/logs/export/', views.export_logs_csv, name='export_logs_csv'),
