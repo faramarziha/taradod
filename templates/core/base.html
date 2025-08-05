@@ -16,7 +16,7 @@
     <div class="header-inner">
       {% if user.is_authenticated %}
         <button class="nav-toggle" id="nav-toggle" aria-label="نمایش منو">
-          <i class="fas fa-list"></i>
+          <i class="fas fa-bars"></i>
         </button>
         <a href="{% url 'home' %}" class="header-link desktop-only header-home"><i class="fas fa-home"></i> صفحه اصلی</a>
         <a href="{% url 'logout' %}" class="header-link desktop-only header-logout"><i class="fas fa-sign-out-alt"></i> خروج</a>

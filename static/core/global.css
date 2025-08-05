@@ -86,19 +86,26 @@ body {
 }
 
 .nav-toggle {
-  display: block;
-  background: #fff;
-  border: none;
-  color: var(--color-primary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid #fff;
+  color: #fff;
   font-size: 1.2rem;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 0.4rem;
   cursor: pointer;
   position: absolute;
-  right: 0.5rem;
+  right: 0.7rem;
   top: 50%;
   transform: translateY(-50%);
+  padding: 0;
+}
+
+.nav-toggle:hover {
+  background: rgba(255,255,255,0.15);
 }
 
 .header-link {
