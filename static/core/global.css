@@ -113,11 +113,14 @@ body {
 .header-home { right: 0.5rem; }
 .header-logout { left: 0.5rem; }
 
+
 .desktop-only { display: none; }
+.mobile-only { display: block; }
 
 @media (min-width: 900px) {
   .nav-toggle { display: none; }
   .desktop-only { display: block; }
+  .mobile-only { display: none; }
 }
 
 #main-content {

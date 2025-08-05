@@ -4,7 +4,7 @@ from django_jalali import forms as jforms
 from django_jalali.admin.widgets import AdminjDateWidget
 import jdatetime
 from attendance import models as attendance_models
-from attendance.models import EditRequest, LeaveRequest, LOG_TYPE_CHOICES
+from attendance.models import AttendanceLog, EditRequest, LeaveRequest, LOG_TYPE_CHOICES
 from attendance.models import WeeklyHoliday
 
 User = get_user_model()
@@ -142,6 +142,46 @@ class LeaveRequestForm(forms.ModelForm):
         if commit:
             instance.save()
         return instance
+
+
+class ManualLogForm(forms.Form):
+    """Form for admins to directly register an attendance log for a user."""
+
+    user = forms.ModelChoiceField(queryset=User.objects.all(), label="کاربر")
+    date = jforms.jDateField(label="تاریخ", widget=AdminjDateWidget())
+    time = forms.TimeField(
+        label="ساعت",
+        widget=forms.TimeInput(format="%H:%M", attrs={"type": "time", "step": 60}),
+    )
+    log_type = forms.ChoiceField(choices=LOG_TYPE_CHOICES, label="نوع تردد")
+
+    def clean(self):
+        cleaned = super().clean()
+        date_val = cleaned.get("date")
+        time_val = cleaned.get("time")
+        if date_val and time_val:
+            jdt = jdatetime.datetime(
+                date_val.year,
+                date_val.month,
+                date_val.day,
+                time_val.hour,
+                time_val.minute,
+            )
+            cleaned["timestamp"] = jdt.togregorian()
+        user = cleaned.get("user")
+        ts = cleaned.get("timestamp")
+        if user and ts:
+            if AttendanceLog.objects.filter(user=user, timestamp=ts).exists():
+                raise forms.ValidationError("برای این زمان قبلاً ترددی ثبت شده است.")
+        return cleaned
+
+    def save(self):
+        return AttendanceLog.objects.create(
+            user=self.cleaned_data["user"],
+            timestamp=self.cleaned_data["timestamp"],
+            log_type=self.cleaned_data["log_type"],
+            source="manager",
+        )
 
 
 class ManualLeaveForm(forms.ModelForm):

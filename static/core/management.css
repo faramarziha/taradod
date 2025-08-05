@@ -125,6 +125,15 @@
     display: none !important;
   }
 }
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.status-online { color: #4caf50; }
+.status-offline { color: #f44336; }
+.status-active { color: #4caf50; }
+.status-inactive { color: #f44336; }
 .dashboard-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
