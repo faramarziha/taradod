@@ -19,7 +19,7 @@
   --radius: 1.2rem;
   --shadow: 0 4px 16px rgba(0,0,0,0.06);
   --transition: 0.2s cubic-bezier(.4,0,.2,1);
-  --header-height: 3.5rem;
+  --header-height: 2.4rem;
 }
 
 @media (prefers-color-scheme: dark) {
