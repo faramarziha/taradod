@@ -4,7 +4,6 @@
 <div class="card page page-md">
   <h2 class="page-title">درخواست ویرایش تردد برای {{ user.get_full_name }}</h2>
   <form method="post">
-    {% csrf_token %}
     <div class="form-group">
       {{ form.date.label_tag }}<br>
       {{ form.date }}

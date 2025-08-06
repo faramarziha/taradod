@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const dataUrl = canvas.toDataURL('image/jpeg');
       fetch("{% url 'api_verify_face' %}", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "X-CSRFToken": getCsrfToken() },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image: dataUrl })
       })
       .then(r => r.json())
@@ -40,12 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }, 4000);
 
-  function getCsrfToken() {
-    let value = "; " + document.cookie;
-    let parts = value.split("; csrftoken=");
-    if (parts.length === 2) return parts.pop().split(";").shift();
-    return '';
-  }
 });
 </script>
 {% endblock %}

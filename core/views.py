@@ -19,7 +19,6 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.templatetags.static import static
 from django.urls import reverse
 from django.utils import timezone
-from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from attendance.models import (
@@ -165,7 +164,6 @@ def api_device_verify_face(request):
     except Exception:
         return JsonResponse({"success": False, "error": "خطا در پردازش تصویر."})
 
-@csrf_exempt
 @require_POST
 @login_required
 def api_verify_face(request):
@@ -477,7 +475,6 @@ def management_face_check(request):
     return render(request, "core/management_face_check.html")
 
 
-@csrf_exempt
 @login_required
 @staff_required
 def api_management_verify_face(request):

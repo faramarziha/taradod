@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     message.textContent = 'لطفاً صبر کنید...';
     fetch("{% url 'api_device_verify_face' %}", {
       method: 'POST',
-      headers: { "Content-Type": "application/json", "X-CSRFToken": getCsrfToken() },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ image: dataUrl })
     })
     .then(r => r.json())
@@ -51,12 +51,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
-  function getCsrfToken() {
-    let value = "; " + document.cookie;
-    let parts = value.split("; csrftoken=");
-    if (parts.length === 2) return parts.pop().split(";").shift();
-    return '';
-  }
 });
 </script>
 {% endblock %}
