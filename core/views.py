@@ -37,6 +37,7 @@ from core.forms import (
     InquiryForm,
     EditRequestForm,
     LeaveRequestForm,
+    ManualLogForm,
     ManualLeaveForm,
     AttendanceStatusForm,
     UserLogsRangeForm,
@@ -987,6 +988,26 @@ def leave_requests(request):
             "selected_shift": shift_id,
         },
     )
+
+
+@login_required
+@staff_required
+def add_log(request):
+    """Allow admin to manually register an attendance log for a user."""
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    if request.method == "POST":
+        form = ManualLogForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "تردد ثبت شد.")
+            return redirect("edit_requests")
+    else:
+        form = ManualLogForm()
+    return render(request, "core/manual_log_form.html", {
+        "active_tab": "edit_requests",
+        "form": form,
+    })
 
 
 @login_required

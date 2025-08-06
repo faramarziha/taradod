@@ -24,7 +24,7 @@
 <a class="btn" href="{% url 'add_leave' %}" style="margin-bottom:1rem;">
   <i class="fas fa-plus" style="margin-left:0.4rem;"></i> ثبت دستی مرخصی
 </a>
-<div class="request-cards">
+<div class="request-cards mobile-only">
   {% for r in requests %}
   <div class="request-card fade-in">
     <div class="row"><span class="label">کاربر:</span><span>{{ r.user.get_full_name }} - {{ r.user.personnel_code }}</span></div>
@@ -70,7 +70,7 @@
   {% endfor %}
 </div>
 
-<div class="table-responsive">
+<div class="table-responsive desktop-only">
 <table class="management-table">
   <thead>
     <tr>

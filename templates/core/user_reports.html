@@ -26,7 +26,7 @@
 <a class="btn" href="{% url 'export_logs_csv' %}" style="margin:1rem 0;display:inline-block;">
   <i class="fa fa-download" style="margin-left:0.4rem;"></i> دانلود گزارش CSV
 </a>
-<div class="request-cards">
+<div class="request-cards mobile-only">
   {% for log in latest_logs %}
   <div class="request-card fade-in">
     <div class="row"><span class="label">کاربر:</span><span>{{ log.user.get_full_name }} - {{ log.user.personnel_code }}</span></div>
@@ -39,7 +39,7 @@
   <div class="alert-error">ترددی ثبت نشده است.</div>
   {% endfor %}
 </div>
-<div class="table-responsive">
+<div class="table-responsive desktop-only">
 <table class="management-table">
   <thead>
     <tr>
