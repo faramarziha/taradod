@@ -340,33 +340,6 @@ def my_logs(request):
     return render(request, "attendance/my_logs.html", context)
 
 
-def export_my_logs_csv(request):
-    """Export current user's logs stored in session as CSV"""
-    uid = request.session.get("inquiry_user_id")
-    if not uid:
-        return redirect("user_inquiry")
-    u = get_object_or_404(User, id=uid)
-    logs = AttendanceLog.objects.filter(user=u).order_by("-timestamp")
-    import csv
-    from django.http import HttpResponse
-    import jdatetime
-
-    response = HttpResponse(content_type='text/csv')
-    filename = f"{u.personnel_code}_logs.csv"
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
-    writer = csv.writer(response)
-    writer.writerow(['تاریخ', 'ساعت', 'نوع', 'ثبت‌کننده'])
-    for log in logs:
-        jd = jdatetime.datetime.fromgregorian(datetime=log.timestamp)
-        writer.writerow([
-            jd.strftime('%Y/%m/%d'),
-            jd.strftime('%H:%M:%S'),
-            'ورود' if log.log_type == 'in' else 'خروج',
-            'کاربر' if log.source == 'self' else ('سیستم' if log.source == 'auto' else 'مدیر'),
-        ])
-    return response
-
-
 def edit_request(request):
     """Allow a user to request adding a missing attendance log."""
     uid = request.session.get("inquiry_user_id")
@@ -766,32 +739,6 @@ def user_reports(request):
         'face_data_json': face_data_json,
     }
     return render(request, 'core/user_reports.html', context)
-
-
-@login_required
-@staff_required
-def export_logs_csv(request):
-    """Download all attendance logs as CSV for admins"""
-    logs = AttendanceLog.objects.select_related('user').order_by('-timestamp')
-    import csv
-    from django.http import HttpResponse
-    import jdatetime
-
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="attendance_logs.csv"'
-    writer = csv.writer(response)
-    writer.writerow(['کاربر', 'کد پرسنلی', 'تاریخ', 'ساعت', 'نوع', 'ثبت‌کننده'])
-    for log in logs:
-        jd = jdatetime.datetime.fromgregorian(datetime=log.timestamp)
-        writer.writerow([
-            log.user.get_full_name(),
-            log.user.personnel_code,
-            jd.strftime('%Y/%m/%d'),
-            jd.strftime('%H:%M:%S'),
-            'ورود' if log.log_type == 'in' else 'خروج',
-            'کاربر' if log.source == 'self' else ('سیستم' if log.source == 'auto' else 'مدیر'),
-        ])
-    return response
 
 
 @login_required

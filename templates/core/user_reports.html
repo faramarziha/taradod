@@ -23,9 +23,6 @@
   <canvas id="statusChart" height="160"></canvas>
   <canvas id="faceChart" height="160"></canvas>
 </div>
-<a class="btn" href="{% url 'export_logs_csv' %}" style="margin:1rem 0;display:inline-block;">
-  <i class="fa fa-download" style="margin-left:0.4rem;"></i> دانلود گزارش CSV
-</a>
 <div class="request-cards mobile-only">
   {% for log in latest_logs %}
   <div class="request-card fade-in">
