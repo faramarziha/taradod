@@ -17,7 +17,6 @@ urlpatterns = [
     path('management/edit-requests/add-log/', views.add_log, name='add_log'),
     path('management/leave-requests/', views.leave_requests, name='leave_requests'),
     path('management/leave-requests/add/', views.add_leave, name='add_leave'),
-    path('management/logs/export/', views.export_logs_csv, name='export_logs_csv'),
     path('management/attendance-status/', views.attendance_status, name='attendance_status'),
     path('management/attendance-status/api/', views.api_attendance_status, name='api_attendance_status'),
 
@@ -35,7 +34,6 @@ urlpatterns = [
     path("user/inquiry/",           views.user_inquiry,                   name="user_inquiry"),
     path("user/profile/",           views.user_profile,                  name="user_profile"),
     path("user/logs/",              views.my_logs,                        name="my_logs"),
-    path("user/logs/export/",      views.export_my_logs_csv,             name="export_my_logs_csv"),
     path("user/edit-request/",     views.edit_request,                  name="edit_request"),
     path("user/leave-request/",    views.leave_request,                 name="leave_request"),
     path("user/edit-request/<int:pk>/cancel/",  views.cancel_edit_request,  name="cancel_edit_request"),
