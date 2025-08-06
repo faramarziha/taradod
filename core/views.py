@@ -2,8 +2,10 @@ import base64
 import io
 import json
 import secrets
+import tempfile
 from datetime import timedelta, datetime, time
 
+import cv2
 import face_recognition
 import numpy as np
 from PIL import Image
@@ -87,6 +89,82 @@ def _get_face_encoding_from_base64(data_url: str):
     except Exception as e:
         print("Face encode error:", e)
         return None
+
+
+def _eye_aspect_ratio(eye):
+    a = np.linalg.norm(np.array(eye[1]) - np.array(eye[5]))
+    b = np.linalg.norm(np.array(eye[2]) - np.array(eye[4]))
+    c = np.linalg.norm(np.array(eye[0]) - np.array(eye[3]))
+    return (a + b) / (2.0 * c)
+
+
+def _detect_blink(frames):
+    ratios = []
+    for frame in frames:
+        landmarks = face_recognition.face_landmarks(frame)
+        if not landmarks:
+            continue
+        lm = landmarks[0]
+        l_eye = lm.get("left_eye")
+        r_eye = lm.get("right_eye")
+        if l_eye and r_eye:
+            ear = (_eye_aspect_ratio(l_eye) + _eye_aspect_ratio(r_eye)) / 2.0
+            ratios.append(ear)
+    if not ratios:
+        return False
+    return min(ratios) < 0.2 and (max(ratios) - min(ratios)) > 0.05
+
+
+def _detect_turn(frames):
+    xs = []
+    widths = []
+    for frame in frames:
+        landmarks = face_recognition.face_landmarks(frame)
+        if not landmarks:
+            continue
+        lm = landmarks[0]
+        nose = lm.get("nose_bridge")
+        chin = lm.get("chin")
+        if nose and chin:
+            xs.append(nose[-1][0])
+            widths.append(np.linalg.norm(np.array(chin[16]) - np.array(chin[0])))
+    if len(xs) < 2:
+        return False
+    return (max(xs) - min(xs)) > (np.mean(widths) * 0.1)
+
+
+def _detect_smile(frames):
+    ratios = []
+    for frame in frames:
+        landmarks = face_recognition.face_landmarks(frame)
+        if not landmarks:
+            continue
+        lm = landmarks[0]
+        top = lm.get("top_lip")
+        bottom = lm.get("bottom_lip")
+        if top and bottom:
+            left = np.array(top[0])
+            right = np.array(top[6])
+            top_mid = np.array(top[3])
+            bottom_mid = np.array(bottom[9])
+            width = np.linalg.norm(right - left)
+            height = np.linalg.norm(top_mid - bottom_mid)
+            if height == 0:
+                continue
+            ratios.append(width / height)
+    if len(ratios) < 2:
+        return False
+    return (max(ratios) - min(ratios)) > 0.5
+
+
+def _verify_action(frames, action):
+    if action == "blink":
+        return _detect_blink(frames)
+    if action == "turn":
+        return _detect_turn(frames)
+    if action == "smile":
+        return _detect_smile(frames)
+    return False
 
 
 # —————————————————————————
@@ -237,36 +315,49 @@ def api_verify_face(request):
 @require_POST
 @login_required
 def api_register_face(request):
-    """ثبت چهرهٔ کاربر با بررسی حرکت ساده برای جلوگیری از تقلب."""
-    img1 = request.POST.get("image1")
-    img2 = request.POST.get("image2")
-    if img1 and img2:
-        enc1 = _get_face_encoding_from_base64(img1)
-        enc2 = _get_face_encoding_from_base64(img2)
-        if enc1 is None or enc2 is None:
-            return JsonResponse({"ok": False, "msg": "چهره واضح نیست."})
-        # تفاوت دو تصویر باید از حدی بیشتر باشد تا اطمینان پیدا کنیم عکس ثابت نیست
-        movement = np.linalg.norm(enc1 - enc2)
-        if movement < 0.08:
-            return JsonResponse({"ok": False, "msg": "حرکت تشخیص داده نشد."})
-        enc = (enc1 + enc2) / 2
-        data_url = img1
-    else:
-        # حالت قدیمی، بدون لایونس
-        data_url = request.POST.get("image", "")
-        enc = _get_face_encoding_from_base64(data_url)
-        if enc is None:
-            return JsonResponse({"ok": False, "msg": "چهره‌ای شناسایی نشد."})
+    """ثبت چهره با دریافت ویدئو و بررسی حرکت تصادفی."""
+    data_url = request.POST.get("video", "")
+    action = request.POST.get("action", "")
+    if not data_url or not action:
+        return JsonResponse({"ok": False, "msg": "اطلاعات ناقص است."})
+
+    try:
+        header, b64data = data_url.split(",", 1)
+        video_bytes = base64.b64decode(b64data)
+    except Exception:
+        return JsonResponse({"ok": False, "msg": "ویدئوی نامعتبر."})
+
+    frames = []
+    with tempfile.NamedTemporaryFile(suffix=".webm") as tmp:
+        tmp.write(video_bytes)
+        tmp.flush()
+        cap = cv2.VideoCapture(tmp.name)
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            frames.append(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        cap.release()
+
+    if not frames:
+        return JsonResponse({"ok": False, "msg": "فریم‌های ویدئو خوانده نشد."})
+
+    if not _verify_action(frames, action):
+        return JsonResponse({"ok": False, "msg": "حرکت خواسته‌شده انجام نشد."})
+
+    encs = face_recognition.face_encodings(frames[0])
+    if not encs:
+        return JsonResponse({"ok": False, "msg": "چهره‌ای شناسایی نشد."})
+    enc = encs[0]
 
     request.user.face_encoding = enc.tobytes()
 
-    # ذخیرهٔ تصویر خام
     try:
-        header, b64data = data_url.split(",", 1)
-        fmt = header.split(";")[0].split("/")[1]
-        img_data = base64.b64decode(b64data)
-        filename = f"{request.user.username}_face.{fmt}"
-        request.user.face_image.save(filename, ContentFile(img_data), save=False)
+        img = Image.fromarray(frames[0])
+        buffer = io.BytesIO()
+        img.save(buffer, format="JPEG")
+        filename = f"{request.user.username}_face.jpg"
+        request.user.face_image.save(filename, ContentFile(buffer.getvalue()), save=False)
     except Exception:
         pass
 
