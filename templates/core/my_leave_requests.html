@@ -11,7 +11,7 @@
     کد پرسنلی: {{ user.personnel_code }}
   </div>
   {% if requests %}
-  <div class="request-cards">
+  <div class="request-cards mobile-only">
     {% for r in requests %}
     <div class="request-card fade-in">
       <div class="row"><span class="label">از:</span><span>{{ r.start_date|jformat:"%Y/%m/%d" }}</span></div>
@@ -34,7 +34,7 @@
     {% endfor %}
   </div>
 
-  <div class="table-responsive">
+  <div class="table-responsive desktop-only">
   <table class="management-table">
     <thead>
       <tr>

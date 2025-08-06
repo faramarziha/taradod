@@ -285,7 +285,7 @@
 }
 
 /* small-screen adjustments */
-@media (max-width: 650px) {
+@media (max-width: 900px) {
   .table-responsive, .management-table { display: none; }
   .request-cards { display: flex; flex-direction: column; gap: 1rem; }
 }
