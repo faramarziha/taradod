@@ -1,5 +1,6 @@
 from django.urls import path
 from django.contrib.auth.views import LogoutView
+from django.views.decorators.csrf import csrf_exempt
 from . import views
 
 urlpatterns = [
@@ -9,7 +10,7 @@ urlpatterns = [
     # لاگین/لاگ‌اوت
     path("management/login/", views.ManagementLoginView.as_view(), name="management_login"),
     path("device/login/",     views.DeviceLoginView.as_view(),     name="device_login"),
-    path("logout/",           LogoutView.as_view(next_page="home"), name="logout"),
+    path("logout/",           csrf_exempt(LogoutView.as_view(next_page="home")), name="logout"),
     path('management/dashboard/', views.management_dashboard, name='management_dashboard'),
     path('management/reports/', views.user_reports, name='management_reports'),
     path('management/suspicions/', views.suspicious_logs, name='suspicious_logs'),
