@@ -413,6 +413,8 @@ label {
 .form-grid .form-group { margin-bottom: 0; }
 @media (min-width: 600px) {
   .form-grid { grid-template-columns: repeat(2, 1fr); }
+  /* keep small cards single-column to avoid overflowing backgrounds */
+  .page-sm.form-grid { grid-template-columns: 1fr; }
 }
 
 /* card layout for personal logs */
