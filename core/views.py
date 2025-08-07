@@ -14,6 +14,8 @@ from django.conf import settings
 from django.contrib.auth.views import LoginView
 from django.core.files.base import ContentFile
 from django.http import JsonResponse
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 import jdatetime
 from django.shortcuts import get_object_or_404, redirect, render
 from django.templatetags.static import static
@@ -92,6 +94,7 @@ def _get_face_encoding_from_base64(data_url: str):
 # کلاس‌های ورود
 # —————————————————————————
 
+@method_decorator(csrf_exempt, name="dispatch")
 class ManagementLoginView(LoginView):
     template_name = "core/management_login.html"
     redirect_authenticated_user = True
@@ -100,6 +103,7 @@ class ManagementLoginView(LoginView):
         return reverse("management_face_check")
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 class DeviceLoginView(LoginView):
     template_name = "core/device_login.html"
     redirect_authenticated_user = False
@@ -138,6 +142,7 @@ def device_page(request):
     return render(request, "core/device.html")
 
 
+@csrf_exempt
 @require_POST
 @login_required
 @user_passes_test(lambda u: u.is_staff)
@@ -164,6 +169,7 @@ def api_device_verify_face(request):
     except Exception:
         return JsonResponse({"success": False, "error": "خطا در پردازش تصویر."})
 
+@csrf_exempt
 @require_POST
 @login_required
 def api_verify_face(request):
@@ -232,6 +238,7 @@ def api_verify_face(request):
     except Exception:
         return JsonResponse({"ok": False, "msg": "خطا در پردازش تصویر."})
 
+@csrf_exempt
 @require_POST
 @login_required
 def api_register_face(request):
@@ -542,6 +549,7 @@ def register_face_page_for_user(request, user_id):
     return render(request, "core/register_face_for_user.html", {"user_to_register": target})
 
 
+@csrf_exempt
 @require_POST
 @login_required
 @staff_required
