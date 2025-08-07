@@ -1,12 +1,20 @@
 {% extends "core/base_management.html" %}
-{% if form.instance.pk %}{% block title %}ویرایش نوع مرخصی{% endblock %}{% else %}{% block title %}افزودن نوع مرخصی{% endblock %}{% endif %}
+{% block title %}{% if form.instance.pk %}ویرایش نوع مرخصی{% else %}افزودن نوع مرخصی{% endif %}{% endblock %}
 {% block management_content %}
 <h2 class="page-title">
   {% if form.instance.pk %}<i class="fas fa-edit"></i> ویرایش نوع مرخصی{% else %}<i class="fas fa-plus"></i> افزودن نوع مرخصی{% endif %}
 </h2>
 <form method="post" class="card page page-sm form-grid" autocomplete="off">
-  {{ form.as_p }}
-  <div class="profile-actions">
+  {% for field in form %}
+    <div class="form-group">
+      {{ field.label_tag }}
+      {{ field }}
+      {% for error in field.errors %}
+        <div class="error">{{ error }}</div>
+      {% endfor %}
+    </div>
+  {% endfor %}
+  <div class="profile-actions" style="grid-column:1/-1;">
     <button type="submit" class="btn">{% if form.instance.pk %}ذخیره{% else %}افزودن{% endif %}</button>
     <a href="{% url 'leave_type_list' %}" class="btn" style="background:var(--color-muted);color:#fff;">لغو</a>
   </div>

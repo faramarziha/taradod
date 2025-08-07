@@ -156,6 +156,7 @@ input[type="submit"], .btn {
     text-decoration: none;
     text-align: center;
     direction: rtl;
+    display: inline-block;
 }
 
 .btn-danger {
