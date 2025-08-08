@@ -5,63 +5,66 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const video = document.getElementById('video');
-  const canvas = document.getElementById('canvas');
   const btn = document.getElementById('captureBtn');
   const message = document.getElementById('captureResult');
+  let stream = null;
 
-  const steps = [
-    'اکنون مستقیم نگاه کنید و دکمه را بزنید.',
-    'حالا سرتان را کمی به چپ یا راست بچرخانید و دوباره بزنید.'
-  ];
-  let captures = [];
-  let step = 0;
-  message.textContent = steps[0];
+  const actions = {
+    'turn_head': 'لطفاً سرتان را به چپ و راست بچرخانید و سپس دکمه را بزنید.',
+    'smile': 'لطفاً لبخند بزنید و سپس دکمه را بزنید.',
+    'blink': 'چندبار پلک بزنید و سپس دکمه را بزنید.'
+  };
+  const keys = Object.keys(actions);
+  const currentAction = keys[Math.floor(Math.random() * keys.length)];
+  message.textContent = actions[currentAction];
 
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
-      .then(stream => { video.srcObject = stream; })
+      .then(s => { stream = s; video.srcObject = s; })
       .catch(() => { message.textContent = "دسترسی به دوربین ممکن نشد."; });
   } else {
     message.textContent = "دوربین توسط مرورگر پشتیبانی نمی‌شود.";
   }
 
   btn.onclick = () => {
-    if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-    captures.push(canvas.toDataURL('image/jpeg'));
-    step++;
-    if (step < steps.length) {
-      message.textContent = steps[step];
-      return;
-    }
+    if (!stream) return;
+    message.textContent = 'در حال ضبط...';
     btn.disabled = true;
-    message.textContent = 'در حال ثبت...';
-    fetch("{% url 'api_register_face' %}", {
-      method: 'POST',
-      headers: { 'X-CSRFToken': getCsrfToken() },
-      body: new URLSearchParams({ image1: captures[0], image2: captures[1] })
-    })
-    .then(r => r.json())
-    .then(data => {
-      if (data.ok) {
-        message.textContent = 'چهره با موفقیت ثبت شد.';
-        if (data.redirect) {
-          setTimeout(() => { window.location.href = data.redirect; }, 1200);
-        }
-      } else {
-        message.textContent = data.msg || 'ثبت چهره ناموفق بود.';
-        btn.disabled = false;
-        step = 0;
-        captures = [];
-      }
-    }).catch(() => {
-      message.textContent = 'ارتباط با سرور برقرار نشد.';
-      btn.disabled = false;
-      step = 0;
-      captures = [];
-    });
+    const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+    let chunks = [];
+    recorder.ondataavailable = e => chunks.push(e.data);
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: 'video/webm' });
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const form = new FormData();
+        form.append('action', currentAction);
+        form.append('video', reader.result);
+        fetch("{% url 'api_register_face' %}", {
+          method: 'POST',
+          headers: { 'X-CSRFToken': getCsrfToken() },
+          body: form
+        })
+        .then(r => r.json())
+        .then(data => {
+          if (data.ok) {
+            message.textContent = 'چهره با موفقیت ثبت شد.';
+            if (data.redirect) {
+              setTimeout(() => { window.location.href = data.redirect; }, 1200);
+            }
+          } else {
+            message.textContent = data.msg || 'ثبت چهره ناموفق بود.';
+            btn.disabled = false;
+          }
+        }).catch(() => {
+          message.textContent = 'ارتباط با سرور برقرار نشد.';
+          btn.disabled = false;
+        });
+      };
+      reader.readAsDataURL(blob);
+    };
+    recorder.start();
+    setTimeout(() => recorder.stop(), 3000);
   };
 
   function getCsrfToken() {
@@ -76,8 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
 {% block content %}
 <div class="fullscreen-container">
   <video id="video" autoplay muted playsinline></video>
-  <canvas id="canvas" style="display:none"></canvas>
-  <button class="action-btn" id="captureBtn"><i class="fa fa-camera" style="margin-left:0.4rem;"></i> ثبت تصویر</button>
+  <button class="action-btn" id="captureBtn"><i class="fa fa-video" style="margin-left:0.4rem;"></i> ضبط ویدئو</button>
   <div id="captureResult" class="status-bar"></div>
 </div>
 {% endblock %}
