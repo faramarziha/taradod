@@ -11,7 +11,6 @@
     با کد پرسنلی <b>{{ user.personnel_code }}</b> را حذف کنید؟
   </p>
   <form method="post">
-    {% csrf_token %}
     <button type="submit" class="btn alert-error"><i class="fas fa-trash-alt" style="margin-left:0.4rem;"></i> بله، حذف شود</button>
     <a href="{% url 'management_users' %}" class="btn" style="background:var(--color-muted);color:#fff;">انصراف</a>
   </form>
