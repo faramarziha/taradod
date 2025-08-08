@@ -130,6 +130,15 @@
   align-items: center;
   gap: 0.3rem;
 }
+.device-status {
+  margin-right: auto;
+  display: inline-flex;
+  align-items: center;
+  font-size: 1.1rem;
+}
+.device-status .online { color: #4caf50; }
+.device-status .offline { color: #f44336; animation: blink 1s step-start infinite; }
+@keyframes blink { 50% { opacity: 0; } }
 .status-online { color: #4caf50; }
 .status-offline { color: #f44336; }
 .status-active { color: #4caf50; }
@@ -283,6 +292,20 @@
   gap: 0.4rem;
   margin-top: 0.6rem;
 }
+
+.inline-form { display: inline-flex; gap: 0.4rem; }
+
+.performance-radar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+}
+.performance-radar ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.performance-radar .radar-column { flex: 1; min-width: 200px; }
 
 /* small-screen adjustments */
 @media (max-width: 900px) {
