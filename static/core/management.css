@@ -225,6 +225,14 @@
 }
 .alerts-list li:last-child { border-bottom: none; }
 
+.kiosk-status {
+  font-size: 0.9rem;
+  margin-right: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
 .status-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -251,6 +259,33 @@
   overflow-y: auto;
 }
 
+.status-lists {
+  margin-top: 1rem;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.status-list {
+  background: var(--color-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--color-border);
+  padding: 0.8rem;
+  flex: 1 1 200px;
+}
+.status-list h4 {
+  margin-bottom: 0.5rem;
+  color: var(--color-primary-dark);
+  font-size: 1.05rem;
+}
+.status-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
 .panel-title {
   margin-bottom: 1rem;
   font-size: 1.2rem;
@@ -258,6 +293,24 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
+}
+
+.performance-grid {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+.performance-grid > div {
+  flex: 1 1 200px;
+}
+.performance-grid ol {
+  padding-left: 1rem;
+  margin: 0;
+}
+
+.btn-small {
+  padding: 0.2rem 0.6rem;
+  font-size: 0.85rem;
 }
 
 /* responsive cards used for leave/edit requests */
