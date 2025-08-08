@@ -134,6 +134,25 @@
 .status-offline { color: #f44336; }
 .status-active { color: #4caf50; }
 .status-inactive { color: #f44336; }
+
+.kiosk-status {
+  margin-right: 0.5rem;
+  font-size: 1.1rem;
+}
+.kiosk-status.online { color: #4caf50; }
+.kiosk-status.offline { color: #f44336; }
+.kiosk-status.blink { animation: blink 1s step-start 0s infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+.performance-radar {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+.radar-block ul {
+  margin: 0;
+  padding-right: 1rem;
+}
 .dashboard-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
