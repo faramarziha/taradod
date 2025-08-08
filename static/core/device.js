@@ -1,7 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
   const message = document.getElementById('message');
+  const frameGuide = document.getElementById('frame-guide');
   const userInfo = document.getElementById('user-info');
   const userFace = document.getElementById('user-face');
   const userFullname = document.getElementById('user-fullname');
@@ -10,73 +12,181 @@ document.addEventListener('DOMContentLoaded', () => {
   const managerControls = document.getElementById('manager-controls');
   const overlay = document.getElementById('device-overlay');
 
+  const faceDetector = window.FaceDetector ? new FaceDetector({ fastMode: true }) : null;
+  let framingOk = false;
+  let verifying = false;
+
   // راه‌اندازی دوربین
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-  navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
-    .then(stream => { video.srcObject = stream; })
-    .catch(() => { message.textContent = "اجازه دوربین رد شد."; });
-} else {
-  message.textContent = "دوربین توسط مرورگر پشتیبانی نمی‌شود.";
-}
+    navigator.mediaDevices
+      .getUserMedia({ video: { facingMode: 'user' } })
+      .then((stream) => {
+        video.srcObject = stream;
+      })
+      .catch(() => {
+        message.textContent = 'دسترسی به دوربین امکان‌پذیر نیست.';
+      });
+  } else {
+    message.textContent = 'دوربین توسط مرورگر پشتیبانی نمی‌شود.';
+  }
+
+  function capture() {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg');
+  }
 
   function showUserInfo(data) {
-    userFace.src = data.image_url || "/static/core/avatar.png";
+    userFace.src = data.image_url || '/static/core/avatar.png';
     userFullname.textContent = data.name || '';
     userPersonnel.textContent = data.code ? `کد پرسنلی: ${data.code}` : '';
     userTime.textContent = data.timestamp ? `زمان: ${new Date(data.timestamp).toLocaleTimeString('fa-IR')}` : '';
     userInfo.style.display = '';
   }
 
-  function hideUserInfo() { userInfo.style.display = 'none'; }
+  function hideUserInfo() {
+    userInfo.style.display = 'none';
+  }
 
-  // ارسال تصویر هر چند ثانیه برای بررسی چهره
-  setInterval(() => {
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/jpeg');
-      fetch(VERIFY_FACE_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-CSRFToken": getCsrfToken() },
-        body: JSON.stringify({ image: dataUrl })
-      })
-      .then(r => r.json())
-      .then(data => {
+  async function updateFraming() {
+    if (verifying) return;
+    if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    let brightness = 0;
+    try {
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < imgData.data.length; i += 40) {
+        const r = imgData.data[i];
+        const g = imgData.data[i + 1];
+        const b = imgData.data[i + 2];
+        brightness += 0.299 * r + 0.587 * g + 0.114 * b;
+      }
+      brightness /= imgData.data.length / 40;
+    } catch (e) {
+      // ignore
+    }
+
+    let color = 'red';
+    let msg = 'لطفاً صورت خود را در کادر قرار دهید.';
+    framingOk = false;
+
+    if (brightness < 60) {
+      color = 'yellow';
+      msg = 'نور محیط کافی نیست.';
+    } else if (faceDetector) {
+      try {
+        const faces = await faceDetector.detect(canvas);
+        if (faces.length === 0) {
+          color = 'red';
+          msg = 'لطفاً صورت خود را در کادر قرار دهید.';
+        } else {
+          const box = faces[0].boundingBox;
+          const area = (box.width * box.height) / (canvas.width * canvas.height);
+          if (area < 0.1) {
+            color = 'red';
+            msg = 'لطفاً نزدیک‌تر شوید.';
+          } else {
+            color = 'green';
+            msg = 'عالی! لطفاً ثابت بمانید.';
+            framingOk = true;
+          }
+        }
+      } catch (e) {
+        color = 'yellow';
+        msg = 'مشکل در تشخیص چهره.';
+      }
+    } else {
+      color = 'yellow';
+      msg = 'راهنمای هوشمند توسط مرورگر پشتیبانی نمی‌شود.';
+      framingOk = true;
+    }
+
+    frameGuide.style.borderColor = color;
+    if (!verifying) message.textContent = msg;
+  }
+
+  setInterval(updateFraming, 800);
+
+  const challenges = [
+    { key: 'smile', msg: 'لطفاً کمی لبخند بزنید.' },
+    { key: 'left', msg: 'سر خود را به آرامی به چپ بچرخانید.' },
+    { key: 'right', msg: 'سر خود را به آرامی به راست بچرخانید.' },
+  ];
+
+  function wait(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  async function verifyLoop() {
+    if (verifying || !framingOk) {
+      setTimeout(verifyLoop, 1000);
+      return;
+    }
+    verifying = true;
+    const img1 = capture();
+    const challenge = challenges[Math.floor(Math.random() * challenges.length)];
+    message.textContent = challenge.msg;
+    await wait(1200);
+    const img2 = capture();
+
+    fetch(VERIFY_FACE_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken(),
+      },
+      body: JSON.stringify({ image1: img1, image2: img2, challenge: challenge.key }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
         if (data.ok) {
           const actionText = data.log_type === 'in' ? 'ورود' : 'خروج';
           message.textContent = `تردد ${actionText} ثبت شد!`;
           showUserInfo(data);
-          managerControls.style.display = "none";
+          managerControls.style.display = 'none';
         } else if (data.manager_detected) {
-          message.textContent = "مدیر شناسایی شد.";
-          managerControls.style.display = "";
+          message.textContent = 'مدیر شناسایی شد.';
+          managerControls.style.display = '';
           hideUserInfo();
         } else if (data.suspicious) {
-          message.textContent = "تشخیص مشکوک! لطفاً با مدیریت تماس بگیرید.";
+          message.textContent = 'تشخیص مشکوک! لطفاً با مدیریت تماس بگیرید.';
           hideUserInfo();
-          managerControls.style.display = "none";
+          managerControls.style.display = 'none';
         } else {
-          message.textContent = data.msg || "چهره‌ای شناسایی نشد.";
+          message.textContent =
+            data.msg || 'چهره‌ای شناسایی نشد. لطفاً صورت خود را مقابل دوربین تنظیم کنید.';
           hideUserInfo();
-          managerControls.style.display = "none";
+          managerControls.style.display = 'none';
         }
-      }).catch(() => {
-        message.textContent = "ارتباط با سرور برقرار نشد.";
+      })
+      .catch(() => {
+        message.textContent = 'اتصال به سرور برقرار نشد. لطفاً اتصال اینترنت را بررسی کنید.';
+      })
+      .finally(() => {
+        verifying = false;
+        setTimeout(verifyLoop, 4000);
       });
-    }
-  }, 4000);
+  }
+
+  verifyLoop();
 
   if (overlay) {
     setTimeout(() => {
       overlay.style.opacity = '0';
-      setTimeout(() => overlay.style.display = 'none', 500); // با توجه به duration transition در CSS (اینجا 2 ثانیه)
-    }, 2000); // بعد از ۳.۵ ثانیه محو میشه
+      setTimeout(() => (overlay.style.display = 'none'), 500);
+    }, 2000);
   }
+
   function getCsrfToken() {
-    let value = "; " + document.cookie;
-    let parts = value.split("; csrftoken=");
-    if (parts.length === 2) return parts.pop().split(";").shift();
+    const value = '; ' + document.cookie;
+    const parts = value.split('; csrftoken=');
+    if (parts.length === 2) return parts.pop().split(';').shift();
     return '';
   }
 });
+
