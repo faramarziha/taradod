@@ -672,13 +672,14 @@ def management_dashboard(request):
             "action_url": reverse("leave_requests"),
         })
 
-    # رادار عملکرد: محاسبه دیرکرد در یک ماه اخیر
+    # خوب‌ها و بدها: آمار عملکرد یک ماه اخیر
     month_start = today - timedelta(days=30)
-    perf_stats = []
+    tardy_stats = []
+    streak_stats = []
     for u in users_qs:
-        tardies = 0
         shift = _get_user_shift(u)
         shift_start = shift.start_time if shift else time(9, 0)
+        tardies = 0
         for i in range(31):
             day = month_start + timedelta(days=i)
             first_log = (
@@ -692,9 +693,26 @@ def management_dashboard(request):
                     log_time = log_time.replace(tzinfo=None)
                 if log_time.time() > shift_start:
                     tardies += 1
-        perf_stats.append((u, tardies))
-    worst_performers = sorted(perf_stats, key=lambda x: x[1], reverse=True)[:5]
-    best_performers = sorted(perf_stats, key=lambda x: x[1])[:5]
+        streak = 0
+        for i in range(30):
+            day = today - timedelta(days=i)
+            first_log = (
+                AttendanceLog.objects.filter(user=u, timestamp__date=day)
+                .order_by("timestamp")
+                .first()
+            )
+            if not first_log:
+                break
+            log_time = first_log.timestamp
+            if log_time.tzinfo is not None:
+                log_time = log_time.replace(tzinfo=None)
+            if log_time.time() > shift_start:
+                break
+            streak += 1
+        tardy_stats.append((u, tardies))
+        streak_stats.append((u, streak))
+    worst_performers = sorted(tardy_stats, key=lambda x: x[1], reverse=True)[:5]
+    best_performers = sorted(streak_stats, key=lambda x: x[1], reverse=True)[:5]
 
     device = Device.objects.first()
     device_online = device.online if device else False

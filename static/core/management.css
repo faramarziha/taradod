@@ -286,6 +286,12 @@
   overflow-y: auto;
 }
 
+.status-chart {
+  max-width: 220px;
+  max-height: 220px;
+  margin: 0 auto;
+}
+
 .panel-title {
   margin-bottom: 1rem;
   font-size: 1.2rem;
@@ -295,15 +301,28 @@
   gap: 0.4rem;
 }
 
-.performance-grid {
+.performance-wrapper {
   display: flex;
-  gap: 2rem;
+  gap: 1rem;
   flex-wrap: wrap;
 }
-.performance-grid > div {
+
+.performance-box {
+  background: var(--color-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--color-border);
+  padding: 0.8rem;
   flex: 1 1 200px;
 }
-.performance-grid ol {
+
+.performance-box h4 {
+  margin-bottom: 0.5rem;
+  color: var(--color-primary-dark);
+  font-size: 1.05rem;
+}
+
+.performance-box ol {
   padding-left: 1rem;
   margin: 0;
 }

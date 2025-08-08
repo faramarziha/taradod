@@ -33,21 +33,11 @@
 </div>
 
 <div class="card fade-in">
-  <h3 class="panel-title"><i class="fas fa-heartbeat"></i> نبض سازمان</h3>
-  <canvas id="pulseChart" height="160"></canvas>
+  <h3 class="panel-title"><i class="fas fa-heartbeat"></i> وضعیت مجموعه</h3>
+  <canvas id="statusChart" width="220" height="220" class="status-chart"></canvas>
 </div>
 
 <div class="status-lists">
-  <div id="presentList" class="status-list">
-    <h4>حاضرین امروز</h4>
-    <ul>
-      {% for u in present_users %}
-        <li>{{ u.get_full_name }} - {{ u.personnel_code }}</li>
-      {% empty %}
-        <li>موردی ثبت نشده است</li>
-      {% endfor %}
-    </ul>
-  </div>
   <div id="absentList" class="status-list" style="display:none;">
     <h4>غایبین امروز</h4>
     <ul>
@@ -107,10 +97,10 @@
 </div>
 
 <div class="card fade-in">
-  <h3 class="panel-title"><i class="fas fa-users"></i> رادار عملکرد</h3>
-  <div class="performance-grid">
-    <div>
-      <h4>متخلفان</h4>
+  <h3 class="panel-title"><i class="fas fa-users"></i> خوب‌ها و بدها</h3>
+  <div class="performance-wrapper">
+    <div class="performance-box">
+      <h4>بدها</h4>
       <ol>
         {% for u, count in worst_performers %}
           <li>{{ u.get_full_name }} - {{ count }} روز دیرکرد</li>
@@ -119,11 +109,11 @@
         {% endfor %}
       </ol>
     </div>
-    <div>
-      <h4>قهرمانان</h4>
+    <div class="performance-box">
+      <h4>خوب‌ها</h4>
       <ol>
         {% for u, count in best_performers %}
-          <li>{{ u.get_full_name }} - {{ count }} روز دیرکرد</li>
+          <li>{{ u.get_full_name }} - {{ count }} روز بدون تأخیر متوالی</li>
         {% empty %}
           <li>موردی نیست</li>
         {% endfor %}
@@ -157,8 +147,8 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const pulseCtx = document.getElementById('pulseChart').getContext('2d');
-const pulseChart = new Chart(pulseCtx, {
+const statusCtx = document.getElementById('statusChart').getContext('2d');
+const statusChart = new Chart(statusCtx, {
   type: 'doughnut',
   data: {
     labels: ['حاضر', 'غایب', 'مرخصی'],
@@ -172,8 +162,11 @@ const pulseChart = new Chart(pulseCtx, {
       if (els.length) {
         const idx = els[0].index;
         document.querySelectorAll('.status-list').forEach(el => el.style.display='none');
-        ['presentList','absentList','leaveList'][idx] &&
-          (document.getElementById(['presentList','absentList','leaveList'][idx]).style.display='block');
+        const targets = [null, 'absentList', 'leaveList'];
+        const target = targets[idx];
+        if (target) {
+          document.getElementById(target).style.display = 'block';
+        }
       }
     }
   }
