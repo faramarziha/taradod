@@ -15,6 +15,7 @@
   </span>
 </p>
 <form method="post">
+  {% csrf_token %}
   {% if device.online %}
     {% if device.is_active %}
       <button type="submit" name="action" value="deactivate" class="btn">غیرفعال کردن</button>

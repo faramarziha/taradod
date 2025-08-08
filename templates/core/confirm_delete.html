@@ -5,6 +5,7 @@
 <div class="card">
   <p>آیا از حذف <b>{{ object }}</b> مطمئن هستید؟</p>
   <form method="post">
+    {% csrf_token %}
     <button type="submit" class="btn alert-error">حذف</button>
     <a href="{% url cancel_url %}" class="btn" style="background:var(--color-muted);color:#fff;">لغو</a>
   </form>

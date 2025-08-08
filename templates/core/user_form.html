@@ -12,6 +12,7 @@
   <i class="fas fa-chevron-right" style="margin-left:0.4rem;"></i> بازگشت به لیست
 </a>
 <form method="post" enctype="multipart/form-data" class="card page page-sm form-grid" autocomplete="off">
+  {% csrf_token %}
   {% for field in form %}
     <div class="form-group">
       {{ field.label_tag }}

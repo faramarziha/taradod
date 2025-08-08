@@ -25,6 +25,7 @@
       <div class="actions">
         {% if r.status == 'pending' %}
         <form method="post" action="{% url 'cancel_leave_request' r.id %}" style="display:flex;gap:0.4rem;">
+          {% csrf_token %}
           <button class="btn btn-danger" style="font-size:0.8rem;">لغو</button>
         </form>
         {% endif %}
@@ -60,6 +61,7 @@
         <td>
           {% if r.status == 'pending' %}
           <form method="post" action="{% url 'cancel_leave_request' r.id %}">
+            {% csrf_token %}
             <button class="btn btn-danger" style="font-size:0.8rem;">لغو</button>
           </form>
           {% else %}-{% endif %}

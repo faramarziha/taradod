@@ -6,6 +6,7 @@
     <i class="fas fa-search"></i> مشاهده تردد من
   </h2>
   <form method="post" autocomplete="off">
+    {% csrf_token %}
     {% if form.non_field_errors %}
       <div class="error">{{ form.non_field_errors.0 }}</div>
     {% endif %}

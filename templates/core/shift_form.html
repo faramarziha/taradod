@@ -5,6 +5,7 @@
   {% if form.instance.pk %}<i class="fas fa-edit"></i> ویرایش شیفت{% else %}<i class="fas fa-plus"></i> افزودن شیفت{% endif %}
 </h2>
 <form method="post" class="card page page-sm form-grid" autocomplete="off">
+  {% csrf_token %}
   {% for field in form %}
     <div class="form-group">
       {{ field.label_tag }}

@@ -3,6 +3,7 @@
 {% block management_content %}
 <h2 class="page-title"><i class="fas fa-plus"></i> ثبت دستی تردد</h2>
 <form method="post">
+  {% csrf_token %}
   <div class="form-group">
     {{ form.user.label_tag }}<br>{{ form.user }}
   </div>
