@@ -36,8 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await fetch('{% url "api_management_verify_face" %}', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCsrf()
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ image: dataUrl })
       });
@@ -55,12 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  function getCsrf() {
-    return document.cookie.split(';')
-      .map(c => c.trim())
-      .find(c => c.startsWith('csrftoken='))
-      ?.split('=')[1] || '';
-  }
 });
 </script>
 {% endblock %}

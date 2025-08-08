@@ -37,7 +37,6 @@
     <div class="actions">
       {% if r.status == 'pending' %}
       <form method="post" class="actions" style="flex:1;">
-        {% csrf_token %}
         <input type="hidden" name="req_id" value="{{ r.id }}">
         <input type="text" name="manager_note" placeholder="توضیح" style="flex:1;min-width:80px;">
         <button name="action" value="approve" class="btn" style="font-size:0.9rem;">تأیید</button>
@@ -79,7 +78,6 @@
       <td>
         {% if r.status == 'pending' %}
         <form method="post" style="display:flex;gap:0.3rem;flex-wrap:wrap;">
-          {% csrf_token %}
           <input type="hidden" name="req_id" value="{{ r.id }}">
           <input type="text" name="manager_note" placeholder="توضیح" style="flex:1;min-width:80px;">
           <button name="action" value="approve" class="btn" style="font-size:0.9rem;">تأیید</button>

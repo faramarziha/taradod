@@ -40,7 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
     message.textContent = 'در حال ثبت...';
     fetch("{% url 'api_register_face' %}", {
       method: 'POST',
-      headers: { 'X-CSRFToken': getCsrfToken() },
       body: new URLSearchParams({ image1: captures[0], image2: captures[1] })
     })
     .then(r => r.json())
@@ -64,12 +63,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
-  function getCsrfToken() {
-    let value = "; " + document.cookie;
-    let parts = value.split("; csrftoken=");
-    if (parts.length === 2) return parts.pop().split(";").shift();
-    return '';
-  }
 });
 </script>
 {% endblock %}
