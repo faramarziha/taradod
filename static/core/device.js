@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const dataUrl = canvas.toDataURL('image/jpeg');
       fetch(VERIFY_FACE_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-CSRFToken": getCsrfToken() },
         body: JSON.stringify({ image: dataUrl })
       })
       .then(r => r.json())
@@ -72,5 +72,11 @@ document.addEventListener('DOMContentLoaded', () => {
       overlay.style.opacity = '0';
       setTimeout(() => overlay.style.display = 'none', 500); // با توجه به duration transition در CSS (اینجا 2 ثانیه)
     }, 2000); // بعد از ۳.۵ ثانیه محو میشه
+  }
+  function getCsrfToken() {
+    let value = "; " + document.cookie;
+    let parts = value.split("; csrftoken=");
+    if (parts.length === 2) return parts.pop().split(";").shift();
+    return '';
   }
 });
