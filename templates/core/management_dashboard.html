@@ -3,6 +3,9 @@
 {% block management_content %}
 <h2 class="page-title">
   <i class="fas fa-chart-bar"></i> داشبورد مدیریت
+  <span id="kiosk-status" class="kiosk-status {% if device_online %}online{% else %}offline{% endif %}" title="وضعیت اتصال">
+    <i class="fas fa-desktop"></i>
+  </span>
 </h2>
 <form method="get" class="form-inline" style="margin-bottom:1rem;">
   <select name="group">
@@ -20,71 +23,90 @@
   <button class="btn" type="submit">فیلتر</button>
 </form>
 
-<div class="card dashboard-panel fade-in">
-  <h3 class="panel-title"><i class="fas fa-chart-pie"></i> آمار کلی</h3>
-  <div class="dashboard-stats">
-    <div class="dashboard-card">
-      <i class="fas fa-users"></i>
-      <span class="value">{{ total_users }}</span>
-      <span class="label">کل کاربران</span>
+<div class="card fade-in">
+  <h3 class="panel-title"><i class="fas fa-bolt"></i> مرکز اقدامات فوری</h3>
+  {% if pending_edit_requests or pending_leave_requests %}
+  <table class="management-table">
+    <thead>
+      <tr>
+        <th>کاربر</th>
+        <th>تاریخ/بازه</th>
+        <th>نوع</th>
+        <th>اقدام</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for req in pending_edit_requests %}
+      <tr>
+        <td>{{ req.user.get_full_name }}</td>
+        <td>{{ req.timestamp|date:"Y-m-d H:i" }}</td>
+        <td>ویرایش تردد</td>
+        <td>
+          <form method="post" action="{% url 'edit_requests' %}">
+            {% csrf_token %}
+            <input type="hidden" name="req_id" value="{{ req.id }}">
+            <button name="action" value="approve" class="btn">تأیید</button>
+            <button name="action" value="reject" class="btn btn-danger">رد</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      {% for req in pending_leave_requests %}
+      <tr>
+        <td>{{ req.user.get_full_name }}</td>
+        <td>{{ req.start_date }}{% if req.end_date != req.start_date %} تا {{ req.end_date }}{% endif %}</td>
+        <td>درخواست مرخصی</td>
+        <td>
+          <form method="post" action="{% url 'leave_requests' %}">
+            {% csrf_token %}
+            <input type="hidden" name="req_id" value="{{ req.id }}">
+            <button name="action" value="approve" class="btn">تأیید</button>
+            <button name="action" value="reject" class="btn btn-danger">رد</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p>درخواستی برای بررسی وجود ندارد.</p>
+  {% endif %}
+</div>
+
+<div class="card fade-in">
+  <h3 class="panel-title"><i class="fas fa-users"></i> رادار عملکرد</h3>
+  <div class="performance-radar">
+    <div class="radar-block">
+      <h4>بیشترین تأخیر</h4>
+      <ul>
+        {% for item in top_tardy %}
+          <li>{{ item.user.get_full_name }} - {{ item.tardy }} روز</li>
+        {% empty %}
+          <li>موردی نیست</li>
+        {% endfor %}
+      </ul>
     </div>
-    <div class="dashboard-card">
-      <i class="fas fa-clock"></i>
-      <span class="value">{{ today_logs }}</span>
-      <span class="label">تردد امروز</span>
-    </div>
-    <div class="dashboard-card">
-      <i class="fas fa-user-slash"></i>
-      <span class="value">{{ users_without_face }}</span>
-      <span class="label">بدون ثبت چهره</span>
-    </div>
-    <div class="dashboard-card">
-      <i class="fas fa-user-check"></i>
-      <span class="value">{{ present_count }}</span>
-      <span class="label">حاضر امروز</span>
-    </div>
-    <div class="dashboard-card">
-      <i class="fas fa-user-times"></i>
-      <span class="value">{{ absent_count }}</span>
-      <span class="label">غایب امروز</span>
-    </div>
-    <div class="dashboard-card">
-      <i class="fas fa-plane"></i>
-      <span class="value">{{ leave_count }}</span>
-      <span class="label">در مرخصی</span>
-    </div>
-    <div class="dashboard-card">
-      <i class="fas fa-hourglass-half"></i>
-      <span class="value">{{ total_hours }}</span>
-      <span class="label">مجموع ساعات</span>
+    <div class="radar-block">
+      <h4>منظم‌ترین‌ها</h4>
+      <ul>
+        {% for item in top_punctual %}
+          <li>{{ item.user.get_full_name }} - {{ item.tardy }} روز تأخیر</li>
+        {% empty %}
+          <li>موردی نیست</li>
+        {% endfor %}
+      </ul>
     </div>
   </div>
 </div>
 
-<div class="card fade-in">
-  <h3 class="panel-title"><i class="fas fa-bell"></i> هشدارها</h3>
-  <ul class="alerts-list">
-    {% for u in tardy_users %}
-      <li>{{ u.get_full_name }} - {{ u.personnel_code }} دیرکرد در ورود</li>
-    {% endfor %}
-    {% if pending_edits %}
-      <li>{{ pending_edits }} درخواست ویرایش تردد در انتظار</li>
-    {% endif %}
-    {% if pending_leaves %}
-      <li>{{ pending_leaves }} درخواست مرخصی در انتظار</li>
-    {% endif %}
-    {% if suspicious_today %}
-      <li>{{ suspicious_today }} مورد عدم تطابق چهره</li>
-    {% endif %}
-    {% if not tardy_users and not pending_edits and not pending_leaves and not suspicious_today %}
-      <li>هشداری وجود ندارد.</li>
-    {% endif %}
-  </ul>
+<div class="card dashboard-panel fade-in">
+  <h3 class="panel-title"><i class="fas fa-chart-pie"></i> نبض سازمان</h3>
+  <canvas id="orgPulseChart" height="150"></canvas>
 </div>
 
-<div class="status-grid card fade-in">
-  <div class="status-card">
-    <h4>حاضرین امروز</h4>
+<div id="status-details" class="card fade-in" style="display:none;">
+  <div id="present-list">
+    <h4>حاضرین</h4>
     <ul>
       {% for u in present_users %}
         <li>{{ u.get_full_name }} - {{ u.personnel_code }}</li>
@@ -93,8 +115,8 @@
       {% endfor %}
     </ul>
   </div>
-  <div class="status-card">
-    <h4>غایبین امروز</h4>
+  <div id="absent-list" style="display:none;">
+    <h4>غایبین</h4>
     <ul>
       {% for u in absent_users %}
         <li>{{ u.get_full_name }} - {{ u.personnel_code }}</li>
@@ -103,8 +125,8 @@
       {% endfor %}
     </ul>
   </div>
-  <div class="status-card">
-    <h4>در مرخصی</h4>
+  <div id="leave-list" style="display:none;">
+    <h4>مرخصی</h4>
     <ul>
       {% for u in leave_users %}
         <li>{{ u.get_full_name }} - {{ u.personnel_code }}</li>
@@ -114,29 +136,40 @@
     </ul>
   </div>
 </div>
-
-<div class="card fade-in" style="margin-top:2rem;">
-  <canvas id="logsChart" height="120"></canvas>
-</div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const logLabels = {{ date_range_json|safe }};
-const logData = {{ daily_logs_json|safe }};
-new Chart(document.getElementById('logsChart').getContext('2d'), {
-  type: 'line',
+const ctx = document.getElementById('orgPulseChart');
+const orgChart = new Chart(ctx, {
+  type: 'doughnut',
   data: {
-    labels: logLabels,
+    labels: ['حاضر', 'غایب', 'مرخصی'],
     datasets: [{
-      label: 'تعداد تردد',
-      data: logData,
-      borderColor: '#3e95cd',
-      fill: false
+      data: [{{ present_count }}, {{ absent_count }}, {{ leave_count }}],
+      backgroundColor: ['#28a745', '#dc3545', '#ffc107'],
     }]
   },
-  options: {scales: {y: {beginAtZero:true}}}
+  options: {responsive: true, plugins: {legend: {position: 'bottom'}}}
 });
+
+ctx.onclick = function(evt){
+  const points = orgChart.getElementsAtEventForMode(evt, 'nearest', {intersect: true}, true);
+  if(points.length){
+    const index = points[0].index;
+    const lists = ['present', 'absent', 'leave'];
+    document.getElementById('status-details').style.display = 'block';
+    lists.forEach((name,i)=>{
+      document.getElementById(name+'-list').style.display = i === index ? 'block':'none';
+    });
+  }
+};
+
+{% if not device_online %}
+const statusEl = document.getElementById('kiosk-status');
+setInterval(()=>statusEl.classList.toggle('blink'), 500);
+{% endif %}
 </script>
 {% endblock %}
+

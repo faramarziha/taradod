@@ -600,10 +600,6 @@ def management_dashboard(request):
     if shift_id:
         users_qs = users_qs.filter(shift_id=shift_id)
 
-    total_users = users_qs.count()
-    today_logs = AttendanceLog.objects.filter(user__in=users_qs, timestamp__date=today).count()
-    users_without_face = users_qs.filter(face_encoding__isnull=True).count()
-
     # لیست کارکنان حاضر، غایب و مرخصی
     if is_holiday:
         present_users = leave_users = absent_users = users_qs.none()
@@ -627,85 +623,65 @@ def management_dashboard(request):
         leave_users = users_qs.filter(id__in=leave_ids)
         absent_users = users_qs.exclude(id__in=present_ids).exclude(id__in=leave_ids)
 
-    tardy_users = User.objects.none()
-    total_hours = 0
-    if not is_holiday:
-        tardy_ids = []
-        total_seconds = 0
-        present_users_details = users_qs.filter(id__in=present_ids).select_related("shift", "group__shift")
-        for user in present_users_details:
+    # مرکز اقدامات فوری
+    pending_edit_requests = (
+        EditRequest.objects.select_related("user")
+        .filter(user__in=users_qs, status="pending")
+        .order_by("created_at")
+    )
+    pending_leave_requests = (
+        LeaveRequest.objects.select_related("user")
+        .filter(user__in=users_qs, status="pending")
+        .order_by("created_at")
+    )
+
+    # رادار عملکرد: ۳۰ روز گذشته
+    month_range = [today - timedelta(days=i) for i in range(30)]
+    user_tardy_counts = []
+    for user in users_qs:
+        tardies = 0
+        for day in month_range:
+            first_log = (
+                AttendanceLog.objects.filter(user=user, timestamp__date=day)
+                .order_by("timestamp")
+                .first()
+            )
+            if not first_log:
+                continue
             shift = _get_user_shift(user)
-            shift_start = time(9, 0)
-            shift_end = time(17, 0)
-            if shift:
-                shift_start = shift.start_time
-                shift_end = shift.end_time
-            first_log = AttendanceLog.objects.filter(user=user, timestamp__date=today).order_by("timestamp").first()
-            last_log = AttendanceLog.objects.filter(user=user, timestamp__date=today).order_by("timestamp").last()
-            if first_log:
-                if shift:
-                    start_dt, end_dt = _shift_bounds(today, shift)
-                else:
-                    start_dt = datetime.combine(today, shift_start)
-                    end_dt = datetime.combine(today, shift_end)
-                first_dt = first_log.timestamp
-                if first_dt.tzinfo is not None:
-                    first_dt = first_dt.replace(tzinfo=None)
-                if first_dt > start_dt:
-                    tardy_ids.append(user.id)
-                if last_log and last_log != first_log:
-                    last_dt = last_log.timestamp
-                    if last_dt.tzinfo is not None:
-                        last_dt = last_dt.replace(tzinfo=None)
-                    if last_dt < first_dt:
-                        last_dt = first_dt
-                    work_start = max(first_dt, start_dt)
-                    work_end = min(last_dt, end_dt)
-                    if work_end > work_start:
-                        total_seconds += (work_end - work_start).total_seconds()
-        tardy_users = users_qs.filter(id__in=tardy_ids)
-        total_hours = round(total_seconds / 3600, 2)
+            shift_start = shift.start_time if shift else time(9, 0)
+            start_dt = datetime.combine(day, shift_start)
+            first_dt = first_log.timestamp
+            if first_dt.tzinfo is not None:
+                first_dt = first_dt.replace(tzinfo=None)
+            if first_dt > start_dt:
+                tardies += 1
+        user_tardy_counts.append({"user": user, "tardy": tardies})
+    top_tardy = sorted(user_tardy_counts, key=lambda x: x["tardy"], reverse=True)[:5]
+    top_punctual = sorted(user_tardy_counts, key=lambda x: x["tardy"])[:5]
 
-    # هشدارها
-    pending_edits = EditRequest.objects.filter(user__in=users_qs, status="pending").count()
-    pending_leaves = LeaveRequest.objects.filter(user__in=users_qs, status="pending").count()
-    suspicious_today = SuspiciousLog.objects.filter(matched_user__in=users_qs, timestamp__date=today).count()
-
-    # نمودار تردد 7 روز اخیر
-    date_range = [today - timedelta(days=i) for i in range(6, -1, -1)]
-    daily_logs = []
-    for date in date_range:
-        logs = AttendanceLog.objects.filter(user__in=users_qs, timestamp__date=date).count()
-        daily_logs.append(logs)
-
-    # prepare JSON for chart rendering
-    import json
-    labels_json = json.dumps([d.strftime('%Y-%m-%d') for d in date_range])
-    logs_json = json.dumps(daily_logs)
+    # وضعیت دستگاه
+    device = Device.objects.first()
+    device_online = device.online if device else False
 
     context = {
-        'active_tab': 'dashboard',
-        'total_users': total_users,
-        'today_logs': today_logs,
-        'users_without_face': users_without_face,
-        'present_users': present_users,
-        'absent_users': absent_users,
-        'leave_users': leave_users,
-        'present_count': present_users.count(),
-        'absent_count': absent_users.count(),
-        'leave_count': leave_users.count(),
-        'tardy_users': tardy_users,
-        'pending_edits': pending_edits,
-        'pending_leaves': pending_leaves,
-        'suspicious_today': suspicious_today,
-        'total_hours': total_hours,
-        'date_range_json': labels_json,
-        'daily_logs_json': logs_json,
-        'is_holiday': is_holiday,
-        'groups': Group.objects.all(),
-        'shifts': Shift.objects.all(),
-        'selected_group': group_id,
-        'selected_shift': shift_id,
+        "active_tab": "dashboard",
+        "present_users": present_users,
+        "absent_users": absent_users,
+        "leave_users": leave_users,
+        "present_count": present_users.count(),
+        "absent_count": absent_users.count(),
+        "leave_count": leave_users.count(),
+        "pending_edit_requests": pending_edit_requests,
+        "pending_leave_requests": pending_leave_requests,
+        "top_tardy": top_tardy,
+        "top_punctual": top_punctual,
+        "device_online": device_online,
+        "is_holiday": is_holiday,
+        "groups": Group.objects.all(),
+        "shifts": Shift.objects.all(),
+        "selected_group": group_id,
+        "selected_shift": shift_id,
     }
     return render(request, 'core/management_dashboard.html', context)
 
