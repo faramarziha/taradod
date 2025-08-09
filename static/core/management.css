@@ -346,8 +346,20 @@
   width: 100%;
 }
 
+.select-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.select-field {
+  flex: 1;
+}
+
 @media (max-width: 600px) {
   .date-row {
+    flex-direction: column;
+  }
+  .select-row {
     flex-direction: column;
   }
 }

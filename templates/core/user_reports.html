@@ -5,7 +5,6 @@
 <h2 style="text-align:right;">
   <i class="fas fa-file-alt" style="margin-left:0.5rem;"></i> گزارش کاربران
  </h2>
-<a href="{% url 'monthly_profile' %}" class="btn" style="margin-top:0.5rem;">پروفایل ماهانه کاربر</a>
 <div class="dashboard-stats">
   <div class="dashboard-card">
     <h3>{{ active_users }}</h3>
@@ -14,14 +13,6 @@
   <div class="dashboard-card">
     <h3>{{ inactive_users }}</h3>
     کاربر غیرفعال
-  </div>
-  <div class="dashboard-card">
-    <h3>{{ users_with_face }}</h3>
-    با ثبت چهره
-  </div>
-  <div class="dashboard-card">
-    <h3>{{ users_without_face }}</h3>
-    بدون ثبت چهره
   </div>
 </div>
 
@@ -43,12 +34,16 @@
       </div>
     </div>
     <div class="filter-card">
-      <h4>{{ form.groups.label }}</h4>
-      {{ form.groups }}
-    </div>
-    <div class="filter-card">
-      <h4>{{ form.shifts.label }}</h4>
-      {{ form.shifts }}
+      <div class="select-row">
+        <div class="select-field">
+          <h4>{{ form.groups.label }}</h4>
+          {{ form.groups }}
+        </div>
+        <div class="select-field">
+          <h4>{{ form.shifts.label }}</h4>
+          {{ form.shifts }}
+        </div>
+      </div>
     </div>
     <div class="filter-card">
       <h4>{{ form.users.label }}</h4>
@@ -73,7 +68,7 @@
       <tbody>
         {% for log in logs %}
         <tr>
-          <td>{{ log.user.personnel_code }} – {{ log.user.last_name }}</td>
+          <td>{{ log.user.personnel_code }} – {{ log.user.first_name }} {{ log.user.last_name }}</td>
           <td>{{ log.timestamp|jformat:"%Y/%m/%d" }}</td>
           <td>{{ log.timestamp|time:"H:i" }}</td>
           <td>{% if log.log_type == 'in' %}ورود{% else %}خروج{% endif %}</td>
@@ -100,6 +95,9 @@
 <script>
   $(function() {
     $('.multi-select').select2({width: '100%', dir: 'rtl'});
+    $('.date-field i').on('click', function(){
+      $(this).siblings('input').focus();
+    });
   });
 </script>
 {% endblock %}

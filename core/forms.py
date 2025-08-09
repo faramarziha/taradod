@@ -348,7 +348,7 @@ class ReportFilterForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["users"].label_from_instance = (
-            lambda obj: f"{obj.personnel_code} – {obj.last_name}"
+            lambda obj: f"{obj.personnel_code} – {obj.first_name} {obj.last_name}"
         )
 
 
