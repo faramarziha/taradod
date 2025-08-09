@@ -15,6 +15,16 @@ html, body {
   height: 100%;
 }
 
+#frame-guide {
+  position: fixed;
+  inset: 0;
+  border: 6px solid red;
+  box-sizing: border-box;
+  pointer-events: none;
+  z-index: 5;
+  transition: border-color 0.3s;
+}
+
 .status-bar {
   position: fixed;
   left: 0;
