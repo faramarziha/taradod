@@ -45,6 +45,8 @@ from core.forms import (
     ShiftForm,
     GroupForm,
     LeaveTypeForm,
+    ReportFilterForm,
+    MonthlyPerformanceForm,
 )
 from .models import Device
 
@@ -756,28 +758,145 @@ def user_reports(request):
     # محاسبات آماری
     active_users = User.objects.filter(is_active=True).count()
     inactive_users = User.objects.filter(is_active=False).count()
-    users_with_face = User.objects.filter(face_encoding__isnull=False).count()
-    total_users = User.objects.count()
-    users_without_face = total_users - users_with_face
+    no_face_users = User.objects.filter(face_encoding__isnull=True).count()
 
-    import json
-    status_data_json = json.dumps([active_users, inactive_users])
-    face_data_json = json.dumps([users_with_face, users_without_face])
-
-    # آخرین ترددها
-    latest_logs = AttendanceLog.objects.select_related('user').order_by('-timestamp')[:10]
+    form = ReportFilterForm(request.GET or None)
+    logs_qs = AttendanceLog.objects.select_related('user').order_by('-timestamp')
+    if form.is_valid():
+        cd = form.cleaned_data
+        if cd['start_date']:
+            logs_qs = logs_qs.filter(timestamp__date__gte=cd['start_date'].togregorian())
+        if cd['end_date']:
+            logs_qs = logs_qs.filter(timestamp__date__lte=cd['end_date'].togregorian())
+        if cd['groups']:
+            logs_qs = logs_qs.filter(user__group__in=cd['groups'])
+        if cd['shifts']:
+            logs_qs = logs_qs.filter(user__shift__in=cd['shifts'])
+        if cd['users']:
+            logs_qs = logs_qs.filter(user__in=cd['users'])
+        logs = list(logs_qs[:100])
+    else:
+        logs = list(logs_qs[:10])
 
     context = {
         'active_tab': 'reports',
         'active_users': active_users,
         'inactive_users': inactive_users,
-        'users_with_face': users_with_face,
-        'users_without_face': users_without_face,
-        'latest_logs': latest_logs,
-        'status_data_json': status_data_json,
-        'face_data_json': face_data_json,
+        'no_face_users': no_face_users,
+        'logs': logs,
+        'form': form,
     }
     return render(request, 'core/user_reports.html', context)
+
+
+@login_required
+@staff_required
+def monthly_profile(request):
+    form = MonthlyPerformanceForm(request.GET or None)
+    report = None
+    logs = []
+    leaves = []
+    selected_user = None
+    if form.is_valid():
+        selected_user = form.cleaned_data['user']
+        year = form.cleaned_data['year']
+        month = int(form.cleaned_data['month'])
+        start_j = jdatetime.date(year, month, 1)
+        if month == 12:
+            next_month = jdatetime.date(year + 1, 1, 1)
+        else:
+            next_month = jdatetime.date(year, month + 1, 1)
+        end_j = next_month - jdatetime.timedelta(days=1)
+        start_g = start_j.togregorian()
+        end_g = end_j.togregorian()
+        logs_qs = AttendanceLog.objects.filter(
+            user=selected_user,
+            timestamp__date__range=(start_g, end_g)
+        ).order_by('timestamp')
+        logs = list(logs_qs)
+        logs_by_day = {}
+        for log in logs:
+            logs_by_day.setdefault(log.timestamp.date(), []).append(log)
+
+        # prepare leave days
+        leaves = LeaveRequest.objects.filter(
+            user=selected_user,
+            start_date__lte=end_g,
+            end_date__gte=start_g,
+            status='approved'
+        )
+        leave_days = set()
+        for leave in leaves:
+            cur = max(leave.start_date, start_g)
+            while cur <= min(leave.end_date, end_g):
+                leave_days.add(cur)
+                cur += timedelta(days=1)
+
+        shift = _get_user_shift(selected_user)
+        shift_start = time(9, 0)
+        shift_end = time(17, 0)
+        if shift:
+            shift_start = shift.start_time
+            shift_end = shift.end_time
+        # shift duration
+        if shift_end <= shift_start:
+            shift_minutes = (
+                datetime.combine(start_g, shift_end) + timedelta(days=1) - datetime.combine(start_g, shift_start)
+            ).seconds // 60
+        else:
+            shift_minutes = (
+                datetime.combine(start_g, shift_end) - datetime.combine(start_g, shift_start)
+            ).seconds // 60
+
+        weekly_holidays = set(WeeklyHoliday.objects.values_list('weekday', flat=True))
+
+        day = start_g
+        total_minutes = 0
+        mandatory_minutes = 0
+        tardy_minutes = 0
+        absence_days = 0
+        while day <= end_g:
+            if day.weekday() in weekly_holidays or day in leave_days:
+                day += timedelta(days=1)
+                continue
+            mandatory_minutes += shift_minutes
+            day_logs = logs_by_day.get(day, [])
+            if day_logs:
+                current_in = None
+                for log in day_logs:
+                    if log.log_type == 'in':
+                        current_in = log.timestamp
+                    elif log.log_type == 'out' and current_in:
+                        total_minutes += int((log.timestamp - current_in).total_seconds() // 60)
+                        current_in = None
+                first_log = day_logs[0]
+                shift_start_dt = datetime.combine(day, shift_start)
+                fl_ts = first_log.timestamp
+                if fl_ts.tzinfo is not None:
+                    fl_ts = fl_ts.replace(tzinfo=None)
+                if fl_ts > shift_start_dt:
+                    tardy_minutes += int((fl_ts - shift_start_dt).total_seconds() // 60)
+            else:
+                absence_days += 1
+            day += timedelta(days=1)
+
+        overtime_minutes = total_minutes - mandatory_minutes
+        report = {
+            'required_hours': round(mandatory_minutes / 60, 2),
+            'present_hours': round(total_minutes / 60, 2),
+            'overtime_minutes': overtime_minutes,
+            'absence_days': absence_days,
+            'tardy_minutes': tardy_minutes,
+        }
+    context = {
+        'active_tab': 'reports',
+        'form': form,
+        'report': report,
+        'logs': logs,
+        'leaves': leaves,
+        'selected_user': selected_user,
+    }
+    return render(request, 'core/monthly_profile.html', context)
 
 
 @login_required
