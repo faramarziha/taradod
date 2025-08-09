@@ -24,16 +24,22 @@
   <button class="btn" type="submit">فیلتر</button>
 </form>
 
-<div class="status-overview">
-  <div class="card fade-in">
-    <h3 class="panel-title"><i class="fas fa-heartbeat"></i> وضعیت مجموعه</h3>
-    <canvas id="statusChart" width="220" height="220" class="status-chart"></canvas>
+<div class="dashboard-stats">
+  <div class="dashboard-card">
+    <i class="fas fa-sign-in-alt"></i>
+    <span class="value">{{ today_in_logs }}</span>
+    <span class="label">ورود امروز</span>
   </div>
   <div class="dashboard-card">
-    <i class="fas fa-clock"></i>
-    <span class="value">{{ today_logs }}</span>
-    <span class="label">تردد امروز</span>
+    <i class="fas fa-sign-out-alt"></i>
+    <span class="value">{{ today_out_logs }}</span>
+    <span class="label">خروج امروز</span>
   </div>
+</div>
+
+<div class="card fade-in">
+  <h3 class="panel-title"><i class="fas fa-heartbeat"></i> وضعیت مجموعه</h3>
+  <canvas id="statusChart" width="220" height="220" class="status-chart"></canvas>
 </div>
 
 <div class="status-lists">
@@ -57,6 +63,27 @@
       {% endfor %}
     </ul>
   </div>
+  </div>
+
+<div class="card fade-in">
+  <h3 class="panel-title"><i class="fas fa-bell"></i> هشدارها</h3>
+  <ul class="alerts-list">
+    {% for u in tardy_users %}
+      <li>{{ u.get_full_name }} - {{ u.personnel_code }} دیرکرد در ورود</li>
+    {% endfor %}
+    {% if pending_edits %}
+      <li>{{ pending_edits }} درخواست ویرایش تردد در انتظار</li>
+    {% endif %}
+    {% if pending_leaves %}
+      <li>{{ pending_leaves }} درخواست مرخصی در انتظار</li>
+    {% endif %}
+    {% if suspicious_today %}
+      <li>{{ suspicious_today }} مورد عدم تطابق چهره</li>
+    {% endif %}
+    {% if not tardy_users and not pending_edits and not pending_leaves and not suspicious_today %}
+      <li>هشداری وجود ندارد.</li>
+    {% endif %}
+  </ul>
 </div>
 
 <div class="card fade-in">
@@ -127,26 +154,6 @@
   </div>
 </div>
 
-<div class="card fade-in">
-  <h3 class="panel-title"><i class="fas fa-bell"></i> هشدارها</h3>
-  <ul class="alerts-list">
-    {% for u in tardy_users %}
-      <li>{{ u.get_full_name }} - {{ u.personnel_code }} دیرکرد در ورود</li>
-    {% endfor %}
-    {% if pending_edits %}
-      <li>{{ pending_edits }} درخواست ویرایش تردد در انتظار</li>
-    {% endif %}
-    {% if pending_leaves %}
-      <li>{{ pending_leaves }} درخواست مرخصی در انتظار</li>
-    {% endif %}
-    {% if suspicious_today %}
-      <li>{{ suspicious_today }} مورد عدم تطابق چهره</li>
-    {% endif %}
-    {% if not tardy_users and not pending_edits and not pending_leaves and not suspicious_today %}
-      <li>هشداری وجود ندارد.</li>
-    {% endif %}
-  </ul>
-</div>
 {% endblock %}
 
 {% block extra_js %}

@@ -600,7 +600,12 @@ def management_dashboard(request):
     if shift_id:
         users_qs = users_qs.filter(shift_id=shift_id)
 
-    today_logs = AttendanceLog.objects.filter(user__in=users_qs, timestamp__date=today).count()
+    today_in_logs = AttendanceLog.objects.filter(
+        user__in=users_qs, timestamp__date=today, log_type="in"
+    ).count()
+    today_out_logs = AttendanceLog.objects.filter(
+        user__in=users_qs, timestamp__date=today, log_type="out"
+    ).count()
 
     # لیست کارکنان حاضر، غایب و مرخصی
     if is_holiday:
@@ -719,7 +724,8 @@ def management_dashboard(request):
 
     context = {
         'active_tab': 'dashboard',
-        'today_logs': today_logs,
+        'today_in_logs': today_in_logs,
+        'today_out_logs': today_out_logs,
         'present_users': present_users,
         'absent_users': absent_users,
         'leave_users': leave_users,
