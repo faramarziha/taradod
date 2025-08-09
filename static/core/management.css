@@ -149,7 +149,7 @@
 }
 @media (min-width: 1000px) {
   .dashboard-stats {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 .dashboard-card {
@@ -327,6 +327,26 @@
   margin-bottom: 0.5rem;
   color: var(--color-primary-dark);
   font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.info-icon {
+  cursor: pointer;
+  color: var(--color-primary);
+  font-size: 0.85rem;
+}
+
+.info-text {
+  display: none;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  margin-bottom: 0.5rem;
+}
+
+.info-text.visible {
+  display: block;
 }
 
 .performance-table {
