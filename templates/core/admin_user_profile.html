@@ -86,6 +86,7 @@
 {% endblock %}
 
 {% block extra_js %}
+{{ logs_form.media }}
 <script>
 document.querySelectorAll('.tab-link').forEach(link => {
   link.addEventListener('click', function(e){

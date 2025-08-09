@@ -108,7 +108,7 @@
   </div>
 </form>
 
-<div id="delete-modal" class="modal" style="display:none;">
+<div id="delete-modal" class="modal">
   <div class="modal-content">
     <p>آیا از حذف کاربر مطمئن هستید؟</p>
     <form method="post" id="delete-form">
@@ -148,7 +148,7 @@ document.querySelectorAll('.delete-user').forEach(btn => {
   btn.addEventListener('click', function(ev){
     ev.preventDefault();
     deleteForm.action = this.dataset.url;
-    modal.style.display = 'block';
+    modal.style.display = 'flex';
   });
 });
 document.getElementById('cancel-delete').addEventListener('click', function(){
