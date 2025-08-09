@@ -244,7 +244,7 @@ label {
 
 /* wrapper for horizontal scroll when needed */
 .table-responsive {
-  overflow-x: visible;
+  overflow-x: auto;
 }
 
 /* profile page tweaks */
@@ -432,7 +432,6 @@ label {
 .log-card span:first-child { color: var(--color-muted); }
 @media (max-width: 650px) {
   .log-cards { display: flex; flex-direction: column; gap: 0.6rem; }
-  .table-responsive, .management-table { display: none; }
 }
 /* badges for request and status labels */
 .badge {

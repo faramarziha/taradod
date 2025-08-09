@@ -3,7 +3,7 @@
 {% block title %}پروفایل {{ user_obj.get_full_name }}{% endblock %}
 {% block management_content %}
 <h2 class="page-title"><i class="fas fa-user-cog"></i> پروفایل {{ user_obj.get_full_name }}</h2>
-<ul class="tabs" style="margin-bottom:1rem;">
+<ul class="tabs">
   <li><a href="#info" class="tab-link active">اطلاعات پایه</a></li>
   <li><a href="#logs" class="tab-link">گزارش تردد</a></li>
   <li><a href="#requests" class="tab-link">سوابق درخواست‌ها</a></li>
@@ -12,62 +12,68 @@
 <div id="info" class="tab-content active">
   {% include "core/_user_form_fields.html" with cancel_url=request.path %}
 </div>
-<div id="logs" class="tab-content" style="display:none;">
+<div id="logs" class="tab-content">
   <form method="get" class="form-inline" style="margin-bottom:1rem;">
     {{ logs_form.start.label }} {{ logs_form.start }}
     {{ logs_form.end.label }} {{ logs_form.end }}
     <button class="btn" type="submit">نمایش</button>
   </form>
-  <table class="management-table">
-    <thead><tr><th>تاریخ</th><th>ساعت</th><th>نوع</th></tr></thead>
-    <tbody>
-      {% for log in logs %}
-      <tr>
-        <td>{{ log.timestamp|jformat:"%Y/%m/%d" }}</td>
-        <td>{{ log.timestamp|time:"H:i" }}</td>
-        <td>{% if log.log_type == 'in' %}ورود{% else %}خروج{% endif %}</td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="3">موردی نیست</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="table-responsive">
+    <table class="management-table">
+      <thead><tr><th>تاریخ</th><th>ساعت</th><th>نوع</th></tr></thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td>{{ log.timestamp|jformat:"%Y/%m/%d" }}</td>
+          <td>{{ log.timestamp|time:"H:i" }}</td>
+          <td>{% if log.log_type == 'in' %}ورود{% else %}خروج{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3">موردی نیست</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
-<div id="requests" class="tab-content" style="display:none;">
+<div id="requests" class="tab-content">
   <h3>درخواست‌های ویرایش</h3>
-  <table class="management-table">
-    <thead><tr><th>زمان</th><th>نوع</th><th>وضعیت</th></tr></thead>
-    <tbody>
-      {% for r in edit_requests %}
-      <tr>
-        <td>{{ r.timestamp|jformat:"%Y/%m/%d %H:%M" }}</td>
-        <td>{% if r.log_type == 'in' %}ورود{% else %}خروج{% endif %}</td>
-        <td>{{ r.get_status_display }}</td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="3">درخواستی وجود ندارد</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="table-responsive">
+    <table class="management-table">
+      <thead><tr><th>زمان</th><th>نوع</th><th>وضعیت</th></tr></thead>
+      <tbody>
+        {% for r in edit_requests %}
+        <tr>
+          <td>{{ r.timestamp|jformat:"%Y/%m/%d %H:%M" }}</td>
+          <td>{% if r.log_type == 'in' %}ورود{% else %}خروج{% endif %}</td>
+          <td>{{ r.get_status_display }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3">درخواستی وجود ندارد</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   <h3 style="margin-top:1rem;">درخواست‌های مرخصی</h3>
-  <table class="management-table">
-    <thead><tr><th>بازه</th><th>نوع</th><th>وضعیت</th></tr></thead>
-    <tbody>
-      {% for r in leave_requests %}
-      <tr>
-        <td>{{ r.start_date|jformat:"%Y/%m/%d" }} - {{ r.end_date|jformat:"%Y/%m/%d" }}</td>
-        <td>{% if r.leave_type %}{{ r.leave_type.name }}{% else %}-{% endif %}</td>
-        <td>{{ r.get_status_display }}</td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="3">درخواستی وجود ندارد</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="table-responsive">
+    <table class="management-table">
+      <thead><tr><th>بازه</th><th>نوع</th><th>وضعیت</th></tr></thead>
+      <tbody>
+        {% for r in leave_requests %}
+        <tr>
+          <td>{{ r.start_date|jformat:"%Y/%m/%d" }} - {{ r.end_date|jformat:"%Y/%m/%d" }}</td>
+          <td>{% if r.leave_type %}{{ r.leave_type.name }}{% else %}-{% endif %}</td>
+          <td>{{ r.get_status_display }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3">درخواستی وجود ندارد</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
-<div id="face" class="tab-content" style="display:none;">
+<div id="face" class="tab-content">
   {% if user_obj.face_image %}
-    <img src="{{ user_obj.face_image.url }}" alt="face" style="max-width:200px;display:block;margin-bottom:1rem;">
+    <img src="{{ user_obj.face_image.url }}" alt="face" style="max-width:200px;width:100%;height:auto;display:block;margin-bottom:1rem;">
     <form method="post" action="{% url 'user_face_delete' user_obj.pk %}" style="margin-bottom:1rem;">
       {% csrf_token %}
       <button type="submit" class="btn btn-danger">حذف چهره</button>
@@ -85,10 +91,10 @@ document.querySelectorAll('.tab-link').forEach(link => {
   link.addEventListener('click', function(e){
     e.preventDefault();
     document.querySelectorAll('.tab-link').forEach(l => l.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c => c.style.display='none');
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     this.classList.add('active');
     const target = document.querySelector(this.getAttribute('href'));
-    if(target){ target.style.display='block'; }
+    if(target){ target.classList.add('active'); }
   });
 });
 </script>
