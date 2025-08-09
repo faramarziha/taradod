@@ -1,0 +1,227 @@
+{% extends "core/base_management.html" %}
+{% block title %}داشبورد مدیریت{% endblock %}
+{% block management_content %}
+<h2 class="page-title">
+  <i class="fas fa-chart-bar"></i> داشبورد مدیریت
+  <span class="kiosk-status">
+    <i class="fas fa-circle {% if device_online %}status-online{% else %}status-offline{% endif %}"></i>
+    دستگاه {% if device_online %}آنلاین{% else %}آفلاین{% endif %}
+  </span>
+</h2>
+<form method="get" class="form-inline" style="margin-bottom:1rem;">
+  <select name="group">
+    <option value="">همه گروه‌ها</option>
+    {% for g in groups %}
+      <option value="{{ g.id }}" {% if g.id|stringformat:'s' == selected_group %}selected{% endif %}>{{ g.name }}</option>
+    {% endfor %}
+  </select>
+  <select name="shift">
+    <option value="">همه شیفت‌ها</option>
+    {% for s in shifts %}
+      <option value="{{ s.id }}" {% if s.id|stringformat:'s' == selected_shift %}selected{% endif %}>{{ s.name }}</option>
+    {% endfor %}
+  </select>
+  <button class="btn" type="submit">فیلتر</button>
+</form>
+
+<div class="dashboard-stats">
+  <div class="dashboard-card">
+    <i class="fas fa-sign-in-alt"></i>
+    <span class="value">{{ today_in_logs }}</span>
+    <span class="label">ورود امروز</span>
+  </div>
+  <div class="dashboard-card">
+    <i class="fas fa-sign-out-alt"></i>
+    <span class="value">{{ today_out_logs }}</span>
+    <span class="label">خروج امروز</span>
+  </div>
+</div>
+
+<div class="card fade-in">
+  <h3 class="panel-title"><i class="fas fa-heartbeat"></i> وضعیت مجموعه</h3>
+  <canvas id="statusChart" width="220" height="220" class="status-chart"></canvas>
+</div>
+
+<div class="status-lists">
+  <div id="absentList" class="status-list" style="display:none;">
+    <h4>غایبین امروز</h4>
+    <ul>
+      {% for u in absent_users %}
+        <li>{{ u.get_full_name }} - {{ u.personnel_code }}</li>
+      {% empty %}
+        <li>همه حاضرند</li>
+      {% endfor %}
+    </ul>
+  </div>
+  <div id="leaveList" class="status-list" style="display:none;">
+    <h4>در مرخصی</h4>
+    <ul>
+      {% for u in leave_users %}
+        <li>{{ u.get_full_name }} - {{ u.personnel_code }}</li>
+      {% empty %}
+        <li>موردی نیست</li>
+      {% endfor %}
+    </ul>
+  </div>
+  </div>
+
+<div class="card fade-in">
+  <h3 class="panel-title"><i class="fas fa-bell"></i> هشدارها</h3>
+  <ul class="alerts-list">
+    {% for u in tardy_users %}
+      <li>{{ u.get_full_name }} - {{ u.personnel_code }} دیرکرد در ورود</li>
+    {% endfor %}
+    {% if pending_edits %}
+      <li>{{ pending_edits }} درخواست ویرایش تردد در انتظار</li>
+    {% endif %}
+    {% if pending_leaves %}
+      <li>{{ pending_leaves }} درخواست مرخصی در انتظار</li>
+    {% endif %}
+    {% if suspicious_today %}
+      <li>{{ suspicious_today }} مورد عدم تطابق چهره</li>
+    {% endif %}
+    {% if not tardy_users and not pending_edits and not pending_leaves and not suspicious_today %}
+      <li>هشداری وجود ندارد.</li>
+    {% endif %}
+  </ul>
+</div>
+
+<div class="card fade-in">
+  <h3 class="panel-title"><i class="fas fa-bolt"></i> مرکز اقدامات فوری</h3>
+  <div class="request-cards mobile-only">
+    {% for r in pending_actions %}
+    <div class="request-card fade-in">
+      <div class="row"><span class="label">کاربر:</span><span>{{ r.user.get_full_name }}</span></div>
+      <div class="row"><span class="label">تاریخ:</span><span>{{ r.date }}</span></div>
+      <div class="row"><span class="label">نوع:</span><span>{{ r.type_label }}</span></div>
+      <div class="actions">
+        <form method="post" action="{{ r.action_url }}" style="display:inline-block;">
+          {% csrf_token %}
+          <input type="hidden" name="req_id" value="{{ r.id }}">
+          <input type="hidden" name="action" value="approve">
+          <input type="hidden" name="next" value="management_dashboard">
+          <button class="btn btn-small" type="submit">تأیید</button>
+        </form>
+        <form method="post" action="{{ r.action_url }}" style="display:inline-block;">
+          {% csrf_token %}
+          <input type="hidden" name="req_id" value="{{ r.id }}">
+          <input type="hidden" name="action" value="reject">
+          <input type="hidden" name="next" value="management_dashboard">
+          <button class="btn btn-small" type="submit" style="background:var(--color-muted);color:#fff;">رد</button>
+        </form>
+      </div>
+    </div>
+    {% empty %}
+    <div class="alert-error">درخواستی وجود ندارد.</div>
+    {% endfor %}
+  </div>
+  <div class="table-responsive desktop-only">
+    <table class="management-table">
+      <thead>
+        <tr><th>کاربر</th><th>تاریخ</th><th>نوع</th><th>اقدام</th></tr>
+      </thead>
+      <tbody>
+        {% for r in pending_actions %}
+        <tr>
+          <td>{{ r.user.get_full_name }}</td>
+          <td>{{ r.date }}</td>
+          <td>{{ r.type_label }}</td>
+          <td>
+            <form method="post" action="{{ r.action_url }}" style="display:inline-block;">
+              {% csrf_token %}
+              <input type="hidden" name="req_id" value="{{ r.id }}">
+              <input type="hidden" name="action" value="approve">
+              <input type="hidden" name="next" value="management_dashboard">
+              <button class="btn btn-small" type="submit">تأیید</button>
+            </form>
+            <form method="post" action="{{ r.action_url }}" style="display:inline-block;">
+              {% csrf_token %}
+              <input type="hidden" name="req_id" value="{{ r.id }}">
+              <input type="hidden" name="action" value="reject">
+              <input type="hidden" name="next" value="management_dashboard">
+              <button class="btn btn-small" type="submit" style="background:var(--color-muted);color:#fff;">رد</button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4">درخواستی وجود ندارد.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card fade-in">
+  <h3 class="panel-title"><i class="fas fa-users"></i> خوب‌ها و بدها</h3>
+  <div class="performance-wrapper">
+    <div class="performance-box">
+      <h4>بدها <span class="info-icon" data-target="bad-info"><i class="fas fa-info-circle"></i></span></h4>
+      <div id="bad-info" class="info-text">کاربرانی با بیشترین روزهای دیرکرد در ماه اخیر</div>
+      <table class="performance-table">
+        <thead><tr><th>نام</th><th>تعداد</th></tr></thead>
+        <tbody>
+        {% for u, count in worst_performers %}
+          <tr><td>{{ u.get_full_name }}</td><td>{{ count }}</td></tr>
+        {% empty %}
+          <tr><td colspan="2">موردی نیست</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="performance-box">
+      <h4>خوب‌ها <span class="info-icon" data-target="good-info"><i class="fas fa-info-circle"></i></span></h4>
+      <div id="good-info" class="info-text">کاربرانی با بیشترین روز بدون تأخیر متوالی</div>
+      <table class="performance-table">
+        <thead><tr><th>نام</th><th>تعداد</th></tr></thead>
+        <tbody>
+        {% for u, count in best_performers %}
+          <tr><td>{{ u.get_full_name }}</td><td>{{ count }}</td></tr>
+        {% empty %}
+          <tr><td colspan="2">موردی نیست</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const statusCtx = document.getElementById('statusChart').getContext('2d');
+const statusChart = new Chart(statusCtx, {
+  type: 'doughnut',
+  data: {
+    labels: ['حاضر', 'غایب', 'مرخصی'],
+    datasets: [{
+      data: [{{ present_count }}, {{ absent_count }}, {{ leave_count }}],
+      backgroundColor: ['#4caf50', '#f44336', '#ff9800']
+    }]
+  },
+  options: {
+    onClick: (evt, els) => {
+      if (els.length) {
+        const idx = els[0].index;
+        document.querySelectorAll('.status-list').forEach(el => el.style.display='none');
+        const targets = [null, 'absentList', 'leaveList'];
+        const target = targets[idx];
+        if (target) {
+          document.getElementById(target).style.display = 'block';
+        }
+      }
+    }
+  }
+});
+
+document.querySelectorAll('.info-icon').forEach(icon => {
+  icon.addEventListener('click', () => {
+    const target = document.getElementById(icon.dataset.target);
+    if (target) {
+      target.classList.toggle('visible');
+    }
+  });
+});
+</script>
+{% endblock %}
