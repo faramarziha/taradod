@@ -19,6 +19,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.templatetags.static import static
 from django.urls import reverse
 from django.utils import timezone
+from django.db.models import Count
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
@@ -45,6 +46,8 @@ from core.forms import (
     ShiftForm,
     GroupForm,
     LeaveTypeForm,
+    CustomReportForm,
+    MonthlyProfileForm,
 )
 from .models import Device
 
@@ -714,7 +717,7 @@ def management_dashboard(request):
 @login_required
 @staff_required
 def user_reports(request):
-    # محاسبات آماری
+    # محاسبات آماری سریع
     active_users = User.objects.filter(is_active=True).count()
     inactive_users = User.objects.filter(is_active=False).count()
     users_with_face = User.objects.filter(face_encoding__isnull=False).count()
@@ -725,8 +728,45 @@ def user_reports(request):
     status_data_json = json.dumps([active_users, inactive_users])
     face_data_json = json.dumps([users_with_face, users_without_face])
 
-    # آخرین ترددها
-    latest_logs = AttendanceLog.objects.select_related('user').order_by('-timestamp')[:10]
+    # فیلترهای گزارش سفارشی
+    form = CustomReportForm(request.GET or None)
+    logs_qs = AttendanceLog.objects.select_related('user').order_by('-timestamp')
+    if form.is_valid():
+        sd = form.cleaned_data.get('start_g')
+        ed = form.cleaned_data.get('end_g')
+        if sd:
+            logs_qs = logs_qs.filter(timestamp__date__gte=sd)
+        if ed:
+            logs_qs = logs_qs.filter(timestamp__date__lte=ed)
+        groups = form.cleaned_data.get('groups')
+        if groups:
+            logs_qs = logs_qs.filter(user__group__in=groups)
+        shifts = form.cleaned_data.get('shifts')
+        if shifts:
+            logs_qs = logs_qs.filter(user__shift__in=shifts)
+        users = form.cleaned_data.get('users')
+        if users:
+            logs_qs = logs_qs.filter(user__in=users)
+
+    latest_logs = list(logs_qs[:50])
+
+    # داده‌های Heatmap
+    from collections import Counter
+
+    heat_counter = Counter()
+    for log in logs_qs:
+        heat_counter[(log.timestamp.weekday(), log.timestamp.hour)] += 1
+    heatmap_max = max(heat_counter.values()) if heat_counter else 0
+    heatmap_data = [
+        {'x': h, 'y': d, 'v': v} for (d, h), v in heat_counter.items()
+    ]
+    heatmap_json = json.dumps(heatmap_data)
+
+    # مقایسه گروه‌ها
+    group_agg = logs_qs.values('user__group__name').annotate(c=Count('id'))
+    group_labels = [g['user__group__name'] or 'بدون گروه' for g in group_agg]
+    group_values = [g['c'] for g in group_agg]
+    group_json = json.dumps({'labels': group_labels, 'data': group_values})
 
     context = {
         'active_tab': 'reports',
@@ -737,8 +777,102 @@ def user_reports(request):
         'latest_logs': latest_logs,
         'status_data_json': status_data_json,
         'face_data_json': face_data_json,
+        'form': form,
+        'heatmap_json': heatmap_json,
+        'heatmap_max': heatmap_max,
+        'group_json': group_json,
     }
     return render(request, 'core/user_reports.html', context)
+
+
+@login_required
+@staff_required
+def monthly_performance_profile(request):
+    """Detailed monthly performance report for a user."""
+    form = MonthlyProfileForm(request.GET or None)
+    report = None
+    if form.is_valid():
+        user = form.cleaned_data['user']
+        month_start = form.cleaned_data['month_g'].replace(day=1)
+        next_month = (month_start.replace(day=28) + timedelta(days=4)).replace(day=1)
+        month_end = next_month - timedelta(days=1)
+        logs = AttendanceLog.objects.filter(
+            user=user, timestamp__date__range=(month_start, month_end)
+        ).order_by('timestamp')
+        day_logs = {}
+        for log in logs:
+            day_logs.setdefault(log.timestamp.date(), []).append(log)
+
+        total_minutes = 0
+        delay_minutes = 0
+        shift = _get_user_shift(user)
+        for day, entries in day_logs.items():
+            entries.sort(key=lambda x: x.timestamp)
+            in_time = None
+            for entry in entries:
+                if entry.log_type == 'in':
+                    in_time = entry.timestamp
+                    if shift:
+                        expected = datetime.combine(day, shift.start_time)
+                        delay = (in_time - expected).total_seconds() / 60
+                        if delay > 0:
+                            delay_minutes += int(delay)
+                elif entry.log_type == 'out' and in_time:
+                    total_minutes += int((entry.timestamp - in_time).total_seconds() / 60)
+                    in_time = None
+
+        holidays = set(WeeklyHoliday.objects.values_list('weekday', flat=True))
+        workdays = 0
+        cur = month_start
+        while cur <= month_end:
+            if cur.weekday() not in holidays:
+                workdays += 1
+            cur += timedelta(days=1)
+        if shift:
+            s_start, s_end = _shift_bounds(month_start, shift)
+            shift_duration = s_end - s_start
+            required_minutes = int(shift_duration.total_seconds() / 60) * workdays
+        else:
+            required_minutes = 8 * 60 * workdays
+        overtime_minutes = total_minutes - required_minutes
+
+        leaves = LeaveRequest.objects.filter(
+            user=user,
+            status='approved',
+            start_date__lte=month_end,
+            end_date__gte=month_start,
+        )
+        leave_days = set()
+        for lv in leaves:
+            day = lv.start_date
+            while day <= lv.end_date:
+                leave_days.add(day)
+                day += timedelta(days=1)
+        present_days = set(day_logs.keys())
+        cur = month_start
+        absent_days = 0
+        while cur <= month_end:
+            if cur.weekday() not in holidays and cur not in present_days and cur not in leave_days:
+                absent_days += 1
+            cur += timedelta(days=1)
+
+        report = {
+            'total_required_minutes': required_minutes,
+            'total_presence_minutes': total_minutes,
+            'overtime_minutes': overtime_minutes,
+            'absent_days': absent_days,
+            'delay_minutes': delay_minutes,
+            'leaves': leaves,
+            'user': user,
+            'month': month_start,
+        }
+
+    context = {
+        'active_tab': 'reports',
+        'form': form,
+        'report': report,
+    }
+    return render(request, 'core/user_monthly_profile.html', context)
 
 
 @login_required

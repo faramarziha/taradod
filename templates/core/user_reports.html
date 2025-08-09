@@ -6,22 +6,28 @@
   <i class="fas fa-file-alt" style="margin-left:0.5rem;"></i> گزارش کاربران
 </h2>
 <div class="dashboard-stats">
-  <div class="dashboard-card">
-    <h3>{{ active_users }}</h3>
-    کاربر فعال
-  </div>
-  <div class="dashboard-card">
-    <h3>{{ inactive_users }}</h3>
-    کاربر غیرفعال
-  </div>
-  <div class="dashboard-card">
-    <h3>{{ users_with_face }}</h3>
-    با ثبت چهره
-  </div>
+  <div class="dashboard-card"><h3>{{ active_users }}</h3>کاربر فعال</div>
+  <div class="dashboard-card"><h3>{{ inactive_users }}</h3>کاربر غیرفعال</div>
+  <div class="dashboard-card"><h3>{{ users_with_face }}</h3>با ثبت چهره</div>
 </div>
-<div class="card charts-grid fade-in" style="margin-top:1rem;">
-  <canvas id="statusChart" height="160"></canvas>
-  <canvas id="faceChart" height="160"></canvas>
+<div class="card charts-grid" style="margin-top:1rem;">
+  <canvas id="statusChart" height="120"></canvas>
+  <canvas id="faceChart" height="120"></canvas>
+</div>
+
+<form method="get" class="card" style="margin-top:1rem;">
+  {{ form.as_p }}
+  <button type="submit" class="btn">اعمال فیلتر</button>
+</form>
+
+<div class="card" style="margin-top:1rem;">
+  <h3>Heatmap هفتگی تردد</h3>
+  <canvas id="heatmapChart" height="200"></canvas>
+</div>
+
+<div class="card" style="margin-top:1rem;">
+  <h3>مقایسه عملکرد گروه‌ها</h3>
+  <canvas id="groupChart" height="200"></canvas>
 </div>
 <div class="request-cards mobile-only">
   {% for log in latest_logs %}
@@ -66,6 +72,7 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-matrix@1.1.3"></script>
 <script>
 const statusData = {{ status_data_json|safe }};
 new Chart(document.getElementById('statusChart').getContext('2d'), {
@@ -89,6 +96,57 @@ new Chart(document.getElementById('faceChart').getContext('2d'), {
       backgroundColor: ['#2196f3', '#9e9e9e']
     }]
   }
+});
+
+const heatmapData = {{ heatmap_json|safe }};
+const heatmapMax = {{ heatmap_max }} || 1;
+new Chart(document.getElementById('heatmapChart').getContext('2d'), {
+  type: 'matrix',
+  data: {datasets: [{
+    data: heatmapData,
+    backgroundColor: ctx => {
+      const v = ctx.dataset.data[ctx.dataIndex].v;
+      return `rgba(33,150,243,${v/heatmapMax})`;
+    },
+    width: ({chart}) => chart.chartArea.width / 24 - 1,
+    height: ({chart}) => chart.chartArea.height / 7 - 1,
+    borderWidth: 1,
+    borderColor: '#fff'
+  }]},
+  options: {
+    maintainAspectRatio: false,
+    plugins: {legend: {display: false}},
+    scales: {
+      x: {
+        type: 'linear',
+        position: 'top',
+        ticks: {stepSize: 1, max:23, min:0}
+      },
+      y: {
+        type: 'linear',
+        ticks: {
+          stepSize: 1,
+          max:6,
+          min:0,
+          callback: v => ['شنبه','یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه','پنجشنبه','جمعه'][v]
+        }
+      }
+    }
+  }
+});
+
+const groupData = {{ group_json|safe }};
+new Chart(document.getElementById('groupChart').getContext('2d'), {
+  type: 'bar',
+  data: {
+    labels: groupData.labels,
+    datasets: [{
+      label: 'تعداد تردد',
+      data: groupData.data,
+      backgroundColor: '#4caf50'
+    }]
+  },
+  options: {plugins:{legend:{display:false}}}
 });
 </script>
 {% endblock %}
