@@ -719,7 +719,7 @@ def user_reports(request):
     # محاسبات آماری
     active_users = User.objects.filter(is_active=True).count()
     inactive_users = User.objects.filter(is_active=False).count()
-    # آمار ثبت چهره حذف شد
+    no_face_users = User.objects.filter(face_encoding__isnull=True).count()
 
     form = ReportFilterForm(request.GET or None)
     logs_qs = AttendanceLog.objects.select_related('user').order_by('-timestamp')
@@ -743,6 +743,7 @@ def user_reports(request):
         'active_tab': 'reports',
         'active_users': active_users,
         'inactive_users': inactive_users,
+        'no_face_users': no_face_users,
         'logs': logs,
         'form': form,
     }

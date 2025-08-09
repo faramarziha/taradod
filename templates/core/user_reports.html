@@ -7,12 +7,19 @@
  </h2>
 <div class="dashboard-stats">
   <div class="dashboard-card">
-    <h3>{{ active_users }}</h3>
-    کاربر فعال
+    <i class="fas fa-user-check"></i>
+    <div class="value">{{ active_users }}</div>
+    <div class="label">کاربر فعال</div>
   </div>
   <div class="dashboard-card">
-    <h3>{{ inactive_users }}</h3>
-    کاربر غیرفعال
+    <i class="fas fa-user-times"></i>
+    <div class="value">{{ inactive_users }}</div>
+    <div class="label">کاربر غیرفعال</div>
+  </div>
+  <div class="dashboard-card">
+    <i class="fas fa-user-slash"></i>
+    <div class="value">{{ no_face_users }}</div>
+    <div class="label">بدون ثبت چهره</div>
   </div>
 </div>
 
