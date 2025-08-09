@@ -4,8 +4,15 @@ from django_jalali import forms as jforms
 from django_jalali.admin.widgets import AdminjDateWidget
 import jdatetime
 from attendance import models as attendance_models
-from attendance.models import AttendanceLog, EditRequest, LeaveRequest, LOG_TYPE_CHOICES
-from attendance.models import WeeklyHoliday
+from attendance.models import (
+    AttendanceLog,
+    EditRequest,
+    LeaveRequest,
+    LOG_TYPE_CHOICES,
+    WeeklyHoliday,
+    Group,
+    Shift,
+)
 
 User = get_user_model()
 
@@ -302,3 +309,26 @@ class LeaveTypeForm(forms.ModelForm):
         model = attendance_models.LeaveType
         fields = ["name", "description"]
         labels = {"name": "نام", "description": "توضیح"}
+
+
+class ReportFilterForm(forms.Form):
+    start_date = jforms.jDateField(
+        label="از تاریخ", widget=AdminjDateWidget(), required=False
+    )
+    end_date = jforms.jDateField(
+        label="تا تاریخ", widget=AdminjDateWidget(), required=False
+    )
+    groups = forms.ModelMultipleChoiceField(
+        queryset=Group.objects.all(), label="گروه‌ها", required=False
+    )
+    shifts = forms.ModelMultipleChoiceField(
+        queryset=Shift.objects.all(), label="شیفت‌ها", required=False
+    )
+    users = forms.ModelMultipleChoiceField(
+        queryset=User.objects.all(), label="کاربران", required=False
+    )
+
+
+class MonthlyPerformanceForm(forms.Form):
+    user = forms.ModelChoiceField(queryset=User.objects.all(), label="کاربر")
+    month = jforms.jDateField(label="ماه", widget=AdminjDateWidget())

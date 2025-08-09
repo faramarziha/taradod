@@ -45,6 +45,8 @@ from core.forms import (
     ShiftForm,
     GroupForm,
     LeaveTypeForm,
+    ReportFilterForm,
+    MonthlyPerformanceForm,
 )
 from .models import Device
 
@@ -725,8 +727,23 @@ def user_reports(request):
     status_data_json = json.dumps([active_users, inactive_users])
     face_data_json = json.dumps([users_with_face, users_without_face])
 
-    # آخرین ترددها
-    latest_logs = AttendanceLog.objects.select_related('user').order_by('-timestamp')[:10]
+    form = ReportFilterForm(request.GET or None)
+    logs_qs = AttendanceLog.objects.select_related('user').order_by('-timestamp')
+    if form.is_valid():
+        cd = form.cleaned_data
+        if cd['start_date']:
+            logs_qs = logs_qs.filter(timestamp__date__gte=cd['start_date'].togregorian())
+        if cd['end_date']:
+            logs_qs = logs_qs.filter(timestamp__date__lte=cd['end_date'].togregorian())
+        if cd['groups']:
+            logs_qs = logs_qs.filter(user__group__in=cd['groups'])
+        if cd['shifts']:
+            logs_qs = logs_qs.filter(user__shift__in=cd['shifts'])
+        if cd['users']:
+            logs_qs = logs_qs.filter(user__in=cd['users'])
+        logs = list(logs_qs[:100])
+    else:
+        logs = list(logs_qs[:10])
 
     context = {
         'active_tab': 'reports',
@@ -734,11 +751,63 @@ def user_reports(request):
         'inactive_users': inactive_users,
         'users_with_face': users_with_face,
         'users_without_face': users_without_face,
-        'latest_logs': latest_logs,
+        'logs': logs,
+        'form': form,
         'status_data_json': status_data_json,
         'face_data_json': face_data_json,
     }
     return render(request, 'core/user_reports.html', context)
+
+
+@login_required
+@staff_required
+def monthly_profile(request):
+    form = MonthlyPerformanceForm(request.GET or None)
+    report = None
+    logs = []
+    leaves = []
+    selected_user = None
+    if form.is_valid():
+        selected_user = form.cleaned_data['user']
+        month = form.cleaned_data['month']
+        start_j = jdatetime.date(month.year, month.month, 1)
+        if month.month == 12:
+            next_month = jdatetime.date(month.year + 1, 1, 1)
+        else:
+            next_month = jdatetime.date(month.year, month.month + 1, 1)
+        end_j = next_month - jdatetime.timedelta(days=1)
+        start_g = start_j.togregorian()
+        end_g = end_j.togregorian()
+        logs = AttendanceLog.objects.filter(
+            user=selected_user,
+            timestamp__date__range=(start_g, end_g)
+        ).order_by('timestamp')
+        total_minutes = 0
+        current_in = None
+        for log in logs:
+            if log.log_type == 'in':
+                current_in = log.timestamp
+            elif log.log_type == 'out' and current_in:
+                total_minutes += int((log.timestamp - current_in).total_seconds() // 60)
+                current_in = None
+        report = {
+            'total_minutes': total_minutes,
+            'log_count': logs.count(),
+        }
+        leaves = LeaveRequest.objects.filter(
+            user=selected_user,
+            start_date__lte=end_g,
+            end_date__gte=start_g,
+        )
+    context = {
+        'active_tab': 'reports',
+        'form': form,
+        'report': report,
+        'logs': logs,
+        'leaves': leaves,
+        'selected_user': selected_user,
+    }
+    return render(request, 'core/monthly_profile.html', context)
 
 
 @login_required

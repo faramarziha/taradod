@@ -1,0 +1,27 @@
+{% extends "core/base_management.html" %}
+{% load jformat %}
+{% block title %}پروفایل ماهانه{% endblock %}
+{% block management_content %}
+<h2 style="text-align:right;">
+  <i class="fas fa-user-clock" style="margin-left:0.5rem;"></i> پروفایل عملکرد ماهانه
+</h2>
+<form method="get" class="card" style="margin-top:1rem;">
+  {{ form.as_p }}
+  <button type="submit" class="btn">نمایش</button>
+</form>
+{% if report %}
+<div class="card" style="margin-top:1rem;">
+  <h3>گزارش {{ selected_user.get_full_name }}</h3>
+  <p>مجموع دقایق حضور: {{ report.total_minutes }}</p>
+  <p>تعداد ترددها: {{ report.log_count }}</p>
+  {% if leaves %}
+  <h4>مرخصی‌ها</h4>
+  <ul>
+    {% for l in leaves %}
+      <li>{{ l.start_date|jformat:"%Y/%m/%d" }} تا {{ l.end_date|jformat:"%Y/%m/%d" }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -19,24 +19,17 @@
     با ثبت چهره
   </div>
 </div>
-<div class="card charts-grid fade-in" style="margin-top:1rem;">
+<div class="card charts-grid fade-in" style="margin-top:1rem;max-width:400px;">
   <canvas id="statusChart" height="160"></canvas>
   <canvas id="faceChart" height="160"></canvas>
 </div>
-<div class="request-cards mobile-only">
-  {% for log in latest_logs %}
-  <div class="request-card fade-in">
-    <div class="row"><span class="label">کاربر:</span><span>{{ log.user.get_full_name }} - {{ log.user.personnel_code }}</span></div>
-    <div class="row"><span class="label">تاریخ:</span><span>{{ log.timestamp|jformat:"%Y/%m/%d" }}</span></div>
-    <div class="row"><span class="label">ساعت:</span><span>{{ log.timestamp|time:"H:i" }}</span></div>
-    <div class="row"><span class="label">نوع:</span><span>{% if log.log_type == 'in' %}ورود{% else %}خروج{% endif %}</span></div>
-    <div class="row"><span class="label">ثبت‌کننده:</span><span>{% if log.source == 'self' %}کاربر{% elif log.source == 'auto' %}سیستم{% else %}مدیر{% endif %}</span></div>
-  </div>
-  {% empty %}
-  <div class="alert-error">ترددی ثبت نشده است.</div>
-  {% endfor %}
-</div>
-<div class="table-responsive desktop-only">
+
+<form method="get" class="card" style="margin-top:1rem;">
+  {{ form.as_p }}
+  <button type="submit" class="btn">تولید گزارش</button>
+</form>
+
+<div class="table-responsive" style="margin-top:1rem;">
 <table class="management-table">
   <thead>
     <tr>
@@ -48,7 +41,7 @@
     </tr>
   </thead>
   <tbody>
-    {% for log in latest_logs %}
+    {% for log in logs %}
     <tr>
       <td>{{ log.user.get_full_name }} - {{ log.user.personnel_code }}</td>
       <td>{{ log.timestamp|jformat:"%Y/%m/%d" }}</td>
