@@ -21,6 +21,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from django.db.models import Q
 
 from attendance.models import (
     AttendanceLog,
@@ -489,10 +490,68 @@ def api_management_verify_face(request):
 @login_required
 @staff_required
 def management_users(request):
+    """Advanced user management center with filtering and bulk actions."""
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
-    users = User.objects.all()
-    return render(request, "core/management_users.html", {"users": users})
+
+    # ---------- Bulk actions ----------
+    if request.method == "POST":
+        action = request.POST.get("bulk_action")
+        selected_ids = request.POST.getlist("selected_users")
+        if action and selected_ids:
+            qs = User.objects.filter(id__in=selected_ids)
+            if action == "deactivate":
+                qs.update(is_active=False)
+                messages.success(request, "کاربران انتخاب‌شده غیرفعال شدند.")
+            elif action == "assign_group":
+                group_id = request.POST.get("group")
+                if group_id:
+                    qs.update(group_id=group_id)
+                    messages.success(request, "گروه کاربران به‌روزرسانی شد.")
+            elif action == "assign_shift":
+                shift_id = request.POST.get("shift")
+                if shift_id:
+                    qs.update(shift_id=shift_id)
+                    messages.success(request, "شیفت کاربران به‌روزرسانی شد.")
+            elif action == "delete":
+                qs.delete()
+                messages.success(request, "کاربران انتخاب‌شده حذف شدند.")
+        return redirect("management_users")
+
+    users = User.objects.all().select_related("group", "shift")
+
+    # ---------- Filtering ----------
+    q = request.GET.get("q")
+    status = request.GET.get("status")
+    group = request.GET.get("group")
+    shift = request.GET.get("shift")
+    face = request.GET.get("face")
+
+    if q:
+        users = users.filter(
+            Q(first_name__icontains=q)
+            | Q(last_name__icontains=q)
+            | Q(personnel_code__icontains=q)
+        )
+    if status == "active":
+        users = users.filter(is_active=True)
+    elif status == "inactive":
+        users = users.filter(is_active=False)
+    if group:
+        users = users.filter(group_id=group)
+    if shift:
+        users = users.filter(shift_id=shift)
+    if face == "with":
+        users = users.filter(face_encoding__isnull=False)
+    elif face == "without":
+        users = users.filter(face_encoding__isnull=True)
+
+    ctx = {
+        "users": users,
+        "groups": Group.objects.all(),
+        "shifts": Shift.objects.all(),
+    }
+    return render(request, "core/management_users.html", ctx)
 
 
 @login_required
@@ -527,16 +586,71 @@ def user_update(request, pk):
 
 @login_required
 @staff_required
+@require_POST
 def user_delete(request, pk):
     obj = get_object_or_404(User, pk=pk)
+    if obj == request.user:
+        messages.error(request, "نمی‌توانید خودتان را حذف کنید.")
+    else:
+        obj.delete()
+        messages.success(request, "حذف موفق.")
+    return redirect("management_users")
+
+
+@login_required
+@staff_required
+def admin_user_profile(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+
+    user_obj = get_object_or_404(User, pk=pk)
+
     if request.method == "POST":
-        if obj == request.user:
-            messages.error(request, "نمی‌توانید خودتان را حذف کنید.")
-        else:
-            obj.delete()
-            messages.success(request, "حذف موفق.")
-        return redirect("management_users")
-    return render(request, "core/user_confirm_delete.html", {"user": obj})
+        form = CustomUserSimpleForm(request.POST, request.FILES, instance=user_obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "اطلاعات کاربر به‌روز شد.")
+            return redirect("admin_user_profile", pk=pk)
+    else:
+        form = CustomUserSimpleForm(instance=user_obj)
+
+    logs_form = UserLogsRangeForm(request.GET or None, prefix="logs")
+    logs = AttendanceLog.objects.filter(user=user_obj).order_by("timestamp")
+    if logs_form.is_valid():
+        sd = logs_form.cleaned_data.get("start_g")
+        ed = logs_form.cleaned_data.get("end_g")
+        if sd and ed:
+            logs = logs.filter(timestamp__date__gte=sd, timestamp__date__lte=ed)
+
+    edit_requests = EditRequest.objects.filter(user=user_obj).order_by("-created_at")[:20]
+    leave_requests = LeaveRequest.objects.filter(user=user_obj).order_by("-created_at")[:20]
+
+    return render(
+        request,
+        "core/admin_user_profile.html",
+        {
+            "user_obj": user_obj,
+            "form": form,
+            "logs_form": logs_form,
+            "logs": logs,
+            "edit_requests": edit_requests,
+            "leave_requests": leave_requests,
+        },
+    )
+
+
+@require_POST
+@login_required
+@staff_required
+def user_face_delete(request, pk):
+    user_obj = get_object_or_404(User, pk=pk)
+    user_obj.face_encoding = None
+    if user_obj.face_image:
+        user_obj.face_image.delete(save=False)
+    user_obj.face_image = None
+    user_obj.save()
+    messages.success(request, "چهره کاربر حذف شد.")
+    return redirect("admin_user_profile", pk=pk)
 
 @login_required
 @staff_required
