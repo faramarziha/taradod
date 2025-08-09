@@ -656,7 +656,7 @@ def management_dashboard(request):
     pending_leaves = pending_leave_objs.count()
     suspicious_today = SuspiciousLog.objects.filter(matched_user__in=users_qs, timestamp__date=today).count()
 
-    # مرکز اقدامات فوری: ترکیب درخواست‌های مرخصی و ویرایش
+    # اقدامات فوری: ترکیب درخواست‌های مرخصی و ویرایش
     pending_actions = []
     for req in pending_edit_objs[:5]:
         pending_actions.append({
