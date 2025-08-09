@@ -286,7 +286,6 @@
 
 /* small-screen adjustments */
 @media (max-width: 900px) {
-  .table-responsive, .management-table { display: none; }
   .request-cards { display: flex; flex-direction: column; gap: 1rem; }
 }
 
@@ -327,24 +326,11 @@
 
 .date-field {
   flex: 1 1 140px;
-  position: relative;
-}
-
-.date-field i {
-  position: absolute;
-  right: .5rem;
-  left: auto;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-  color: var(--color-muted);
 }
 
 .date-field input {
   width: 100%;
   box-sizing: border-box;
-  padding-right: 2rem;
-  padding-left: .75rem;
 }
 
 .multi-select {
