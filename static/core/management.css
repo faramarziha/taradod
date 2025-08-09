@@ -320,9 +320,9 @@
 }
 
 .date-row {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+  display:flex;
+  gap:.75rem;
+  flex-wrap:wrap;
 }
 
 .date-field {
@@ -332,15 +332,19 @@
 
 .date-field i {
   position: absolute;
-  left: 0.5rem;
+  right: .5rem;
+  left: auto;
   top: 50%;
   transform: translateY(-50%);
+  pointer-events: none;
   color: var(--color-muted);
 }
 
 .date-field input {
   width: 100%;
-  padding-left: 2rem;
+  box-sizing: border-box;
+  padding-right: 2rem;
+  padding-left: .75rem;
 }
 
 .multi-select {

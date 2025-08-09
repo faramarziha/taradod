@@ -315,14 +315,22 @@ class ReportFilterForm(forms.Form):
     start_date = jforms.jDateField(
         label="از تاریخ",
         widget=AdminjDateWidget(
-            attrs={"placeholder": "۱۴۰۳/۰۵/۱۰", "class": "date-input"}
+            attrs={
+                "placeholder": "۱۴۰۳/۰۵/۱۰",
+                "class": "date-input vjDateField",
+                "readonly": "readonly",
+            }
         ),
         required=False,
     )
     end_date = jforms.jDateField(
         label="تا تاریخ",
         widget=AdminjDateWidget(
-            attrs={"placeholder": "۱۴۰۳/۰۵/۱۰", "class": "date-input"}
+            attrs={
+                "placeholder": "۱۴۰۳/۰۵/۱۰",
+                "class": "date-input vjDateField",
+                "readonly": "readonly",
+            }
         ),
         required=False,
     )
