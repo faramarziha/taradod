@@ -302,3 +302,59 @@ class LeaveTypeForm(forms.ModelForm):
         model = attendance_models.LeaveType
         fields = ["name", "description"]
         labels = {"name": "نام", "description": "توضیح"}
+
+
+class CustomReportForm(forms.Form):
+    """Form for building custom analytical reports."""
+
+    start = jforms.jDateField(
+        label="از تاریخ", widget=AdminjDateWidget(), required=False
+    )
+    end = jforms.jDateField(
+        label="تا تاریخ", widget=AdminjDateWidget(), required=False
+    )
+    groups = forms.ModelMultipleChoiceField(
+        queryset=attendance_models.Group.objects.all(),
+        label="گروه کاری",
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+    )
+    shifts = forms.ModelMultipleChoiceField(
+        queryset=attendance_models.Shift.objects.all(),
+        label="شیفت",
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+    )
+    users = forms.ModelMultipleChoiceField(
+        queryset=User.objects.all(),
+        label="کاربران",
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+    )
+
+    def clean(self):
+        cleaned = super().clean()
+        s = cleaned.get("start")
+        e = cleaned.get("end")
+        if s:
+            cleaned["start_g"] = s.togregorian()
+        if e:
+            cleaned["end_g"] = e.togregorian()
+        if s and e and cleaned["end_g"] < cleaned["start_g"]:
+            self.add_error("end", "بازه نامعتبر است")
+        return cleaned
+
+
+class MonthlyPerformanceForm(forms.Form):
+    """Form to select user and month for performance profile."""
+
+    user = forms.ModelChoiceField(queryset=User.objects.all(), label="کاربر")
+    month = jforms.jDateField(label="ماه", widget=AdminjDateWidget())
+
+    def clean(self):
+        cleaned = super().clean()
+        m = cleaned.get("month")
+        if m:
+            cleaned["year"] = m.year
+            cleaned["month_num"] = m.month
+        return cleaned
