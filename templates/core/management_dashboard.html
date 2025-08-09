@@ -24,17 +24,16 @@
   <button class="btn" type="submit">فیلتر</button>
 </form>
 
-<div class="dashboard-stats">
+<div class="status-overview">
+  <div class="card fade-in">
+    <h3 class="panel-title"><i class="fas fa-heartbeat"></i> وضعیت مجموعه</h3>
+    <canvas id="statusChart" width="220" height="220" class="status-chart"></canvas>
+  </div>
   <div class="dashboard-card">
     <i class="fas fa-clock"></i>
     <span class="value">{{ today_logs }}</span>
     <span class="label">تردد امروز</span>
   </div>
-</div>
-
-<div class="card fade-in">
-  <h3 class="panel-title"><i class="fas fa-heartbeat"></i> وضعیت مجموعه</h3>
-  <canvas id="statusChart" width="220" height="220" class="status-chart"></canvas>
 </div>
 
 <div class="status-lists">
@@ -100,24 +99,30 @@
   <h3 class="panel-title"><i class="fas fa-users"></i> خوب‌ها و بدها</h3>
   <div class="performance-wrapper">
     <div class="performance-box">
-      <h4>بدها</h4>
-      <ol>
+      <h4 title="کاربرانی با بیشترین روزهای دیرکرد در ماه اخیر">بدها</h4>
+      <table class="performance-table">
+        <thead><tr><th>نام</th><th>تعداد</th></tr></thead>
+        <tbody>
         {% for u, count in worst_performers %}
-          <li>{{ u.get_full_name }} - {{ count }} روز دیرکرد</li>
+          <tr><td>{{ u.get_full_name }}</td><td>{{ count }}</td></tr>
         {% empty %}
-          <li>موردی نیست</li>
+          <tr><td colspan="2">موردی نیست</td></tr>
         {% endfor %}
-      </ol>
+        </tbody>
+      </table>
     </div>
     <div class="performance-box">
-      <h4>خوب‌ها</h4>
-      <ol>
+      <h4 title="کاربرانی با بیشترین روز بدون تأخیر متوالی">خوب‌ها</h4>
+      <table class="performance-table">
+        <thead><tr><th>نام</th><th>تعداد</th></tr></thead>
+        <tbody>
         {% for u, count in best_performers %}
-          <li>{{ u.get_full_name }} - {{ count }} روز بدون تأخیر متوالی</li>
+          <tr><td>{{ u.get_full_name }}</td><td>{{ count }}</td></tr>
         {% empty %}
-          <li>موردی نیست</li>
+          <tr><td colspan="2">موردی نیست</td></tr>
         {% endfor %}
-      </ol>
+        </tbody>
+      </table>
     </div>
   </div>
 </div>

@@ -657,7 +657,7 @@ def management_dashboard(request):
         pending_actions.append({
             "id": req.id,
             "user": req.user,
-            "date": req.timestamp.date(),
+            "date": jdatetime.date.fromgregorian(date=req.timestamp.date()).strftime("%Y/%m/%d"),
             "type": "edit",
             "type_label": "ویرایش تردد",
             "action_url": reverse("edit_requests"),
@@ -666,7 +666,7 @@ def management_dashboard(request):
         pending_actions.append({
             "id": req.id,
             "user": req.user,
-            "date": req.start_date,
+            "date": jdatetime.date.fromgregorian(date=req.start_date).strftime("%Y/%m/%d"),
             "type": "leave",
             "type_label": "مرخصی",
             "action_url": reverse("leave_requests"),

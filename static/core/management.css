@@ -134,6 +134,13 @@
 .status-offline { color: #f44336; }
 .status-active { color: #4caf50; }
 .status-inactive { color: #f44336; }
+.status-overview {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+}
 .dashboard-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -322,9 +329,27 @@
   font-size: 1.05rem;
 }
 
-.performance-box ol {
-  padding-left: 1rem;
-  margin: 0;
+.performance-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.performance-table th,
+.performance-table td {
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--color-border);
+  text-align: right;
+  font-size: 0.9rem;
+}
+
+.performance-table th {
+  background: var(--color-bg);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.performance-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .btn-small {
