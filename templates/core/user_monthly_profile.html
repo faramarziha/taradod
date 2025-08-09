@@ -1,0 +1,32 @@
+{% extends "core/base_management.html" %}
+{% load jformat %}
+{% block title %}پروفایل عملکرد ماهانه{% endblock %}
+{% block management_content %}
+<h2 style="text-align:right;">
+  <i class="fas fa-user-clock" style="margin-left:0.5rem;"></i> پروفایل عملکرد ماهانه
+</h2>
+<form method="get" class="card">
+  {{ form.as_p }}
+  <button type="submit" class="btn">نمایش</button>
+</form>
+{% if report %}
+<div class="card" style="margin-top:1rem;">
+  <h3>{{ report.user.get_full_name }} - {{ report.month|jformat:"%Y/%m" }}</h3>
+  <ul style="list-style:none;padding:0;">
+    <li>مجموع ساعات موظفی: {{ report.total_required_minutes }} دقیقه</li>
+    <li>مجموع ساعات حضور واقعی: {{ report.total_presence_minutes }} دقیقه</li>
+    <li>میزان اضافه‌کار یا کسر کار: {{ report.overtime_minutes }} دقیقه</li>
+    <li>تعداد روزهای غیبت: {{ report.absent_days }}</li>
+    <li>مجموع دقایق تأخیر در ورود: {{ report.delay_minutes }}</li>
+  </ul>
+  <h4>مرخصی‌های استفاده شده</h4>
+  <ul>
+    {% for leave in report.leaves %}
+    <li>{{ leave.start_date|jformat:"%Y/%m/%d" }} تا {{ leave.end_date|jformat:"%Y/%m/%d" }}{% if leave.leave_type %} - {{ leave.leave_type.name }}{% endif %}</li>
+    {% empty %}
+    <li>مرخصی ثبت نشده است.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+{% endblock %}
