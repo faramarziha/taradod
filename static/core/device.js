@@ -15,6 +15,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const faceDetector = window.FaceDetector ? new FaceDetector({ fastMode: true }) : null;
   let framingOk = false;
   let verifying = false;
+  let unsupportedWarned = false;
+  let messageHoldUntil = 0;
+
+  function showMessage(text, holdMs = 0) {
+    message.textContent = text;
+    if (holdMs > 0) {
+      messageHoldUntil = Date.now() + holdMs;
+    }
+  }
 
   // راه‌اندازی دوربین
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -24,10 +33,10 @@ document.addEventListener('DOMContentLoaded', () => {
         video.srcObject = stream;
       })
       .catch(() => {
-        message.textContent = 'دسترسی به دوربین امکان‌پذیر نیست.';
+        showMessage('دسترسی به دوربین امکان‌پذیر نیست.');
       });
   } else {
-    message.textContent = 'دوربین توسط مرورگر پشتیبانی نمی‌شود.';
+    showMessage('دوربین توسط مرورگر پشتیبانی نمی‌شود.');
   }
 
   function capture() {
@@ -50,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function updateFraming() {
-    if (verifying) return;
+    if (verifying || Date.now() < messageHoldUntil) return;
     if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
 
     canvas.width = video.videoWidth;
@@ -101,13 +110,17 @@ document.addEventListener('DOMContentLoaded', () => {
         msg = 'مشکل در تشخیص چهره.';
       }
     } else {
-      color = 'yellow';
-      msg = 'راهنمای هوشمند توسط مرورگر پشتیبانی نمی‌شود.';
+      frameGuide.style.borderColor = 'yellow';
       framingOk = true;
+      if (!unsupportedWarned) {
+        showMessage('راهنمای هوشمند توسط مرورگر پشتیبانی نمی‌شود.', 4000);
+        unsupportedWarned = true;
+      }
+      return;
     }
 
     frameGuide.style.borderColor = color;
-    if (!verifying) message.textContent = msg;
+    showMessage(msg);
   }
 
   setInterval(updateFraming, 800);
@@ -130,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
     verifying = true;
     const img1 = capture();
     const challenge = challenges[Math.floor(Math.random() * challenges.length)];
-    message.textContent = challenge.msg;
+    showMessage(challenge.msg);
     await wait(1200);
     const img2 = capture();
 
@@ -146,26 +159,28 @@ document.addEventListener('DOMContentLoaded', () => {
       .then((data) => {
         if (data.ok) {
           const actionText = data.log_type === 'in' ? 'ورود' : 'خروج';
-          message.textContent = `تردد ${actionText} ثبت شد!`;
+          showMessage(`تردد ${actionText} ثبت شد!`, 4000);
           showUserInfo(data);
           managerControls.style.display = 'none';
         } else if (data.manager_detected) {
-          message.textContent = 'مدیر شناسایی شد.';
+          showMessage('مدیر شناسایی شد.', 4000);
           managerControls.style.display = '';
           hideUserInfo();
         } else if (data.suspicious) {
-          message.textContent = 'تشخیص مشکوک! لطفاً با مدیریت تماس بگیرید.';
+          showMessage('تشخیص مشکوک! لطفاً با مدیریت تماس بگیرید.', 4000);
           hideUserInfo();
           managerControls.style.display = 'none';
         } else {
-          message.textContent =
-            data.msg || 'چهره‌ای شناسایی نشد. لطفاً صورت خود را مقابل دوربین تنظیم کنید.';
+          showMessage(
+            data.msg || 'چهره‌ای شناسایی نشد. لطفاً صورت خود را مقابل دوربین تنظیم کنید.',
+            4000
+          );
           hideUserInfo();
           managerControls.style.display = 'none';
         }
       })
       .catch(() => {
-        message.textContent = 'اتصال به سرور برقرار نشد. لطفاً اتصال اینترنت را بررسی کنید.';
+        showMessage('اتصال به سرور برقرار نشد. لطفاً اتصال اینترنت را بررسی کنید.', 4000);
       })
       .finally(() => {
         verifying = false;
