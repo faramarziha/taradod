@@ -299,14 +299,57 @@
 }
 .charts-grid canvas { flex: 0 0 220px; }
 
-.report-filter .form-grid {
+.report-filter-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1rem;
 }
-.report-filter .form-grid div {
+
+.filter-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  box-shadow: var(--shadow);
+}
+
+.filter-card h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  color: var(--color-primary-dark);
+}
+
+.date-row {
   display: flex;
-  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.date-field {
+  flex: 1;
+  position: relative;
+}
+
+.date-field i {
+  position: absolute;
+  left: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-muted);
+}
+
+.date-field input {
+  width: 100%;
+  padding-left: 2rem;
+}
+
+.multi-select {
+  width: 100%;
+}
+
+@media (max-width: 600px) {
+  .date-row {
+    flex-direction: column;
+  }
 }
 .report-result .table-responsive { overflow-x: auto; }
 

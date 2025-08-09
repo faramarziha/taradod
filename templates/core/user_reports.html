@@ -4,7 +4,7 @@
 {% block management_content %}
 <h2 style="text-align:right;">
   <i class="fas fa-file-alt" style="margin-left:0.5rem;"></i> گزارش کاربران
-</h2>
+ </h2>
 <a href="{% url 'monthly_profile' %}" class="btn" style="margin-top:0.5rem;">پروفایل ماهانه کاربر</a>
 <div class="dashboard-stats">
   <div class="dashboard-card">
@@ -25,47 +25,81 @@
   </div>
 </div>
 
-<form method="get" class="card report-filter" style="margin-top:1rem;">
-  <div class="form-grid">
-    <div>{{ form.start_date.label_tag }}{{ form.start_date }}</div>
-    <div>{{ form.end_date.label_tag }}{{ form.end_date }}</div>
-    <div>{{ form.groups.label_tag }}{{ form.groups }}</div>
-    <div>{{ form.shifts.label_tag }}{{ form.shifts }}</div>
-    <div>{{ form.users.label_tag }}{{ form.users }}</div>
+<form method="get" class="report-filter" style="margin-top:1rem;">
+  <div class="report-filter-grid">
+    <div class="filter-card">
+      <h4>بازه تاریخ</h4>
+      <div class="date-row">
+        <div class="date-field">
+          {{ form.start_date.label_tag }}
+          {{ form.start_date }}
+          <i class="fas fa-calendar-alt"></i>
+        </div>
+        <div class="date-field">
+          {{ form.end_date.label_tag }}
+          {{ form.end_date }}
+          <i class="fas fa-calendar-alt"></i>
+        </div>
+      </div>
+    </div>
+    <div class="filter-card">
+      <h4>{{ form.groups.label }}</h4>
+      {{ form.groups }}
+    </div>
+    <div class="filter-card">
+      <h4>{{ form.shifts.label }}</h4>
+      {{ form.shifts }}
+    </div>
+    <div class="filter-card">
+      <h4>{{ form.users.label }}</h4>
+      {{ form.users }}
+    </div>
   </div>
   <button type="submit" class="btn">تولید گزارش</button>
 </form>
 
 <div class="card report-result" style="margin-top:1rem;">
-<div class="table-responsive">
-<table class="management-table">
-  <thead>
-    <tr>
-      <th>کاربر</th>
-      <th>تاریخ</th>
-      <th>ساعت</th>
-      <th>نوع</th>
-      <th>ثبت‌کننده</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for log in logs %}
-    <tr>
-      <td>{{ log.user.get_full_name }} - {{ log.user.personnel_code }}</td>
-      <td>{{ log.timestamp|jformat:"%Y/%m/%d" }}</td>
-      <td>{{ log.timestamp|time:"H:i" }}</td>
-      <td>{% if log.log_type == 'in' %}ورود{% else %}خروج{% endif %}</td>
-      <td>{% if log.source == 'self' %}کاربر{% elif log.source == 'auto' %}سیستم{% else %}مدیر{% endif %}</td>
-    </tr>
-    {% empty %}
-    <tr><td colspan="5">ترددی ثبت نشده است.</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
-</div>
+  <div class="table-responsive">
+    <table class="management-table">
+      <thead>
+        <tr>
+          <th>کاربر</th>
+          <th>تاریخ</th>
+          <th>ساعت</th>
+          <th>نوع</th>
+          <th>ثبت‌کننده</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td>{{ log.user.personnel_code }} – {{ log.user.last_name }}</td>
+          <td>{{ log.timestamp|jformat:"%Y/%m/%d" }}</td>
+          <td>{{ log.timestamp|time:"H:i" }}</td>
+          <td>{% if log.log_type == 'in' %}ورود{% else %}خروج{% endif %}</td>
+          <td>{% if log.source == 'self' %}کاربر{% elif log.source == 'auto' %}سیستم{% else %}مدیر{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5">ترددی ثبت نشده است.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}
 
+{% block extra_css %}
+{{ block.super }}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+{% endblock %}
+
 {% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 {{ form.media }}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+  $(function() {
+    $('.multi-select').select2({width: '100%', dir: 'rtl'});
+  });
+</script>
 {% endblock %}

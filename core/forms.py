@@ -313,29 +313,43 @@ class LeaveTypeForm(forms.ModelForm):
 
 class ReportFilterForm(forms.Form):
     start_date = jforms.jDateField(
-        label="از تاریخ", widget=AdminjDateWidget(), required=False
+        label="از تاریخ",
+        widget=AdminjDateWidget(
+            attrs={"placeholder": "۱۴۰۳/۰۵/۱۰", "class": "date-input"}
+        ),
+        required=False,
     )
     end_date = jforms.jDateField(
-        label="تا تاریخ", widget=AdminjDateWidget(), required=False
+        label="تا تاریخ",
+        widget=AdminjDateWidget(
+            attrs={"placeholder": "۱۴۰۳/۰۵/۱۰", "class": "date-input"}
+        ),
+        required=False,
     )
     groups = forms.ModelMultipleChoiceField(
         queryset=Group.objects.all(),
         label="گروه‌ها",
         required=False,
-        widget=forms.CheckboxSelectMultiple,
+        widget=forms.SelectMultiple(attrs={"class": "multi-select"}),
     )
     shifts = forms.ModelMultipleChoiceField(
         queryset=Shift.objects.all(),
         label="شیفت‌ها",
         required=False,
-        widget=forms.CheckboxSelectMultiple,
+        widget=forms.SelectMultiple(attrs={"class": "multi-select"}),
     )
     users = forms.ModelMultipleChoiceField(
         queryset=User.objects.all(),
         label="کاربران",
         required=False,
-        widget=forms.CheckboxSelectMultiple,
+        widget=forms.SelectMultiple(attrs={"class": "multi-select"}),
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["users"].label_from_instance = (
+            lambda obj: f"{obj.personnel_code} – {obj.last_name}"
+        )
 
 
 class MonthlyPerformanceForm(forms.Form):
