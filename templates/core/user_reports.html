@@ -4,7 +4,8 @@
 {% block management_content %}
 <h2 style="text-align:right;">
   <i class="fas fa-file-alt" style="margin-left:0.5rem;"></i> گزارش کاربران
-</h2>
+ </h2>
+
 <div class="dashboard-stats">
   <div class="dashboard-card">
     <h3>{{ active_users }}</h3>
@@ -19,24 +20,23 @@
     با ثبت چهره
   </div>
 </div>
+
+<div class="card charts-grid fade-in mini-charts" style="margin-top:1rem;">
+  <canvas id="statusChart" height="120"></canvas>
+  <canvas id="faceChart" height="120"></canvas>
+</div>
+
+<form method="get" class="report-form">
+  {{ form.as_p }}
+  <button type="submit" class="btn btn-primary">تولید گزارش</button>
+</form>
+
 <div class="card charts-grid fade-in" style="margin-top:1rem;">
-  <canvas id="statusChart" height="160"></canvas>
-  <canvas id="faceChart" height="160"></canvas>
+  <canvas id="heatmapChart" height="200"></canvas>
+  <canvas id="groupChart" height="200"></canvas>
 </div>
-<div class="request-cards mobile-only">
-  {% for log in latest_logs %}
-  <div class="request-card fade-in">
-    <div class="row"><span class="label">کاربر:</span><span>{{ log.user.get_full_name }} - {{ log.user.personnel_code }}</span></div>
-    <div class="row"><span class="label">تاریخ:</span><span>{{ log.timestamp|jformat:"%Y/%m/%d" }}</span></div>
-    <div class="row"><span class="label">ساعت:</span><span>{{ log.timestamp|time:"H:i" }}</span></div>
-    <div class="row"><span class="label">نوع:</span><span>{% if log.log_type == 'in' %}ورود{% else %}خروج{% endif %}</span></div>
-    <div class="row"><span class="label">ثبت‌کننده:</span><span>{% if log.source == 'self' %}کاربر{% elif log.source == 'auto' %}سیستم{% else %}مدیر{% endif %}</span></div>
-  </div>
-  {% empty %}
-  <div class="alert-error">ترددی ثبت نشده است.</div>
-  {% endfor %}
-</div>
-<div class="table-responsive desktop-only">
+
+<div class="table-responsive" style="margin-top:1rem;">
 <table class="management-table">
   <thead>
     <tr>
@@ -48,7 +48,7 @@
     </tr>
   </thead>
   <tbody>
-    {% for log in latest_logs %}
+    {% for log in logs %}
     <tr>
       <td>{{ log.user.get_full_name }} - {{ log.user.personnel_code }}</td>
       <td>{{ log.timestamp|jformat:"%Y/%m/%d" }}</td>
@@ -66,29 +66,78 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-matrix@1.1.1/dist/chartjs-chart-matrix.min.js"></script>
 <script>
 const statusData = {{ status_data_json|safe }};
-new Chart(document.getElementById('statusChart').getContext('2d'), {
+new Chart(document.getElementById('statusChart'), {
   type: 'doughnut',
   data: {
     labels: ['فعال', 'غیرفعال'],
-    datasets: [{
-      data: statusData,
-      backgroundColor: ['#4caf50', '#f44336']
-    }]
+    datasets: [{ data: statusData, backgroundColor: ['#4caf50', '#f44336'] }]
   }
 });
 
 const faceData = {{ face_data_json|safe }};
-new Chart(document.getElementById('faceChart').getContext('2d'), {
+new Chart(document.getElementById('faceChart'), {
   type: 'doughnut',
   data: {
     labels: ['با چهره', 'بدون چهره'],
-    datasets: [{
-      data: faceData,
-      backgroundColor: ['#2196f3', '#9e9e9e']
-    }]
+    datasets: [{ data: faceData, backgroundColor: ['#2196f3', '#9e9e9e'] }]
   }
 });
+
+const heatmapData = {{ heatmap_data_json|safe }};
+if(heatmapData.length){
+  const maxV = Math.max(...heatmapData.map(d => d.v));
+  new Chart(document.getElementById('heatmapChart'), {
+    type: 'matrix',
+    data: {
+      datasets: [{
+        label: 'حجم تردد',
+        data: heatmapData,
+        backgroundColor: ctx => {
+          const value = ctx.dataset.data[ctx.dataIndex].v;
+          const alpha = maxV ? value / maxV : 0;
+          return `rgba(76, 175, 80, ${alpha})`;
+        },
+        width: () => 20,
+        height: () => 20
+      }]
+    },
+    options: {
+      scales: {
+        x: {
+          type: 'linear',
+          position: 'top',
+          ticks: {
+            stepSize: 1,
+            callback: v => ['دوشنبه','سه‌شنبه','چهارشنبه','پنج‌شنبه','جمعه','شنبه','یکشنبه'][v]
+          }
+        },
+        y: {
+          type: 'linear',
+          ticks: { stepSize: 1 }
+        }
+      }
+    }
+  });
+}
+
+const groupLabels = {{ group_labels_json|safe }};
+const groupValues = {{ group_values_json|safe }};
+if(groupLabels.length){
+  new Chart(document.getElementById('groupChart'), {
+    type: 'bar',
+    data: {
+      labels: groupLabels,
+      datasets: [{
+        label: 'تعداد تردد',
+        data: groupValues,
+        backgroundColor: '#2196f3'
+      }]
+    }
+  });
+}
 </script>
 {% endblock %}
+

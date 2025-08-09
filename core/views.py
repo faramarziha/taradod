@@ -45,6 +45,8 @@ from core.forms import (
     ShiftForm,
     GroupForm,
     LeaveTypeForm,
+    CustomReportForm,
+    MonthlyPerformanceForm,
 )
 from .models import Device
 
@@ -714,7 +716,7 @@ def management_dashboard(request):
 @login_required
 @staff_required
 def user_reports(request):
-    # محاسبات آماری
+    # محاسبات آماری اولیه
     active_users = User.objects.filter(is_active=True).count()
     inactive_users = User.objects.filter(is_active=False).count()
     users_with_face = User.objects.filter(face_encoding__isnull=False).count()
@@ -725,8 +727,49 @@ def user_reports(request):
     status_data_json = json.dumps([active_users, inactive_users])
     face_data_json = json.dumps([users_with_face, users_without_face])
 
-    # آخرین ترددها
-    latest_logs = AttendanceLog.objects.select_related('user').order_by('-timestamp')[:10]
+    form = CustomReportForm(request.GET or None)
+    logs = AttendanceLog.objects.select_related('user').order_by('-timestamp')[:10]
+    heatmap_data_json = '[]'
+    group_labels_json = '[]'
+    group_values_json = '[]'
+
+    if form.is_valid() and any(form.cleaned_data.values()):
+        logs_qs = AttendanceLog.objects.select_related('user')
+        start = form.cleaned_data.get('start_g')
+        end = form.cleaned_data.get('end_g')
+        if start:
+            logs_qs = logs_qs.filter(timestamp__date__gte=start)
+        if end:
+            logs_qs = logs_qs.filter(timestamp__date__lte=end)
+        groups = form.cleaned_data.get('groups')
+        if groups:
+            logs_qs = logs_qs.filter(user__group__in=groups)
+        shifts = form.cleaned_data.get('shifts')
+        if shifts:
+            logs_qs = logs_qs.filter(user__shift__in=shifts)
+        users = form.cleaned_data.get('users')
+        if users:
+            logs_qs = logs_qs.filter(user__in=users)
+
+        logs = logs_qs.order_by('-timestamp')[:500]
+
+        from collections import Counter
+        heat_counter = Counter()
+        for lg in logs_qs:
+            wd = lg.timestamp.weekday()
+            hr = lg.timestamp.hour
+            heat_counter[(wd, hr)] += 1
+        heatmap_data = [
+            {"x": wd, "y": hr, "v": c} for (wd, hr), c in heat_counter.items()
+        ]
+        group_counter = {}
+        for lg in logs_qs.select_related('user__group'):
+            grp = lg.user.group.name if lg.user.group else 'بی‌گروه'
+            group_counter[grp] = group_counter.get(grp, 0) + 1
+
+        heatmap_data_json = json.dumps(heatmap_data)
+        group_labels_json = json.dumps(list(group_counter.keys()))
+        group_values_json = json.dumps(list(group_counter.values()))
 
     context = {
         'active_tab': 'reports',
@@ -734,9 +777,13 @@ def user_reports(request):
         'inactive_users': inactive_users,
         'users_with_face': users_with_face,
         'users_without_face': users_without_face,
-        'latest_logs': latest_logs,
+        'form': form,
+        'logs': logs,
         'status_data_json': status_data_json,
         'face_data_json': face_data_json,
+        'heatmap_data_json': heatmap_data_json,
+        'group_labels_json': group_labels_json,
+        'group_values_json': group_values_json,
     }
     return render(request, 'core/user_reports.html', context)
 
@@ -1152,3 +1199,79 @@ def leave_type_delete(request, pk):
         messages.success(request, "حذف شد.")
         return redirect("leave_type_list")
     return render(request, "core/confirm_delete.html", {"object": obj, "cancel_url": "leave_type_list"})
+
+
+@login_required
+@staff_required
+def monthly_performance(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    form = MonthlyPerformanceForm(request.GET or None)
+    report = None
+    if form.is_valid():
+        user = form.cleaned_data["user"]
+        year = form.cleaned_data["year"]
+        month = form.cleaned_data["month_num"]
+        start_j = jdatetime.date(year, month, 1)
+        if month == 12:
+            end_j = jdatetime.date(year + 1, 1, 1) - jdatetime.timedelta(days=1)
+        else:
+            end_j = jdatetime.date(year, month + 1, 1) - jdatetime.timedelta(days=1)
+        start = start_j.togregorian()
+        end = end_j.togregorian()
+        logs = AttendanceLog.objects.filter(
+            user=user, timestamp__date__gte=start, timestamp__date__lte=end
+        ).order_by("timestamp")
+        from collections import defaultdict
+        days = defaultdict(list)
+        for lg in logs:
+            days[lg.timestamp.date()].append(lg)
+        total_minutes = 0
+        late_minutes = 0
+        late_days = 0
+        for day, lgs in days.items():
+            lgs.sort(key=lambda x: x.timestamp)
+            first_in = next((l.timestamp for l in lgs if l.log_type == 'in'), None)
+            last_out = next((l.timestamp for l in reversed(lgs) if l.log_type == 'out'), None)
+            if first_in and last_out and last_out > first_in:
+                diff = last_out - first_in
+                total_minutes += diff.total_seconds() // 60
+                shift = _get_user_shift(user)
+                if shift:
+                    shift_start_dt = datetime.combine(day, shift.start_time)
+                    if first_in > shift_start_dt:
+                        late = first_in - shift_start_dt
+                        late_minutes += int(late.total_seconds() // 60)
+                        late_days += 1
+        shift = _get_user_shift(user)
+        required_minutes = 0
+        total_days = (end - start).days + 1
+        present_days = len(days)
+        absent_days = total_days - present_days
+        if shift:
+            day_minutes = (
+                datetime.combine(datetime.today(), shift.end_time)
+                - datetime.combine(datetime.today(), shift.start_time)
+            ).total_seconds() // 60
+            required_minutes = day_minutes * total_days
+        overtime_minutes = total_minutes - required_minutes
+        leaves = LeaveRequest.objects.filter(
+            user=user, start_date__lte=end, end_date__gte=start
+        )
+        report = {
+            "user": user,
+            "year": year,
+            "month": month,
+            "required_minutes": int(required_minutes),
+            "actual_minutes": int(total_minutes),
+            "overtime_minutes": int(overtime_minutes),
+            "absent_days": absent_days,
+            "late_days": late_days,
+            "late_minutes": int(late_minutes),
+            "leaves": leaves,
+        }
+    return render(
+        request,
+        "core/monthly_performance.html",
+        {"form": form, "report": report, "active_tab": "reports"},
+    )
