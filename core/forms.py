@@ -319,16 +319,40 @@ class ReportFilterForm(forms.Form):
         label="تا تاریخ", widget=AdminjDateWidget(), required=False
     )
     groups = forms.ModelMultipleChoiceField(
-        queryset=Group.objects.all(), label="گروه‌ها", required=False
+        queryset=Group.objects.all(),
+        label="گروه‌ها",
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
     )
     shifts = forms.ModelMultipleChoiceField(
-        queryset=Shift.objects.all(), label="شیفت‌ها", required=False
+        queryset=Shift.objects.all(),
+        label="شیفت‌ها",
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
     )
     users = forms.ModelMultipleChoiceField(
-        queryset=User.objects.all(), label="کاربران", required=False
+        queryset=User.objects.all(),
+        label="کاربران",
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
     )
 
 
 class MonthlyPerformanceForm(forms.Form):
     user = forms.ModelChoiceField(queryset=User.objects.all(), label="کاربر")
-    month = jforms.jDateField(label="ماه", widget=AdminjDateWidget())
+    year = forms.IntegerField(label="سال", initial=jdatetime.date.today().year)
+    MONTH_CHOICES = [
+        (1, "فروردین"),
+        (2, "اردیبهشت"),
+        (3, "خرداد"),
+        (4, "تیر"),
+        (5, "مرداد"),
+        (6, "شهریور"),
+        (7, "مهر"),
+        (8, "آبان"),
+        (9, "آذر"),
+        (10, "دی"),
+        (11, "بهمن"),
+        (12, "اسفند"),
+    ]
+    month = forms.ChoiceField(label="ماه", choices=MONTH_CHOICES, initial=jdatetime.date.today().month)

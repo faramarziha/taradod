@@ -5,23 +5,32 @@
 <h2 style="text-align:right;">
   <i class="fas fa-user-clock" style="margin-left:0.5rem;"></i> پروفایل عملکرد ماهانه
 </h2>
-<form method="get" class="card" style="margin-top:1rem;">
-  {{ form.as_p }}
+<form method="get" class="card report-filter" style="margin-top:1rem;">
+  <div class="form-grid">
+    <div>{{ form.user.label_tag }}{{ form.user }}</div>
+    <div>{{ form.year.label_tag }}{{ form.year }}</div>
+    <div>{{ form.month.label_tag }}{{ form.month }}</div>
+  </div>
   <button type="submit" class="btn">نمایش</button>
 </form>
 {% if report %}
+<h3 style="margin-top:1rem;">گزارش {{ selected_user.get_full_name }}</h3>
+<div class="dashboard-stats" style="margin-top:0;">
+  <div class="dashboard-card"><div class="value">{{ report.required_hours }}</div><div class="label">ساعات موظفی</div></div>
+  <div class="dashboard-card"><div class="value">{{ report.present_hours }}</div><div class="label">ساعات حضور</div></div>
+  <div class="dashboard-card"><div class="value">{{ report.overtime_minutes }}</div><div class="label">اضافه/کسری (دقیقه)</div></div>
+  <div class="dashboard-card"><div class="value">{{ report.absence_days }}</div><div class="label">روز غیبت</div></div>
+  <div class="dashboard-card"><div class="value">{{ report.tardy_minutes }}</div><div class="label">دقایق تأخیر</div></div>
+</div>
+{% if leaves %}
 <div class="card" style="margin-top:1rem;">
-  <h3>گزارش {{ selected_user.get_full_name }}</h3>
-  <p>مجموع دقایق حضور: {{ report.total_minutes }}</p>
-  <p>تعداد ترددها: {{ report.log_count }}</p>
-  {% if leaves %}
   <h4>مرخصی‌ها</h4>
   <ul>
     {% for l in leaves %}
       <li>{{ l.start_date|jformat:"%Y/%m/%d" }} تا {{ l.end_date|jformat:"%Y/%m/%d" }}</li>
     {% endfor %}
   </ul>
-  {% endif %}
 </div>
+{% endif %}
 {% endif %}
 {% endblock %}

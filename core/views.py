@@ -720,12 +720,7 @@ def user_reports(request):
     active_users = User.objects.filter(is_active=True).count()
     inactive_users = User.objects.filter(is_active=False).count()
     users_with_face = User.objects.filter(face_encoding__isnull=False).count()
-    total_users = User.objects.count()
-    users_without_face = total_users - users_with_face
-
-    import json
-    status_data_json = json.dumps([active_users, inactive_users])
-    face_data_json = json.dumps([users_with_face, users_without_face])
+    users_without_face = User.objects.filter(face_encoding__isnull=True).count()
 
     form = ReportFilterForm(request.GET or None)
     logs_qs = AttendanceLog.objects.select_related('user').order_by('-timestamp')
@@ -753,8 +748,6 @@ def user_reports(request):
         'users_without_face': users_without_face,
         'logs': logs,
         'form': form,
-        'status_data_json': status_data_json,
-        'face_data_json': face_data_json,
     }
     return render(request, 'core/user_reports.html', context)
 
@@ -769,36 +762,95 @@ def monthly_profile(request):
     selected_user = None
     if form.is_valid():
         selected_user = form.cleaned_data['user']
-        month = form.cleaned_data['month']
-        start_j = jdatetime.date(month.year, month.month, 1)
-        if month.month == 12:
-            next_month = jdatetime.date(month.year + 1, 1, 1)
+        year = form.cleaned_data['year']
+        month = int(form.cleaned_data['month'])
+        start_j = jdatetime.date(year, month, 1)
+        if month == 12:
+            next_month = jdatetime.date(year + 1, 1, 1)
         else:
-            next_month = jdatetime.date(month.year, month.month + 1, 1)
+            next_month = jdatetime.date(year, month + 1, 1)
         end_j = next_month - jdatetime.timedelta(days=1)
         start_g = start_j.togregorian()
         end_g = end_j.togregorian()
-        logs = AttendanceLog.objects.filter(
+        logs_qs = AttendanceLog.objects.filter(
             user=selected_user,
             timestamp__date__range=(start_g, end_g)
         ).order_by('timestamp')
-        total_minutes = 0
-        current_in = None
+        logs = list(logs_qs)
+        logs_by_day = {}
         for log in logs:
-            if log.log_type == 'in':
-                current_in = log.timestamp
-            elif log.log_type == 'out' and current_in:
-                total_minutes += int((log.timestamp - current_in).total_seconds() // 60)
-                current_in = None
-        report = {
-            'total_minutes': total_minutes,
-            'log_count': logs.count(),
-        }
+            logs_by_day.setdefault(log.timestamp.date(), []).append(log)
+
+        # prepare leave days
         leaves = LeaveRequest.objects.filter(
             user=selected_user,
             start_date__lte=end_g,
             end_date__gte=start_g,
+            status='approved'
         )
+        leave_days = set()
+        for leave in leaves:
+            cur = max(leave.start_date, start_g)
+            while cur <= min(leave.end_date, end_g):
+                leave_days.add(cur)
+                cur += timedelta(days=1)
+
+        shift = _get_user_shift(selected_user)
+        shift_start = time(9, 0)
+        shift_end = time(17, 0)
+        if shift:
+            shift_start = shift.start_time
+            shift_end = shift.end_time
+        # shift duration
+        if shift_end <= shift_start:
+            shift_minutes = (
+                datetime.combine(start_g, shift_end) + timedelta(days=1) - datetime.combine(start_g, shift_start)
+            ).seconds // 60
+        else:
+            shift_minutes = (
+                datetime.combine(start_g, shift_end) - datetime.combine(start_g, shift_start)
+            ).seconds // 60
+
+        weekly_holidays = set(WeeklyHoliday.objects.values_list('weekday', flat=True))
+
+        day = start_g
+        total_minutes = 0
+        mandatory_minutes = 0
+        tardy_minutes = 0
+        absence_days = 0
+        while day <= end_g:
+            if day.weekday() in weekly_holidays or day in leave_days:
+                day += timedelta(days=1)
+                continue
+            mandatory_minutes += shift_minutes
+            day_logs = logs_by_day.get(day, [])
+            if day_logs:
+                current_in = None
+                for log in day_logs:
+                    if log.log_type == 'in':
+                        current_in = log.timestamp
+                    elif log.log_type == 'out' and current_in:
+                        total_minutes += int((log.timestamp - current_in).total_seconds() // 60)
+                        current_in = None
+                first_log = day_logs[0]
+                shift_start_dt = datetime.combine(day, shift_start)
+                fl_ts = first_log.timestamp
+                if fl_ts.tzinfo is not None:
+                    fl_ts = fl_ts.replace(tzinfo=None)
+                if fl_ts > shift_start_dt:
+                    tardy_minutes += int((fl_ts - shift_start_dt).total_seconds() // 60)
+            else:
+                absence_days += 1
+            day += timedelta(days=1)
+
+        overtime_minutes = total_minutes - mandatory_minutes
+        report = {
+            'required_hours': round(mandatory_minutes / 60, 2),
+            'present_hours': round(total_minutes / 60, 2),
+            'overtime_minutes': overtime_minutes,
+            'absence_days': absence_days,
+            'tardy_minutes': tardy_minutes,
+        }
     context = {
         'active_tab': 'reports',
         'form': form,

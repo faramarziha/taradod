@@ -299,6 +299,17 @@
 }
 .charts-grid canvas { flex: 0 0 220px; }
 
+.report-filter .form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+.report-filter .form-grid div {
+  display: flex;
+  flex-direction: column;
+}
+.report-result .table-responsive { overflow-x: auto; }
+
 @media (min-width: 900px) {
   .management-layout {
     flex-direction: row;
