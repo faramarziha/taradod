@@ -305,7 +305,144 @@ def user_profile(request):
     if not uid:
         return redirect("user_inquiry")
     u = get_object_or_404(User, id=uid)
-    return render(request, "core/user_profile.html", {"user": u})
+
+    today = timezone.localdate()
+    today_logs = AttendanceLog.objects.filter(user=u, timestamp__date=today).order_by("timestamp")
+    is_holiday = WeeklyHoliday.objects.filter(weekday=today.weekday()).exists()
+    on_leave = LeaveRequest.objects.filter(
+        user=u, status="approved", start_date__lte=today, end_date__gte=today
+    ).exists()
+
+    status_info = {"label": "", "color": "", "detail": None}
+    if is_holiday:
+        status_info.update({"label": "روز تعطیل", "color": "holiday"})
+    elif on_leave:
+        status_info.update({"label": "مرخصی", "color": "leave"})
+    elif today_logs.exists():
+        first_log = today_logs.first()
+        status_info.update(
+            {
+                "label": "حاضر",
+                "color": "present",
+                "detail": first_log.timestamp.strftime("%H:%M"),
+            }
+        )
+    else:
+        status_info.update({"label": "غایب", "color": "absent"})
+
+    edits = list(
+        EditRequest.objects.filter(user=u).order_by("-created_at")[:4]
+    )
+    leaves = list(
+        LeaveRequest.objects.filter(user=u).order_by("-created_at")[:4]
+    )
+    combined = edits + leaves
+    combined.sort(key=lambda x: x.created_at, reverse=True)
+    notifications = []
+    for obj in combined[:4]:
+        if isinstance(obj, EditRequest):
+            status_disp = dict(EditRequest.STATUS_CHOICES).get(obj.status, obj.status)
+            ts = jdatetime.datetime.fromgregorian(datetime=obj.timestamp).strftime(
+                "%Y/%m/%d %H:%M"
+            )
+            notifications.append(
+                f"درخواست ویرایش تردد برای {ts} {status_disp} است."
+            )
+        else:
+            status_disp = dict(LeaveRequest.STATUS_CHOICES).get(obj.status, obj.status)
+            start_j = jdatetime.date.fromgregorian(date=obj.start_date).strftime(
+                "%Y/%m/%d"
+            )
+            end_j = jdatetime.date.fromgregorian(date=obj.end_date).strftime(
+                "%Y/%m/%d"
+            )
+            notifications.append(
+                f"درخواست مرخصی برای {start_j} تا {end_j} {status_disp} است."
+            )
+
+    today_j = jdatetime.date.today()
+    jy, jm = today_j.year, today_j.month
+    days = jdatetime.j_days_in_month[jm - 1]
+    start_g = jdatetime.date(jy, jm, 1).togregorian()
+    end_g = jdatetime.date(jy, jm, days).togregorian()
+    logs_qs = AttendanceLog.objects.filter(
+        user=u, timestamp__date__range=(start_g, end_g)
+    ).order_by("timestamp")
+    logs_by_day = {}
+    for log in logs_qs:
+        jd = jdatetime.date.fromgregorian(date=log.timestamp.date())
+        logs_by_day.setdefault(jd.day, []).append(log)
+
+    week_holidays = set(WeeklyHoliday.objects.values_list("weekday", flat=True))
+    total_seconds = 0
+    tardy_minutes = 0
+    absent_days = 0
+    for day in range(1, days + 1):
+        jd = jdatetime.date(jy, jm, day)
+        gdate = jd.togregorian()
+        if gdate > today:
+            break
+        if jd.weekday() in week_holidays:
+            continue
+        leave_day = LeaveRequest.objects.filter(
+            user=u, status="approved", start_date__lte=gdate, end_date__gte=gdate
+        ).exists()
+        if leave_day:
+            continue
+        day_logs = logs_by_day.get(day, [])
+        if not day_logs:
+            absent_days += 1
+            continue
+        day_logs.sort(key=lambda l: l.timestamp)
+        first_log = day_logs[0]
+        last_log = day_logs[-1]
+        shift = _get_user_shift(u)
+        shift_start = time(9, 0)
+        shift_end = time(17, 0)
+        if shift:
+            shift_start = shift.start_time
+            shift_end = shift.end_time
+        start_dt = datetime.combine(gdate, shift_start)
+        end_dt = datetime.combine(gdate, shift_end)
+        if shift_end <= shift_start:
+            end_dt += timedelta(days=1)
+        if first_log.timestamp > start_dt:
+            tardy_minutes += int(
+                (first_log.timestamp - start_dt).total_seconds() / 60
+            )
+        last_dt = last_log.timestamp
+        if last_dt < first_log.timestamp:
+            last_dt = first_log.timestamp
+        work_start = max(first_log.timestamp, start_dt)
+        work_end = min(last_dt, end_dt)
+        if work_end > work_start:
+            total_seconds += (work_end - work_start).total_seconds()
+    total_hours = round(total_seconds / 3600, 2)
+
+    year_start = jdatetime.date(jy, 1, 1).togregorian()
+    year_end = jdatetime.date(jy, 12, jdatetime.j_days_in_month[11]).togregorian()
+    approved_leaves = LeaveRequest.objects.filter(
+        user=u, status="approved", start_date__gte=year_start, end_date__lte=year_end
+    )
+    used_days = 0
+    for lr in approved_leaves:
+        used_days += (lr.end_date - lr.start_date).days + 1
+    remaining_leave = max(0, 26 - used_days)
+
+    monthly_stats = {
+        "total_hours": total_hours,
+        "tardy_minutes": tardy_minutes,
+        "absent_days": absent_days,
+        "remaining_leave": remaining_leave,
+    }
+
+    context = {
+        "user": u,
+        "today_status": status_info,
+        "notifications": notifications,
+        "monthly_stats": monthly_stats,
+    }
+    return render(request, "core/user_profile.html", context)
 
 
 def my_logs(request):
