@@ -301,7 +301,131 @@ def user_profile(request):
     if not uid:
         return redirect("user_inquiry")
     u = get_object_or_404(User, id=uid)
-    return render(request, "core/user_profile.html", {"user": u})
+
+    # تعیین وضعیت امروز کاربر
+    today_j = jdatetime.date.today()
+    today = today_j.togregorian()
+    is_holiday = WeeklyHoliday.objects.filter(weekday=today_j.weekday()).exists()
+    on_leave = LeaveRequest.objects.filter(
+        user=u,
+        status="approved",
+        start_date__lte=today,
+        end_date__gte=today,
+    ).exists()
+    first_log = (
+        AttendanceLog.objects.filter(user=u, timestamp__date=today)
+        .order_by("timestamp")
+        .first()
+    )
+    status_label = "روز تعطیل"
+    status_badge = "badge-muted"
+    status_time = None
+    if on_leave:
+        status_label = "مرخصی"
+        status_badge = "badge-info"
+    elif first_log:
+        status_label = "حاضر"
+        status_badge = "badge-success"
+        status_time = first_log.timestamp.time()
+    elif not is_holiday:
+        status_label = "غایب"
+        status_badge = "badge-error"
+
+    # اعلان‌های اخیر (مرخصی و ویرایش)
+    notifications = []
+    leave_notifs = LeaveRequest.objects.filter(user=u).order_by("-created_at")[:4]
+    for lr in leave_notifs:
+        if lr.status == "pending":
+            msg = f"درخواست مرخصی شما برای تاریخ {lr.start_date} تا {lr.end_date} در انتظار بررسی است."
+        elif lr.status == "approved":
+            msg = f"درخواست مرخصی شما برای تاریخ {lr.start_date} تا {lr.end_date} تأیید شد."
+        elif lr.status == "rejected":
+            msg = f"درخواست مرخصی شما برای تاریخ {lr.start_date} تا {lr.end_date} رد شد."
+        else:
+            msg = f"درخواست مرخصی شما برای تاریخ {lr.start_date} تا {lr.end_date} لغو شد."
+        notifications.append((lr.created_at, msg))
+    edit_notifs = EditRequest.objects.filter(user=u).order_by("-created_at")[:4]
+    for er in edit_notifs:
+        ts = er.timestamp.strftime("%Y-%m-%d %H:%M")
+        if er.status == "pending":
+            msg = f"درخواست ویرایش تردد شما برای {ts} در انتظار بررسی است."
+        elif er.status == "approved":
+            msg = f"درخواست ویرایش تردد شما برای {ts} تأیید شد."
+        elif er.status == "rejected":
+            msg = f"درخواست ویرایش تردد شما برای {ts} رد شد."
+        else:
+            msg = f"درخواست ویرایش تردد شما برای {ts} لغو شد."
+        notifications.append((er.created_at, msg))
+    notifications.sort(key=lambda x: x[0], reverse=True)
+    notifications = [n[1] for n in notifications[:4]]
+
+    # آمار ماه جاری
+    jy, jm = today_j.year, today_j.month
+    days = jdatetime.j_days_in_month[jm - 1]
+    start_g = jdatetime.date(jy, jm, 1).togregorian()
+    end_g = jdatetime.date(jy, jm, days).togregorian()
+    qs = AttendanceLog.objects.filter(user=u, timestamp__date__range=(start_g, end_g)).order_by("timestamp")
+    daily = {d: {"in": None, "out": None} for d in range(1, days + 1)}
+    for log in qs:
+        jd = jdatetime.date.fromgregorian(date=log.timestamp.date())
+        info = daily[jd.day]
+        if log.log_type == "in" and info["in"] is None:
+            info["in"] = log.timestamp
+        elif log.log_type == "out":
+            info["out"] = log.timestamp
+
+    shift = _get_user_shift(u)
+    shift_start = time(9, 0)
+    shift_end = time(17, 0)
+    if shift:
+        shift_start = shift.start_time
+        shift_end = shift.end_time
+
+    total_seconds = 0
+    tardy_minutes = 0
+    absent_days = 0
+    leave_days = 0
+    for day in range(1, days + 1):
+        jd = jdatetime.date(jy, jm, day)
+        date_g = jd.togregorian()
+        is_holiday_d = WeeklyHoliday.objects.filter(weekday=jd.weekday()).exists()
+        on_leave_d = LeaveRequest.objects.filter(
+            user=u,
+            status="approved",
+            start_date__lte=date_g,
+            end_date__gte=date_g,
+        ).exists()
+        info = daily[day]
+        if info["in"]:
+            first_dt = info["in"].replace(tzinfo=None)
+            last_dt = info["out"].replace(tzinfo=None) if info["out"] else first_dt
+            start_dt = datetime.combine(date_g, shift_start)
+            end_dt = datetime.combine(date_g, shift_end)
+            if first_dt > start_dt:
+                tardy_minutes += int((first_dt - start_dt).total_seconds() // 60)
+            work_start = max(first_dt, start_dt)
+            work_end = min(last_dt, end_dt)
+            if work_end > work_start:
+                total_seconds += (work_end - work_start).total_seconds()
+        else:
+            if not is_holiday_d and not on_leave_d and date_g <= today:
+                absent_days += 1
+        if on_leave_d:
+            leave_days += 1
+    total_hours = round(total_seconds / 3600, 2)
+
+    context = {
+        "user": u,
+        "status_label": status_label,
+        "status_badge": status_badge,
+        "status_time": status_time,
+        "notifications": notifications,
+        "total_hours": total_hours,
+        "tardy_minutes": tardy_minutes,
+        "absent_days": absent_days,
+        "remaining_leave": None,
+    }
+    return render(request, "core/user_profile.html", context)
 
 
 def my_logs(request):
@@ -433,6 +557,21 @@ def cancel_leave_request(request, pk):
         req.save()
         messages.info(request, "درخواست مرخصی لغو شد.")
     return redirect("user_leave_requests")
+
+
+def user_requests(request):
+    """نمایش لیست درخواست‌های کاربر (مرخصی و ویرایش)."""
+    uid = request.session.get("inquiry_user_id")
+    if not uid:
+        return redirect("user_inquiry")
+    u = get_object_or_404(User, id=uid)
+    edit_qs = EditRequest.objects.filter(user=u).order_by("-created_at")
+    leave_qs = LeaveRequest.objects.select_related("leave_type").filter(user=u).order_by("-created_at")
+    return render(
+        request,
+        "core/my_requests.html",
+        {"user": u, "edit_requests": edit_qs, "leave_requests": leave_qs},
+    )
 
 
 # —————————————————————————

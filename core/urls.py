@@ -40,6 +40,7 @@ urlpatterns = [
     path("user/leave-request/<int:pk>/cancel/", views.cancel_leave_request, name="cancel_leave_request"),
     path("user/edit-requests/",    views.user_edit_requests,            name="user_edit_requests"),
     path("user/leave-requests/",   views.user_leave_requests,           name="user_leave_requests"),
+    path("user/requests/",         views.user_requests,                name="user_requests"),
 
     # —————— پنل مدیریت ——————
     # تأیید چهرهٔ مدیر قبل از ورود به پنل
