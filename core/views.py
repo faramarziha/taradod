@@ -614,16 +614,19 @@ def admin_user_profile(request, pk):
     else:
         form = CustomUserSimpleForm(instance=user_obj)
 
-    logs_form = UserLogsRangeForm(request.GET or None, prefix="logs")
-    logs = AttendanceLog.objects.filter(user=user_obj).order_by("timestamp")
-    if logs_form.is_valid():
-        sd = logs_form.cleaned_data.get("start_g")
-        ed = logs_form.cleaned_data.get("end_g")
+    requests_form = UserLogsRangeForm(request.GET or None, prefix="req")
+    edit_requests = EditRequest.objects.filter(user=user_obj).order_by("-created_at")
+    leave_requests = LeaveRequest.objects.filter(user=user_obj).order_by("-created_at")
+    if requests_form.is_valid():
+        sd = requests_form.cleaned_data.get("start_g")
+        ed = requests_form.cleaned_data.get("end_g")
         if sd and ed:
-            logs = logs.filter(timestamp__date__gte=sd, timestamp__date__lte=ed)
-
-    edit_requests = EditRequest.objects.filter(user=user_obj).order_by("-created_at")[:20]
-    leave_requests = LeaveRequest.objects.filter(user=user_obj).order_by("-created_at")[:20]
+            edit_requests = edit_requests.filter(
+                created_at__date__gte=sd, created_at__date__lte=ed
+            )
+            leave_requests = leave_requests.filter(
+                created_at__date__gte=sd, created_at__date__lte=ed
+            )
 
     return render(
         request,
@@ -631,8 +634,7 @@ def admin_user_profile(request, pk):
         {
             "user_obj": user_obj,
             "form": form,
-            "logs_form": logs_form,
-            "logs": logs,
+            "requests_form": requests_form,
             "edit_requests": edit_requests,
             "leave_requests": leave_requests,
         },

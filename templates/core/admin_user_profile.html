@@ -5,37 +5,18 @@
 <h2 class="page-title"><i class="fas fa-user-cog"></i> پروفایل {{ user_obj.get_full_name }}</h2>
 <ul class="tabs">
   <li><a href="#info" class="tab-link active">اطلاعات پایه</a></li>
-  <li><a href="#logs" class="tab-link">گزارش تردد</a></li>
   <li><a href="#requests" class="tab-link">سوابق درخواست‌ها</a></li>
   <li><a href="#face" class="tab-link">مدیریت چهره</a></li>
 </ul>
 <div id="info" class="tab-content active">
   {% include "core/_user_form_fields.html" with cancel_url=request.path %}
 </div>
-<div id="logs" class="tab-content">
+<div id="requests" class="tab-content">
   <form method="get" class="form-inline" style="margin-bottom:1rem;">
-    {{ logs_form.start.label }} {{ logs_form.start }}
-    {{ logs_form.end.label }} {{ logs_form.end }}
+    {{ requests_form.start.label }} {{ requests_form.start }}
+    {{ requests_form.end.label }} {{ requests_form.end }}
     <button class="btn" type="submit">نمایش</button>
   </form>
-  <div class="table-responsive">
-    <table class="management-table">
-      <thead><tr><th>تاریخ</th><th>ساعت</th><th>نوع</th></tr></thead>
-      <tbody>
-        {% for log in logs %}
-        <tr>
-          <td>{{ log.timestamp|jformat:"%Y/%m/%d" }}</td>
-          <td>{{ log.timestamp|time:"H:i" }}</td>
-          <td>{% if log.log_type == 'in' %}ورود{% else %}خروج{% endif %}</td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="3">موردی نیست</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
-<div id="requests" class="tab-content">
   <h3>درخواست‌های ویرایش</h3>
   <div class="table-responsive">
     <table class="management-table">
@@ -86,7 +67,7 @@
 {% endblock %}
 
 {% block extra_js %}
-{{ logs_form.media }}
+{{ requests_form.media }}
 <script>
 document.querySelectorAll('.tab-link').forEach(link => {
   link.addEventListener('click', function(e){
