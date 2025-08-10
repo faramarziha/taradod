@@ -185,9 +185,23 @@ def api_verify_face(request):
         return JsonResponse({"ok": False, "msg": "دستگاه غیرفعال است."})
     try:
         data = json.loads(request.body)
-        enc = _get_face_encoding_from_base64(data.get("image", ""))
-        if enc is None:
-            return JsonResponse({"ok": False, "msg": "چهره واضح نیست."})
+        img1 = data.get("image1")
+        img2 = data.get("image2")
+        if img1 and img2:
+            enc1 = _get_face_encoding_from_base64(img1)
+            enc2 = _get_face_encoding_from_base64(img2)
+            if enc1 is None or enc2 is None:
+                return JsonResponse({"ok": False, "msg": "چهره واضح نیست. لطفاً روبه‌روی دوربین قرار بگیرید."})
+            movement = np.linalg.norm(enc1 - enc2)
+            if movement < 0.08:
+                return JsonResponse({"ok": False, "msg": "حرکت کافی تشخیص داده نشد."})
+            enc = (enc1 + enc2) / 2
+            data_image = img2
+        else:
+            data_image = data.get("image", "")
+            enc = _get_face_encoding_from_base64(data_image)
+            if enc is None:
+                return JsonResponse({"ok": False, "msg": "چهره واضح نیست. لطفاً روبه‌روی دوربین قرار بگیرید."})
         best_user = None
         best_dist = float("inf")
 
@@ -226,7 +240,7 @@ def api_verify_face(request):
         if best_user and best_dist < 0.6:
             # log suspicious attempt for admin review
             try:
-                header, b64data = data.get("image", "").split(",", 1)
+                header, b64data = data_image.split(",", 1)
                 fmt = header.split(";")[0].split("/")[1]
                 img_data = base64.b64decode(b64data)
                 filename = f"suspect_{timezone.now().timestamp()}.{fmt}"
@@ -239,9 +253,9 @@ def api_verify_face(request):
                 SuspiciousLog.objects.create(matched_user=best_user, similarity=best_dist)
             return JsonResponse({"ok": False, "suspicious": True})
 
-        return JsonResponse({"ok": False, "msg": "شناسایی ناموفق."})
+        return JsonResponse({"ok": False, "msg": "شناسایی ناموفق. لطفاً دوباره تلاش کنید."})
     except Exception:
-        return JsonResponse({"ok": False, "msg": "خطا در پردازش تصویر."})
+        return JsonResponse({"ok": False, "msg": "خطا در پردازش تصویر. لطفاً دوباره تلاش کنید."})
 
 @require_POST
 @login_required
