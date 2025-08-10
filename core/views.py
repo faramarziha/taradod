@@ -1476,26 +1476,16 @@ def shift_edit(request, pk=None):
     return render(request, "core/shift_form.html", {"form": form, "active_tab": "settings"})
 
 
+@require_POST
 @login_required
 @staff_required
 def shift_delete(request, pk):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
     shift = get_object_or_404(Shift, pk=pk)
-    if request.method == "POST":
-        shift.delete()
-        messages.success(request, "حذف شد.")
-        return redirect("shift_list")
-    affected = (
-        CustomUser.objects.filter(Q(shift=shift) | Q(group__shift=shift))
-        .distinct()
-        .count()
-    )
-    return render(
-        request,
-        "core/confirm_delete.html",
-        {"object": shift, "cancel_url": "shift_list", "affected_count": affected},
-    )
+    shift.delete()
+    messages.success(request, "حذف شد.")
+    return redirect("shift_list")
 
 
 @login_required
@@ -1532,22 +1522,16 @@ def group_edit(request, pk=None):
     return render(request, "core/group_form.html", {"form": form, "active_tab": "settings"})
 
 
+@require_POST
 @login_required
 @staff_required
 def group_delete(request, pk):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
     grp = get_object_or_404(Group, pk=pk)
-    if request.method == "POST":
-        grp.delete()
-        messages.success(request, "حذف شد.")
-        return redirect("group_list")
-    affected = CustomUser.objects.filter(group=grp).count()
-    return render(
-        request,
-        "core/confirm_delete.html",
-        {"object": grp, "cancel_url": "group_list", "affected_count": affected},
-    )
+    grp.delete()
+    messages.success(request, "حذف شد.")
+    return redirect("group_list")
 
 
 @login_required
@@ -1576,14 +1560,13 @@ def leave_type_edit(request, pk=None):
     return render(request, "core/leave_type_form.html", {"form": form, "active_tab": "settings"})
 
 
+@require_POST
 @login_required
 @staff_required
 def leave_type_delete(request, pk):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
     obj = get_object_or_404(LeaveType, pk=pk)
-    if request.method == "POST":
-        obj.delete()
-        messages.success(request, "حذف شد.")
-        return redirect("leave_type_list")
-    return render(request, "core/confirm_delete.html", {"object": obj, "cancel_url": "leave_type_list"})
+    obj.delete()
+    messages.success(request, "حذف شد.")
+    return redirect("leave_type_list")

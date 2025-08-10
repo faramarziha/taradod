@@ -16,8 +16,12 @@
       <td>{{ t.name }}</td>
       <td>{{ t.description }}</td>
       <td>
-        <a href="{% url 'leave_type_edit' t.pk %}"><i class="fas fa-edit"></i></a>
-        <a href="{% url 'leave_type_delete' t.pk %}"><i class="fas fa-trash-alt"></i></a>
+        <a href="{% url 'leave_type_edit' t.pk %}" class="btn btn-sm">
+          <i class="fas fa-edit" style="margin-left:0.4rem;"></i> ویرایش
+        </a>
+        <button type="button" class="btn btn-danger btn-sm delete-item" data-url="{% url 'leave_type_delete' t.pk %}" data-name="{{ t.name }}">
+          <i class="fas fa-trash-alt"></i>
+        </button>
       </td>
     </tr>
   {% empty %}
@@ -26,4 +30,34 @@
   </tbody>
 </table>
 </div>
+<div id="delete-modal" class="modal">
+  <div class="modal-content">
+    <p id="delete-message"></p>
+    <form method="post" id="delete-form">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger">حذف</button>
+      <button type="button" class="btn" id="cancel-delete">انصراف</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const modal = document.getElementById('delete-modal');
+const deleteForm = document.getElementById('delete-form');
+const deleteMsg = document.getElementById('delete-message');
+document.querySelectorAll('.delete-item').forEach(btn => {
+  btn.addEventListener('click', function(ev){
+    ev.preventDefault();
+    const name = this.dataset.name;
+    deleteMsg.textContent = `آیا از حذف ${name} مطمئن هستید؟`;
+    deleteForm.action = this.dataset.url;
+    modal.classList.add('open');
+  });
+});
+document.getElementById('cancel-delete').addEventListener('click', function(){
+  modal.classList.remove('open');
+});
+</script>
 {% endblock %}
