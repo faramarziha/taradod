@@ -490,7 +490,7 @@ def edit_request(request):
                 obj.timestamp = obj.timestamp.replace(tzinfo=None)
             obj.save()
             messages.success(request, "درخواست شما ثبت شد و در انتظار تأیید است.")
-            return redirect("my_logs")
+            return redirect("user_edit_requests")
     else:
         form = EditRequestForm(user=u)
     return render(request, "core/edit_request_form.html", {"form": form, "user": u})
@@ -508,7 +508,7 @@ def leave_request(request):
                 obj = form.save(commit=False)
                 obj.save()
                 messages.success(request, "درخواست مرخصی ثبت شد.")
-                return redirect("user_profile")
+                return redirect("user_leave_requests")
         else:
             if form.is_valid():
                 return render(
