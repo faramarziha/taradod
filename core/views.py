@@ -21,6 +21,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from django.db.models import Count, Q
 
 from attendance.models import (
     AttendanceLog,
@@ -1042,8 +1043,15 @@ def device_settings(request):
 def shift_list(request):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
-    shifts = Shift.objects.all()
-    return render(request, "core/shift_list.html", {"shifts": shifts, "active_tab": "settings"})
+    shifts = Shift.objects.annotate(
+        user_count=Count("customuser", distinct=True)
+        + Count("groups__customuser", distinct=True)
+    )
+    return render(
+        request,
+        "core/shift_list.html",
+        {"shifts": shifts, "active_tab": "settings"},
+    )
 
 
 @login_required
@@ -1073,7 +1081,16 @@ def shift_delete(request, pk):
         shift.delete()
         messages.success(request, "حذف شد.")
         return redirect("shift_list")
-    return render(request, "core/confirm_delete.html", {"object": shift, "cancel_url": "shift_list"})
+    affected = (
+        CustomUser.objects.filter(Q(shift=shift) | Q(group__shift=shift))
+        .distinct()
+        .count()
+    )
+    return render(
+        request,
+        "core/confirm_delete.html",
+        {"object": shift, "cancel_url": "shift_list", "affected_count": affected},
+    )
 
 
 @login_required
@@ -1081,8 +1098,16 @@ def shift_delete(request, pk):
 def group_list(request):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
-    groups = Group.objects.select_related("shift").all()
-    return render(request, "core/group_list.html", {"groups": groups, "active_tab": "settings"})
+    groups = (
+        Group.objects.select_related("shift")
+        .annotate(user_count=Count("customuser"))
+        .all()
+    )
+    return render(
+        request,
+        "core/group_list.html",
+        {"groups": groups, "active_tab": "settings"},
+    )
 
 
 @login_required
@@ -1112,7 +1137,12 @@ def group_delete(request, pk):
         grp.delete()
         messages.success(request, "حذف شد.")
         return redirect("group_list")
-    return render(request, "core/confirm_delete.html", {"object": grp, "cancel_url": "group_list"})
+    affected = CustomUser.objects.filter(group=grp).count()
+    return render(
+        request,
+        "core/confirm_delete.html",
+        {"object": grp, "cancel_url": "group_list", "affected_count": affected},
+    )
 
 
 @login_required
