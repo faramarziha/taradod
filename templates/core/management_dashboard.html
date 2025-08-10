@@ -3,6 +3,10 @@
 {% block management_content %}
 <h2 class="page-title">
   <i class="fas fa-chart-bar"></i> داشبورد مدیریت
+  <span class="kiosk-status">
+    <i class="fas fa-circle {% if device_online %}status-online{% else %}status-offline{% endif %}"></i>
+    دستگاه {% if device_online %}آنلاین{% else %}آفلاین{% endif %}
+  </span>
 </h2>
 <form method="get" class="form-inline" style="margin-bottom:1rem;">
   <select name="group">
@@ -20,46 +24,46 @@
   <button class="btn" type="submit">فیلتر</button>
 </form>
 
-<div class="card dashboard-panel fade-in">
-  <h3 class="panel-title"><i class="fas fa-chart-pie"></i> آمار کلی</h3>
-  <div class="dashboard-stats">
-    <div class="dashboard-card">
-      <i class="fas fa-users"></i>
-      <span class="value">{{ total_users }}</span>
-      <span class="label">کل کاربران</span>
-    </div>
-    <div class="dashboard-card">
-      <i class="fas fa-clock"></i>
-      <span class="value">{{ today_logs }}</span>
-      <span class="label">تردد امروز</span>
-    </div>
-    <div class="dashboard-card">
-      <i class="fas fa-user-slash"></i>
-      <span class="value">{{ users_without_face }}</span>
-      <span class="label">بدون ثبت چهره</span>
-    </div>
-    <div class="dashboard-card">
-      <i class="fas fa-user-check"></i>
-      <span class="value">{{ present_count }}</span>
-      <span class="label">حاضر امروز</span>
-    </div>
-    <div class="dashboard-card">
-      <i class="fas fa-user-times"></i>
-      <span class="value">{{ absent_count }}</span>
-      <span class="label">غایب امروز</span>
-    </div>
-    <div class="dashboard-card">
-      <i class="fas fa-plane"></i>
-      <span class="value">{{ leave_count }}</span>
-      <span class="label">در مرخصی</span>
-    </div>
-    <div class="dashboard-card">
-      <i class="fas fa-hourglass-half"></i>
-      <span class="value">{{ total_hours }}</span>
-      <span class="label">مجموع ساعات</span>
-    </div>
+<div class="dashboard-stats">
+  <div class="dashboard-card">
+    <i class="fas fa-sign-in-alt"></i>
+    <span class="value">{{ today_in_logs }}</span>
+    <span class="label">ورود امروز</span>
+  </div>
+  <div class="dashboard-card">
+    <i class="fas fa-sign-out-alt"></i>
+    <span class="value">{{ today_out_logs }}</span>
+    <span class="label">خروج امروز</span>
   </div>
 </div>
+
+<div class="card fade-in">
+  <h3 class="panel-title"><i class="fas fa-heartbeat"></i> وضعیت مجموعه</h3>
+  <canvas id="statusChart" width="220" height="220" class="status-chart"></canvas>
+</div>
+
+<div class="status-lists">
+  <div id="absentList" class="status-list" style="display:none;">
+    <h4>غایبین امروز</h4>
+    <ul>
+      {% for u in absent_users %}
+        <li>{{ u.get_full_name }} - {{ u.personnel_code }}</li>
+      {% empty %}
+        <li>همه حاضرند</li>
+      {% endfor %}
+    </ul>
+  </div>
+  <div id="leaveList" class="status-list" style="display:none;">
+    <h4>در مرخصی</h4>
+    <ul>
+      {% for u in leave_users %}
+        <li>{{ u.get_full_name }} - {{ u.personnel_code }}</li>
+      {% empty %}
+        <li>موردی نیست</li>
+      {% endfor %}
+    </ul>
+  </div>
+  </div>
 
 <div class="card fade-in">
   <h3 class="panel-title"><i class="fas fa-bell"></i> هشدارها</h3>
@@ -82,61 +86,142 @@
   </ul>
 </div>
 
-<div class="status-grid card fade-in">
-  <div class="status-card">
-    <h4>حاضرین امروز</h4>
-    <ul>
-      {% for u in present_users %}
-        <li>{{ u.get_full_name }} - {{ u.personnel_code }}</li>
-      {% empty %}
-        <li>موردی ثبت نشده است</li>
-      {% endfor %}
-    </ul>
+<div class="card fade-in">
+  <h3 class="panel-title"><i class="fas fa-bolt"></i> مرکز اقدامات فوری</h3>
+  <div class="request-cards mobile-only">
+    {% for r in pending_actions %}
+    <div class="request-card fade-in">
+      <div class="row"><span class="label">کاربر:</span><span>{{ r.user.get_full_name }}</span></div>
+      <div class="row"><span class="label">تاریخ:</span><span>{{ r.date }}</span></div>
+      <div class="row"><span class="label">نوع:</span><span>{{ r.type_label }}</span></div>
+      <div class="actions">
+        <form method="post" action="{{ r.action_url }}" style="display:inline-block;">
+          {% csrf_token %}
+          <input type="hidden" name="req_id" value="{{ r.id }}">
+          <input type="hidden" name="action" value="approve">
+          <input type="hidden" name="next" value="management_dashboard">
+          <button class="btn btn-small" type="submit">تأیید</button>
+        </form>
+        <form method="post" action="{{ r.action_url }}" style="display:inline-block;">
+          {% csrf_token %}
+          <input type="hidden" name="req_id" value="{{ r.id }}">
+          <input type="hidden" name="action" value="reject">
+          <input type="hidden" name="next" value="management_dashboard">
+          <button class="btn btn-small" type="submit" style="background:var(--color-muted);color:#fff;">رد</button>
+        </form>
+      </div>
+    </div>
+    {% empty %}
+    <div class="alert-error">درخواستی وجود ندارد.</div>
+    {% endfor %}
   </div>
-  <div class="status-card">
-    <h4>غایبین امروز</h4>
-    <ul>
-      {% for u in absent_users %}
-        <li>{{ u.get_full_name }} - {{ u.personnel_code }}</li>
-      {% empty %}
-        <li>همه حاضرند</li>
-      {% endfor %}
-    </ul>
-  </div>
-  <div class="status-card">
-    <h4>در مرخصی</h4>
-    <ul>
-      {% for u in leave_users %}
-        <li>{{ u.get_full_name }} - {{ u.personnel_code }}</li>
-      {% empty %}
-        <li>موردی نیست</li>
-      {% endfor %}
-    </ul>
+  <div class="table-responsive desktop-only">
+    <table class="management-table">
+      <thead>
+        <tr><th>کاربر</th><th>تاریخ</th><th>نوع</th><th>اقدام</th></tr>
+      </thead>
+      <tbody>
+        {% for r in pending_actions %}
+        <tr>
+          <td>{{ r.user.get_full_name }}</td>
+          <td>{{ r.date }}</td>
+          <td>{{ r.type_label }}</td>
+          <td>
+            <form method="post" action="{{ r.action_url }}" style="display:inline-block;">
+              {% csrf_token %}
+              <input type="hidden" name="req_id" value="{{ r.id }}">
+              <input type="hidden" name="action" value="approve">
+              <input type="hidden" name="next" value="management_dashboard">
+              <button class="btn btn-small" type="submit">تأیید</button>
+            </form>
+            <form method="post" action="{{ r.action_url }}" style="display:inline-block;">
+              {% csrf_token %}
+              <input type="hidden" name="req_id" value="{{ r.id }}">
+              <input type="hidden" name="action" value="reject">
+              <input type="hidden" name="next" value="management_dashboard">
+              <button class="btn btn-small" type="submit" style="background:var(--color-muted);color:#fff;">رد</button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4">درخواستی وجود ندارد.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 </div>
 
-<div class="card fade-in" style="margin-top:2rem;">
-  <canvas id="logsChart" height="120"></canvas>
+<div class="card fade-in">
+  <h3 class="panel-title"><i class="fas fa-users"></i> خوب‌ها و بدها</h3>
+  <div class="performance-wrapper">
+    <div class="performance-box">
+      <h4>بدها <span class="info-icon" data-target="bad-info"><i class="fas fa-info-circle"></i></span></h4>
+      <div id="bad-info" class="info-text">کاربرانی با بیشترین روزهای دیرکرد در ماه اخیر</div>
+      <table class="performance-table">
+        <thead><tr><th>نام</th><th>تعداد</th></tr></thead>
+        <tbody>
+        {% for u, count in worst_performers %}
+          <tr><td>{{ u.get_full_name }}</td><td>{{ count }}</td></tr>
+        {% empty %}
+          <tr><td colspan="2">موردی نیست</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="performance-box">
+      <h4>خوب‌ها <span class="info-icon" data-target="good-info"><i class="fas fa-info-circle"></i></span></h4>
+      <div id="good-info" class="info-text">کاربرانی با بیشترین روز بدون تأخیر متوالی</div>
+      <table class="performance-table">
+        <thead><tr><th>نام</th><th>تعداد</th></tr></thead>
+        <tbody>
+        {% for u, count in best_performers %}
+          <tr><td>{{ u.get_full_name }}</td><td>{{ count }}</td></tr>
+        {% empty %}
+          <tr><td colspan="2">موردی نیست</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
+
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const logLabels = {{ date_range_json|safe }};
-const logData = {{ daily_logs_json|safe }};
-new Chart(document.getElementById('logsChart').getContext('2d'), {
-  type: 'line',
+const statusCtx = document.getElementById('statusChart').getContext('2d');
+const statusChart = new Chart(statusCtx, {
+  type: 'doughnut',
   data: {
-    labels: logLabels,
+    labels: ['حاضر', 'غایب', 'مرخصی'],
     datasets: [{
-      label: 'تعداد تردد',
-      data: logData,
-      borderColor: '#3e95cd',
-      fill: false
+      data: [{{ present_count }}, {{ absent_count }}, {{ leave_count }}],
+      backgroundColor: ['#4caf50', '#f44336', '#ff9800']
     }]
   },
-  options: {scales: {y: {beginAtZero:true}}}
+  options: {
+    onClick: (evt, els) => {
+      if (els.length) {
+        const idx = els[0].index;
+        document.querySelectorAll('.status-list').forEach(el => el.style.display='none');
+        const targets = [null, 'absentList', 'leaveList'];
+        const target = targets[idx];
+        if (target) {
+          document.getElementById(target).style.display = 'block';
+        }
+      }
+    }
+  }
+});
+
+document.querySelectorAll('.info-icon').forEach(icon => {
+  icon.addEventListener('click', () => {
+    const target = document.getElementById(icon.dataset.target);
+    if (target) {
+      target.classList.toggle('visible');
+    }
+  });
 });
 </script>
 {% endblock %}

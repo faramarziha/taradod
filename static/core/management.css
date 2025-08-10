@@ -134,6 +134,13 @@
 .status-offline { color: #f44336; }
 .status-active { color: #4caf50; }
 .status-inactive { color: #f44336; }
+.status-overview {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+}
 .dashboard-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -142,7 +149,7 @@
 }
 @media (min-width: 1000px) {
   .dashboard-stats {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 .dashboard-card {
@@ -250,6 +257,14 @@
 }
 .alerts-list li:last-child { border-bottom: none; }
 
+.kiosk-status {
+  font-size: 0.9rem;
+  margin-right: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
 .status-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -276,6 +291,39 @@
   overflow-y: auto;
 }
 
+.status-lists {
+  margin-top: 1rem;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.status-list {
+  background: var(--color-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--color-border);
+  padding: 0.8rem;
+  flex: 1 1 200px;
+}
+.status-list h4 {
+  margin-bottom: 0.5rem;
+  color: var(--color-primary-dark);
+  font-size: 1.05rem;
+}
+.status-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.status-chart {
+  max-width: 220px;
+  max-height: 220px;
+  margin: 0 auto;
+}
+
 .panel-title {
   margin-bottom: 1rem;
   font-size: 1.2rem;
@@ -284,6 +332,7 @@
   align-items: center;
   gap: 0.4rem;
 }
+
 
 /* tabs navigation */
 .tabs {
@@ -311,6 +360,76 @@
 }
 .tab-content { display: none; }
 .tab-content.active { display: block; }
+
+.performance-wrapper {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.performance-box {
+  background: var(--color-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--color-border);
+  padding: 0.8rem;
+  flex: 1 1 200px;
+}
+
+.performance-box h4 {
+  margin-bottom: 0.5rem;
+  color: var(--color-primary-dark);
+  font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.info-icon {
+  cursor: pointer;
+  color: var(--color-primary);
+  font-size: 0.85rem;
+}
+
+.info-text {
+  display: none;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  margin-bottom: 0.5rem;
+}
+
+.info-text.visible {
+  display: block;
+}
+
+.performance-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.performance-table th,
+.performance-table td {
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--color-border);
+  text-align: right;
+  font-size: 0.9rem;
+}
+
+.performance-table th {
+  background: var(--color-bg);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.performance-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.btn-small {
+  padding: 0.2rem 0.6rem;
+  font-size: 0.85rem;
+}
+
 
 /* responsive cards used for leave/edit requests */
 .request-cards { display: none; }
@@ -349,6 +468,64 @@
   padding-bottom: 0.5rem;
 }
 .charts-grid canvas { flex: 0 0 220px; }
+
+.report-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.filter-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  box-shadow: var(--shadow);
+}
+
+.filter-card h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  color: var(--color-primary-dark);
+}
+
+.date-row {
+  display:flex;
+  gap:.75rem;
+  flex-wrap:wrap;
+}
+
+.date-field {
+  flex: 1 1 140px;
+}
+
+.date-field input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.multi-select {
+  width: 100%;
+}
+
+.select-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.select-field {
+  flex: 1;
+}
+
+@media (max-width: 600px) {
+  .date-row {
+    flex-direction: column;
+  }
+  .select-row {
+    flex-direction: column;
+  }
+}
+.report-result .table-responsive { overflow-x: auto; }
 
 @media (min-width: 900px) {
   .management-layout {

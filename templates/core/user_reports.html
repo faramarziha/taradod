@@ -4,91 +4,101 @@
 {% block management_content %}
 <h2 style="text-align:right;">
   <i class="fas fa-file-alt" style="margin-left:0.5rem;"></i> گزارش کاربران
-</h2>
+ </h2>
 <div class="dashboard-stats">
   <div class="dashboard-card">
-    <h3>{{ active_users }}</h3>
-    کاربر فعال
+    <i class="fas fa-user-check"></i>
+    <div class="value">{{ active_users }}</div>
+    <div class="label">کاربر فعال</div>
   </div>
   <div class="dashboard-card">
-    <h3>{{ inactive_users }}</h3>
-    کاربر غیرفعال
+    <i class="fas fa-user-times"></i>
+    <div class="value">{{ inactive_users }}</div>
+    <div class="label">کاربر غیرفعال</div>
   </div>
   <div class="dashboard-card">
-    <h3>{{ users_with_face }}</h3>
-    با ثبت چهره
+    <i class="fas fa-user-slash"></i>
+    <div class="value">{{ no_face_users }}</div>
+    <div class="label">بدون ثبت چهره</div>
   </div>
 </div>
-<div class="card charts-grid fade-in" style="margin-top:1rem;">
-  <canvas id="statusChart" height="160"></canvas>
-  <canvas id="faceChart" height="160"></canvas>
-</div>
-<div class="request-cards mobile-only">
-  {% for log in latest_logs %}
-  <div class="request-card fade-in">
-    <div class="row"><span class="label">کاربر:</span><span>{{ log.user.get_full_name }} - {{ log.user.personnel_code }}</span></div>
-    <div class="row"><span class="label">تاریخ:</span><span>{{ log.timestamp|jformat:"%Y/%m/%d" }}</span></div>
-    <div class="row"><span class="label">ساعت:</span><span>{{ log.timestamp|time:"H:i" }}</span></div>
-    <div class="row"><span class="label">نوع:</span><span>{% if log.log_type == 'in' %}ورود{% else %}خروج{% endif %}</span></div>
-    <div class="row"><span class="label">ثبت‌کننده:</span><span>{% if log.source == 'self' %}کاربر{% elif log.source == 'auto' %}سیستم{% else %}مدیر{% endif %}</span></div>
+
+<form method="get" class="report-filter" style="margin-top:1rem;">
+  <div class="report-filter-grid">
+    <div class="filter-card">
+      <h4>بازه تاریخ</h4>
+      <div class="date-row">
+        <div class="date-field">
+          {{ form.start_date.label_tag }}
+          {{ form.start_date }}
+        </div>
+        <div class="date-field">
+          {{ form.end_date.label_tag }}
+          {{ form.end_date }}
+        </div>
+      </div>
+    </div>
+    <div class="filter-card">
+      <div class="select-row">
+        <div class="select-field">
+          <h4>{{ form.groups.label }}</h4>
+          {{ form.groups }}
+        </div>
+        <div class="select-field">
+          <h4>{{ form.shifts.label }}</h4>
+          {{ form.shifts }}
+        </div>
+      </div>
+    </div>
+    <div class="filter-card">
+      <h4>{{ form.users.label }}</h4>
+      {{ form.users }}
+    </div>
   </div>
-  {% empty %}
-  <div class="alert-error">ترددی ثبت نشده است.</div>
-  {% endfor %}
-</div>
-<div class="table-responsive desktop-only">
-<table class="management-table">
-  <thead>
-    <tr>
-      <th>کاربر</th>
-      <th>تاریخ</th>
-      <th>ساعت</th>
-      <th>نوع</th>
-      <th>ثبت‌کننده</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for log in latest_logs %}
-    <tr>
-      <td>{{ log.user.get_full_name }} - {{ log.user.personnel_code }}</td>
-      <td>{{ log.timestamp|jformat:"%Y/%m/%d" }}</td>
-      <td>{{ log.timestamp|time:"H:i" }}</td>
-      <td>{% if log.log_type == 'in' %}ورود{% else %}خروج{% endif %}</td>
-      <td>{% if log.source == 'self' %}کاربر{% elif log.source == 'auto' %}سیستم{% else %}مدیر{% endif %}</td>
-    </tr>
-    {% empty %}
-    <tr><td colspan="5">ترددی ثبت نشده است.</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
+  <button type="submit" class="btn">تولید گزارش</button>
+</form>
+
+<div class="card report-result" style="margin-top:1rem;">
+  <div class="table-responsive">
+    <table class="management-table">
+      <thead>
+        <tr>
+          <th>کاربر</th>
+          <th>تاریخ</th>
+          <th>ساعت</th>
+          <th>نوع</th>
+          <th>ثبت‌کننده</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td>{{ log.user.personnel_code }} – {{ log.user.first_name }} {{ log.user.last_name }}</td>
+          <td>{{ log.timestamp|jformat:"%Y/%m/%d" }}</td>
+          <td>{{ log.timestamp|time:"H:i" }}</td>
+          <td>{% if log.log_type == 'in' %}ورود{% else %}خروج{% endif %}</td>
+          <td>{% if log.source == 'self' %}کاربر{% elif log.source == 'auto' %}سیستم{% else %}مدیر{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5">ترددی ثبت نشده است.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}
 
-{% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-const statusData = {{ status_data_json|safe }};
-new Chart(document.getElementById('statusChart').getContext('2d'), {
-  type: 'doughnut',
-  data: {
-    labels: ['فعال', 'غیرفعال'],
-    datasets: [{
-      data: statusData,
-      backgroundColor: ['#4caf50', '#f44336']
-    }]
-  }
-});
+{% block extra_css %}
+{{ block.super }}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+{% endblock %}
 
-const faceData = {{ face_data_json|safe }};
-new Chart(document.getElementById('faceChart').getContext('2d'), {
-  type: 'doughnut',
-  data: {
-    labels: ['با چهره', 'بدون چهره'],
-    datasets: [{
-      data: faceData,
-      backgroundColor: ['#2196f3', '#9e9e9e']
-    }]
-  }
-});
+{% block extra_js %}
+{{ form.media }}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+  $(function() {
+    $('.multi-select').select2({width: '100%', dir: 'rtl'});
+  });
 </script>
 {% endblock %}
