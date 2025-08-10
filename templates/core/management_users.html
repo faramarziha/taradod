@@ -8,76 +8,160 @@
 <a class="btn" href="{% url 'user_add' %}" style="margin-bottom:1.4rem;">
   <i class="fas fa-user-plus" style="margin-left:0.5rem;"></i> افزودن کاربر جدید
 </a>
-<div class="request-cards">
-  {% for user in users %}
-  <div class="request-card fade-in">
-    <div class="row"><span class="label">کد پرسنلی:</span><span>{{ user.personnel_code }}</span></div>
-    <div class="row"><span class="label">نام و نام خانوادگی:</span><span>{{ user.get_full_name }}</span></div>
-    <div class="row"><span class="label">وضعیت:</span>
-      <span>{% if user.is_active %}فعال{% else %}غیرفعال{% endif %}</span>
-    </div>
-    <div class="row"><span class="label">ثبت چهره:</span>
-      {% if user.face_encoding %}
-        <i class="fa fa-check-circle" style="color: var(--color-secondary);"></i>
-      {% else %}
-        <i class="fa fa-times-circle" style="color: var(--color-error);"></i>
-      {% endif %}
-    </div>
-    <div class="actions">
-      <a href="{% url 'user_update' user.pk %}" class="btn" style="font-size:0.9rem;">ویرایش</a>
-      <a href="{% url 'register_face_page_for_user' user.pk %}" class="btn" style="font-size:0.9rem;"><i class="fas fa-camera"></i></a>
-      <a href="{% url 'user_logs_admin' user.pk %}" class="btn" style="font-size:0.9rem;background:var(--color-muted);">ترددها</a>
-      <a href="{% url 'user_delete' user.pk %}" class="btn btn-danger" style="font-size:0.9rem;">حذف</a>
-    </div>
-  </div>
-  {% empty %}
-  <div class="alert-error">هیچ کاربری یافت نشد</div>
-  {% endfor %}
-</div>
 
-<div class="table-responsive">
-  <table class="management-table">
-    <thead>
-      <tr>
-        <th>ردیف</th>
-        <th>کد پرسنلی</th>
-        <th>نام و نام خانوادگی</th>
-        <th>وضعیت</th>
-        <th>ثبت چهره</th>
-        <th>عملیات</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for user in users %}
-        <tr>
-          <td>{{ forloop.counter }}</td>
-          <td>{{ user.personnel_code }}</td>
-          <td>{{ user.get_full_name }}</td>
-          <td>
-            {% if user.is_active %}
-              <span class="alert-success" style="padding:0.15rem 0.4rem;font-size:0.95em;">فعال</span>
-            {% else %}
-              <span class="alert-error" style="padding:0.15rem 0.4rem;font-size:0.95em;">غیرفعال</span>
-            {% endif %}
-          </td>
-          <td>
-            {% if user.face_encoding %}
-              <i class="fa fa-check-circle" style="color: var(--color-secondary);"></i>
-            {% else %}
-              <i class="fa fa-times-circle" style="color: var(--color-error);"></i>
-            {% endif %}
-          </td>
-          <td>
-            <a href="{% url 'user_update' user.pk %}" title="ویرایش"><i class="fas fa-edit"></i></a>
-            <a href="{% url 'register_face_page_for_user' user.pk %}" title="ثبت چهره"><i class="fas fa-camera"></i></a>
-            <a href="{% url 'user_logs_admin' user.pk %}" title="ترددها"><i class="fas fa-list"></i></a>
-            <a href="{% url 'user_delete' user.pk %}" title="حذف"><i class="fas fa-trash-alt"></i></a>
-          </td>
-        </tr>
-      {% empty %}
-        <tr><td colspan="6">هیچ کاربری یافت نشد</td></tr>
+<form method="get" class="filter-panel" style="margin-bottom:1rem;">
+  <input type="text" name="q" placeholder="جستجو..." value="{{ request.GET.q }}">
+  <select name="status">
+    <option value="">همه وضعیت‌ها</option>
+    <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>فعال</option>
+    <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>غیرفعال</option>
+  </select>
+  <select name="group">
+    <option value="">گروه</option>
+    {% for g in groups %}
+      <option value="{{ g.id }}" {% if request.GET.group == g.id|stringformat:'s' %}selected{% endif %}>{{ g.name }}</option>
+    {% endfor %}
+  </select>
+  <select name="shift">
+    <option value="">شیفت</option>
+    {% for s in shifts %}
+      <option value="{{ s.id }}" {% if request.GET.shift == s.id|stringformat:'s' %}selected{% endif %}>{{ s.name }}</option>
+    {% endfor %}
+  </select>
+  <select name="face">
+    <option value="">ثبت چهره</option>
+    <option value="with" {% if request.GET.face == 'with' %}selected{% endif %}>ثبت شده</option>
+    <option value="without" {% if request.GET.face == 'without' %}selected{% endif %}>ثبت نشده</option>
+  </select>
+  <button class="btn" type="submit">فیلتر</button>
+</form>
+
+<form method="post" id="bulk-form">
+  {% csrf_token %}
+  <div class="bulk-actions" style="margin-bottom:0.5rem;">
+    <select name="bulk_action" id="bulk-action-select">
+      <option value="">عملیات گروهی</option>
+      <option value="deactivate">غیرفعال کردن</option>
+      <option value="assign_group">تخصیص به گروه</option>
+      <option value="assign_shift">تخصیص شیفت</option>
+      <option value="delete">حذف</option>
+    </select>
+    <select name="group" id="bulk-group-select">
+      <option value="">انتخاب گروه</option>
+      {% for g in groups %}
+        <option value="{{ g.id }}">{{ g.name }}</option>
       {% endfor %}
-    </tbody>
-  </table>
+    </select>
+    <select name="shift" id="bulk-shift-select">
+      <option value="">انتخاب شیفت</option>
+      {% for s in shifts %}
+        <option value="{{ s.id }}">{{ s.name }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn">اعمال</button>
+  </div>
+
+  <div class="table-responsive">
+    <table class="management-table">
+      <thead>
+        <tr>
+          <th><input type="checkbox" id="select-all"></th>
+          <th>کد پرسنلی</th>
+          <th>نام و نام خانوادگی</th>
+          <th>وضعیت</th>
+          <th>ثبت چهره</th>
+          <th>عملیات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+          <tr>
+            <td><input type="checkbox" name="selected_users" value="{{ user.id }}"></td>
+            <td>{{ user.personnel_code }}</td>
+            <td>{{ user.get_full_name }}</td>
+            <td>
+              {% if user.is_active %}
+                <span class="alert-success" style="padding:0.15rem 0.4rem;font-size:0.95em;">فعال</span>
+              {% else %}
+                <span class="alert-error" style="padding:0.15rem 0.4rem;font-size:0.95em;">غیرفعال</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if user.face_encoding %}
+                <i class="fa fa-check-circle" style="color: var(--color-secondary);"></i>
+              {% else %}
+                <i class="fa fa-times-circle" style="color: var(--color-error);"></i>
+              {% endif %}
+            </td>
+            <td>
+              <a href="{% url 'admin_user_profile' user.pk %}" class="btn btn-sm">پروفایل</a>
+              <button type="button" class="btn btn-danger btn-sm delete-user" data-url="{% url 'user_delete' user.pk %}">حذف</button>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6">هیچ کاربری یافت نشد</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</form>
+
+<div id="delete-modal" class="modal">
+  <div class="modal-content">
+    <p>آیا از حذف کاربر مطمئن هستید؟</p>
+    <form method="post" id="delete-form">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger">حذف</button>
+      <button type="button" class="btn" id="cancel-delete">انصراف</button>
+    </form>
+  </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const selectAll = document.getElementById('select-all');
+if(selectAll){
+  selectAll.addEventListener('change', function(){
+    document.querySelectorAll('input[name="selected_users"]').forEach(cb => cb.checked = selectAll.checked);
+  });
+}
+
+// bulk delete confirmation
+const bulkForm = document.getElementById('bulk-form');
+if(bulkForm){
+  bulkForm.addEventListener('submit', function(e){
+    if(document.getElementById('bulk-action-select').value === 'delete'){
+      if(!confirm('آیا از حذف کاربران انتخاب شده مطمئن هستید؟')){
+        e.preventDefault();
+      }
+    }
+  });
+}
+
+// single delete modal
+const modal = document.getElementById('delete-modal');
+const deleteForm = document.getElementById('delete-form');
+document.querySelectorAll('.delete-user').forEach(btn => {
+  btn.addEventListener('click', function(ev){
+    ev.preventDefault();
+    deleteForm.action = this.dataset.url;
+    modal.classList.add('open');
+  });
+});
+document.getElementById('cancel-delete').addEventListener('click', function(){
+  modal.classList.remove('open');
+});
+
+// toggle group/shift selects based on action
+const actionSelect = document.getElementById('bulk-action-select');
+const groupSelect = document.getElementById('bulk-group-select');
+const shiftSelect = document.getElementById('bulk-shift-select');
+function toggleAux(){
+  groupSelect.style.display = actionSelect.value === 'assign_group' ? 'inline-block' : 'none';
+  shiftSelect.style.display = actionSelect.value === 'assign_shift' ? 'inline-block' : 'none';
+}
+toggleAux();
+if(actionSelect){ actionSelect.addEventListener('change', toggleAux); }
+</script>
 {% endblock %}

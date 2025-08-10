@@ -52,6 +52,8 @@ urlpatterns = [
     path("management/users/add/",            views.user_add,                       name="user_add"),
     path("management/users/<int:pk>/edit/",  views.user_update,                    name="user_update"),
     path("management/users/<int:pk>/delete/",views.user_delete,                    name="user_delete"),
+    path("management/users/<int:pk>/profile/", views.admin_user_profile, name="admin_user_profile"),
+    path("management/users/<int:pk>/face-delete/", views.user_face_delete, name="user_face_delete"),
     path("management/users/<int:user_id>/register-face/",
          views.register_face_page_for_user, name="register_face_page_for_user"),
     path("management/users/<int:user_id>/register-face/api/",

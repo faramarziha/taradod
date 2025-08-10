@@ -209,6 +209,31 @@
   background: #e3f2fd44;
 }
 
+/* modal overlay */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal.open {
+  display: flex;
+}
+
+.modal-content {
+  background: var(--color-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1rem;
+}
+
 .alerts-list {
   list-style: none;
   padding: 0;
@@ -308,6 +333,34 @@
   gap: 0.4rem;
 }
 
+
+/* tabs navigation */
+.tabs {
+  list-style: none;
+  display: flex;
+  gap: 0.5rem;
+  margin: 0 0 1rem 0;
+  padding: 0;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--color-border);
+}
+.tabs li { margin: 0; }
+.tab-link {
+  display: block;
+  padding: 0.5rem 1rem;
+  background: var(--color-surface);
+  color: var(--color-primary-dark);
+  border-radius: var(--radius) var(--radius) 0 0;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.tab-link.active {
+  background: var(--color-primary);
+  color: #fff;
+}
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
 .performance-wrapper {
   display: flex;
   gap: 1rem;
@@ -376,6 +429,7 @@
   padding: 0.2rem 0.6rem;
   font-size: 0.85rem;
 }
+
 
 /* responsive cards used for leave/edit requests */
 .request-cards { display: none; }
