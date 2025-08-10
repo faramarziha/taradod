@@ -305,7 +305,124 @@ def user_profile(request):
     if not uid:
         return redirect("user_inquiry")
     u = get_object_or_404(User, id=uid)
-    return render(request, "core/user_profile.html", {"user": u})
+
+    today = timezone.now().date()
+    is_holiday = WeeklyHoliday.objects.filter(weekday=today.weekday()).exists()
+    on_leave = LeaveRequest.objects.filter(
+        user=u,
+        status="approved",
+        start_date__lte=today,
+        end_date__gte=today,
+    ).exists()
+    first_log = (
+        AttendanceLog.objects.filter(user=u, timestamp__date=today)
+        .order_by("timestamp")
+        .first()
+    )
+    if is_holiday:
+        today_status = {"label": "روز تعطیل", "color": "gray"}
+    elif on_leave:
+        today_status = {"label": "مرخصی", "color": "blue"}
+    elif first_log:
+        today_status = {
+            "label": "حاضر",
+            "color": "green",
+            "in_time": first_log.timestamp.time(),
+        }
+    else:
+        today_status = {"label": "غایب", "color": "red"}
+
+    recent_items = []
+    status_map = {
+        "pending": "در انتظار بررسی",
+        "approved": "تأیید شد",
+        "rejected": "رد شد",
+        "cancelled": "لغو شد",
+    }
+    for lr in LeaveRequest.objects.filter(user=u).order_by("-created_at")[:4]:
+        jd = jdatetime.date.fromgregorian(date=lr.start_date)
+        msg = (
+            f"درخواست مرخصی شما برای تاریخ {jd.strftime('%Y/%m/%d')} "
+            f"{status_map.get(lr.status, lr.status)}"
+        )
+        recent_items.append({"created_at": lr.created_at, "message": msg})
+    for er in EditRequest.objects.filter(user=u).order_by("-created_at")[:4]:
+        ts = jdatetime.datetime.fromgregorian(datetime=er.timestamp)
+        msg = (
+            f"درخواست ویرایش تردد شما برای {ts.strftime('%Y/%m/%d %H:%M')} "
+            f"{status_map.get(er.status, er.status)}"
+        )
+        recent_items.append({"created_at": er.created_at, "message": msg})
+    recent_items = sorted(recent_items, key=lambda x: x["created_at"], reverse=True)[:4]
+
+    today_j = jdatetime.date.today()
+    jy, jm = today_j.year, today_j.month
+    days = jdatetime.j_days_in_month[jm - 1]
+    start_g = jdatetime.date(jy, jm, 1).togregorian()
+    end_g = jdatetime.date(jy, jm, days).togregorian()
+    logs = AttendanceLog.objects.filter(
+        user=u, timestamp__date__range=(start_g, end_g)
+    ).order_by("timestamp")
+    shift = _get_user_shift(u)
+    shift_start = time(9, 0)
+    shift_end = time(17, 0)
+    if shift:
+        shift_start = shift.start_time
+        shift_end = shift.end_time
+
+    total_seconds = 0
+    tardy_minutes = 0
+    absent_days = 0
+    leave_days = 0
+    for d in range(1, days + 1):
+        gdate = jdatetime.date(jy, jm, d).togregorian()
+        if WeeklyHoliday.objects.filter(weekday=gdate.weekday()).exists():
+            continue
+        if LeaveRequest.objects.filter(
+            user=u,
+            status="approved",
+            start_date__lte=gdate,
+            end_date__gte=gdate,
+        ).exists():
+            leave_days += 1
+            continue
+        day_logs = [log for log in logs if log.timestamp.date() == gdate]
+        if day_logs:
+            first = min(day_logs, key=lambda l: l.timestamp)
+            last = max(day_logs, key=lambda l: l.timestamp)
+            start_dt = datetime.combine(gdate, shift_start)
+            end_dt = datetime.combine(gdate, shift_end)
+            f_dt = first.timestamp
+            if f_dt.tzinfo is not None:
+                f_dt = f_dt.replace(tzinfo=None)
+            if f_dt > start_dt:
+                tardy_minutes += int((f_dt - start_dt).total_seconds() / 60)
+            l_dt = last.timestamp
+            if l_dt.tzinfo is not None:
+                l_dt = l_dt.replace(tzinfo=None)
+            if l_dt < f_dt:
+                l_dt = f_dt
+            work_start = max(f_dt, start_dt)
+            work_end = min(l_dt, end_dt)
+            if work_end > work_start:
+                total_seconds += (work_end - work_start).total_seconds()
+        else:
+            absent_days += 1
+
+    monthly_stats = {
+        "total_hours": round(total_seconds / 3600, 1),
+        "tardy_minutes": tardy_minutes,
+        "absent_days": absent_days,
+        "leave_days": leave_days,
+    }
+
+    context = {
+        "user": u,
+        "today_status": today_status,
+        "recent_items": recent_items,
+        "monthly_stats": monthly_stats,
+    }
+    return render(request, "core/user_profile.html", context)
 
 
 def my_logs(request):
