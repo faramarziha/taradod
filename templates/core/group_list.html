@@ -13,7 +13,7 @@
   <tbody>
   {% for g in groups %}
     <tr>
-      <td>{{ g.name }}</td>
+      <td>{{ g.name }} <span style="color:var(--color-muted);">({{ g.user_count }} کاربر)</span></td>
       <td>{{ g.shift }}</td>
       <td>
         <a href="{% url 'group_edit' g.pk %}"><i class="fas fa-edit"></i></a>

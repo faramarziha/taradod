@@ -5,11 +5,44 @@
 <form method="post" class="card page page-sm form-grid" style="margin-top:1rem;">
   {% csrf_token %}
   <h3 class="panel-title" style="grid-column:1/-1;">{{ form.days.label }}</h3>
-  {% for checkbox in form.days %}
-    <label class="form-group">{{ checkbox.tag }} {{ checkbox.choice_label }}</label>
-  {% endfor %}
+  <div id="week-calendar" class="week-calendar" style="grid-column:1/-1;">
+    {% for checkbox in form.days %}
+      <div class="day{% if checkbox.data %} selected{% endif %}" data-checkbox-id="{{ checkbox.id_for_label }}">
+        {{ checkbox.choice_label }}
+        {{ checkbox.tag }}
+      </div>
+    {% endfor %}
+  </div>
   <div class="profile-actions" style="grid-column:1/-1;">
     <button class="btn" type="submit">ذخیره</button>
   </div>
 </form>
+
+{% if official_holidays %}
+<div class="card" style="margin-top:1rem;">
+  <h3 class="panel-title">تعطیلات رسمی پیش‌رو</h3>
+  <ul class="official-holidays">
+    {% for d, name in official_holidays %}
+      <li>{{ d.strftime('%Y/%m/%d') }} - {{ name }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<style>
+.week-calendar {display:flex;gap:0.5rem;flex-wrap:wrap;}
+.week-calendar .day {cursor:pointer;padding:1rem;border:1px solid #ccc;border-radius:4px;min-width:80px;text-align:center;}
+.week-calendar .day.selected {background:var(--color-primary);color:#fff;}
+.week-calendar input[type=checkbox]{display:none;}
+</style>
+
+<script>
+document.querySelectorAll('#week-calendar .day').forEach(function(el){
+  el.addEventListener('click', function(){
+    const cb = document.getElementById(el.dataset.checkboxId);
+    cb.checked = !cb.checked;
+    el.classList.toggle('selected');
+  });
+});
+</script>
 {% endblock %}
