@@ -270,20 +270,72 @@ label {
   border: 3px solid #fff;
   margin-bottom: 0.6rem;
 }
-.profile-details {
+.profile-banner .profile-codes {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.status-widget {
+  text-align: center;
+}
+.status-widget .status {
+  padding: 1rem;
+  border-radius: var(--radius);
+}
+.status-widget .present {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+.status-widget .absent {
+  background: #ffebee;
+  color: #c62828;
+}
+.status-widget .leave {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+.status-widget .holiday {
+  background: #f5f5f5;
+  color: #616161;
+}
+
+.notifications-widget ul {
   list-style: none;
   padding: 0;
-  margin: 1rem 0;
+  margin: 0;
 }
-.profile-details li {
+.notifications-widget li {
   margin-bottom: 0.4rem;
 }
-.profile-actions {
-  margin-top: 1.5rem;
+
+.stats-widget .stats-grid {
+  display: flex;
+  flex-wrap: wrap;
+  text-align: center;
+}
+.stats-widget .stat-card {
+  flex: 1 1 150px;
+  padding: 1rem;
+}
+.stats-widget .stat-card i {
+  display: block;
+  font-size: 1.4rem;
+  margin-bottom: 0.4rem;
+}
+.stats-widget .stat-card .value {
+  display: block;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.quick-actions .actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  justify-content: center;
+}
+.quick-actions .actions .btn {
+  flex: 1 1 200px;
+  text-align: center;
 }
 
 /* general page wrapper for centering card layouts */

@@ -2,22 +2,68 @@
 {% load static %}
 {% block title %}پروفایل کاربر{% endblock %}
 {% block content %}
-<div class="card page page-md profile-card fade-in">
-  <div class="profile-banner">
-    <img class="profile-avatar" src="{% if user.face_image %}{{ user.face_image.url }}{% else %}{% static 'core/avatar.png' %}{% endif %}" alt="{{ user.get_full_name }}">
-    <h2 class="page-title">
-      <i class="fa fa-user"></i>
-      پروفایل {{ user.get_full_name }}
-    </h2>
+<div class="page page-md fade-in profile-page">
+  <div class="card profile-card">
+    <div class="profile-banner">
+      <img class="profile-avatar" src="{% if user.face_image %}{{ user.face_image.url }}{% else %}{% static 'core/avatar.png' %}{% endif %}" alt="{{ user.get_full_name }}">
+      <h2 class="page-title"><i class="fa fa-user"></i> پروفایل {{ user.get_full_name }}</h2>
+      <p class="profile-codes">کد پرسنلی: {{ user.personnel_code }} | کد ملی: {{ user.national_id }}</p>
+    </div>
   </div>
-  <ul class="profile-details">
-    <li>کد پرسنلی: {{ user.personnel_code }}</li>
-    <li>کد ملی: {{ user.national_id }}</li>
-  </ul>
-  <div class="profile-actions">
-    <a class="btn" href="{% url 'my_logs' %}"><i class="fa fa-list-alt" style="margin-left:0.4rem;"></i> مشاهده ترددها</a>
-    <a class="btn" href="{% url 'user_leave_requests' %}"><i class="fa fa-calendar" style="margin-left:0.4rem;"></i> مرخصی‌های من</a>
-    <a class="btn" href="{% url 'user_inquiry' %}"><i class="fas fa-chevron-right" style="margin-left:0.4rem;"></i> خروج</a>
+
+  <div class="card status-widget">
+    <h3 class="section-title"><i class="fas fa-calendar-day"></i> وضعیت امروز شما</h3>
+    <div class="status {{ today_status.color }}">
+      <span class="label">{{ today_status.label }}</span>
+      {% if today_status.detail %}<span class="detail">اولین ورود: {{ today_status.detail }}</span>{% endif %}
+    </div>
+  </div>
+
+  <div class="card notifications-widget">
+    <h3 class="section-title"><i class="fas fa-bell"></i> آخرین اعلان‌ها و درخواست‌ها</h3>
+    <ul class="notification-list">
+      {% for n in notifications %}
+        <li>{{ n }}</li>
+      {% empty %}
+        <li>اعلانی وجود ندارد.</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <div class="card stats-widget">
+    <h3 class="section-title"><i class="fas fa-chart-line"></i> آمار عملکرد من در این ماه</h3>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <i class="fas fa-clock"></i>
+        <span class="value">{{ monthly_stats.total_hours }}</span>
+        <span class="label">ساعات کاری</span>
+      </div>
+      <div class="stat-card">
+        <i class="fas fa-hourglass-half"></i>
+        <span class="value">{{ monthly_stats.tardy_minutes }}</span>
+        <span class="label">دقایق تأخیر</span>
+      </div>
+      <div class="stat-card">
+        <i class="fas fa-user-times"></i>
+        <span class="value">{{ monthly_stats.absent_days }}</span>
+        <span class="label">روزهای غیبت</span>
+      </div>
+      <div class="stat-card">
+        <i class="fas fa-plane"></i>
+        <span class="value">{{ monthly_stats.remaining_leave }}</span>
+        <span class="label">باقی‌مانده مرخصی</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card quick-actions">
+    <h3 class="section-title"><i class="fas fa-bolt"></i> دسترسی سریع</h3>
+    <div class="actions">
+      <a class="btn" href="{% url 'my_logs' %}"><i class="fa fa-list-alt" style="margin-left:0.4rem;"></i> مشاهده گزارش کامل تردد</a>
+      <a class="btn" href="{% url 'leave_request' %}"><i class="fa fa-plus" style="margin-left:0.4rem;"></i> ثبت درخواست جدید</a>
+      <a class="btn" href="{% url 'user_leave_requests' %}"><i class="fa fa-tasks" style="margin-left:0.4rem;"></i> پیگیری درخواست‌های من</a>
+      <a class="btn" href="{% url 'user_inquiry' %}"><i class="fas fa-chevron-right" style="margin-left:0.4rem;"></i> بازگشت</a>
+    </div>
   </div>
 </div>
 {% endblock %}
