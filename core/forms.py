@@ -4,8 +4,15 @@ from django_jalali import forms as jforms
 from django_jalali.admin.widgets import AdminjDateWidget
 import jdatetime
 from attendance import models as attendance_models
-from attendance.models import AttendanceLog, EditRequest, LeaveRequest, LOG_TYPE_CHOICES
-from attendance.models import WeeklyHoliday
+from attendance.models import (
+    AttendanceLog,
+    EditRequest,
+    LeaveRequest,
+    LOG_TYPE_CHOICES,
+    WeeklyHoliday,
+    Group,
+    Shift,
+)
 
 User = get_user_model()
 
@@ -302,3 +309,72 @@ class LeaveTypeForm(forms.ModelForm):
         model = attendance_models.LeaveType
         fields = ["name", "description"]
         labels = {"name": "نام", "description": "توضیح"}
+
+
+class ReportFilterForm(forms.Form):
+    start_date = jforms.jDateField(
+        label="از تاریخ",
+        widget=AdminjDateWidget(
+            attrs={
+                "placeholder": "۱۴۰۳/۰۵/۱۰",
+                "class": "date-input vjDateField",
+                "readonly": "readonly",
+            }
+        ),
+        required=False,
+    )
+    end_date = jforms.jDateField(
+        label="تا تاریخ",
+        widget=AdminjDateWidget(
+            attrs={
+                "placeholder": "۱۴۰۳/۰۵/۱۰",
+                "class": "date-input vjDateField",
+                "readonly": "readonly",
+            }
+        ),
+        required=False,
+    )
+    groups = forms.ModelMultipleChoiceField(
+        queryset=Group.objects.all(),
+        label="گروه‌ها",
+        required=False,
+        widget=forms.SelectMultiple(attrs={"class": "multi-select"}),
+    )
+    shifts = forms.ModelMultipleChoiceField(
+        queryset=Shift.objects.all(),
+        label="شیفت‌ها",
+        required=False,
+        widget=forms.SelectMultiple(attrs={"class": "multi-select"}),
+    )
+    users = forms.ModelMultipleChoiceField(
+        queryset=User.objects.all(),
+        label="کاربران",
+        required=False,
+        widget=forms.SelectMultiple(attrs={"class": "multi-select"}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["users"].label_from_instance = (
+            lambda obj: f"{obj.personnel_code} – {obj.first_name} {obj.last_name}"
+        )
+
+
+class MonthlyPerformanceForm(forms.Form):
+    user = forms.ModelChoiceField(queryset=User.objects.all(), label="کاربر")
+    year = forms.IntegerField(label="سال", initial=jdatetime.date.today().year)
+    MONTH_CHOICES = [
+        (1, "فروردین"),
+        (2, "اردیبهشت"),
+        (3, "خرداد"),
+        (4, "تیر"),
+        (5, "مرداد"),
+        (6, "شهریور"),
+        (7, "مهر"),
+        (8, "آبان"),
+        (9, "آذر"),
+        (10, "دی"),
+        (11, "بهمن"),
+        (12, "اسفند"),
+    ]
+    month = forms.ChoiceField(label="ماه", choices=MONTH_CHOICES, initial=jdatetime.date.today().month)
