@@ -1,0 +1,29 @@
+{% extends "core/base.html" %}
+{% block title %}درخواست‌های من{% endblock %}
+{% block content %}
+<div class="card page page-md fade-in">
+  <h2 class="page-title"><i class="fa fa-tasks"></i> درخواست‌های من</h2>
+  <div class="status-grid">
+    <div class="status-card">
+      <h4>درخواست‌های مرخصی</h4>
+      <ul>
+        {% for r in leave_requests %}
+          <li>{{ r.start_date }} تا {{ r.end_date }} - <span class="badge {% if r.status == 'approved' %}badge-success{% elif r.status == 'rejected' %}badge-error{% elif r.status == 'pending' %}badge-warning{% else %}badge-muted{% endif %}">{{ r.get_status_display }}</span></li>
+        {% empty %}
+          <li>درخواستی ثبت نشده.</li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="status-card">
+      <h4>درخواست‌های ویرایش تردد</h4>
+      <ul>
+        {% for r in edit_requests %}
+          <li>{{ r.timestamp|date:"Y-m-d H:i" }} - <span class="badge {% if r.status == 'approved' %}badge-success{% elif r.status == 'rejected' %}badge-error{% elif r.status == 'pending' %}badge-warning{% else %}badge-muted{% endif %}">{{ r.get_status_display }}</span></li>
+        {% empty %}
+          <li>درخواستی ثبت نشده.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

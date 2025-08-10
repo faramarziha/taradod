@@ -261,6 +261,12 @@ label {
   justify-content: center;
   margin-bottom: 0.6rem;
 }
+.profile-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.9rem;
+}
 .profile-avatar {
   width: 88px;
   height: 88px;
@@ -284,6 +290,58 @@ label {
   flex-wrap: wrap;
   gap: 0.5rem;
   justify-content: center;
+}
+
+.quick-actions .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.status-widget {
+  text-align: center;
+}
+.status-widget .status-time {
+  display: block;
+  margin-top: 0.4rem;
+  color: var(--color-muted);
+}
+
+.notifications-widget ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.notifications-widget li {
+  margin-bottom: 0.4rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.stat-card {
+  text-align: center;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.8rem;
+}
+.stat-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  display: block;
+  margin-bottom: 0.3rem;
+}
+.stat-label {
+  font-size: 0.85rem;
+  color: var(--color-muted);
 }
 
 /* general page wrapper for centering card layouts */
@@ -446,6 +504,7 @@ label {
 .badge-error { background: var(--color-error); }
 .badge-warning { background: #ff9800; }
 .badge-info { background: var(--color-primary); }
+.badge-muted { background: var(--color-muted); }
 
 /* grid layout for attendance status */
 .status-grid {
