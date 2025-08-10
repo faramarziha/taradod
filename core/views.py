@@ -21,6 +21,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from django.db.models import Count
 
 from attendance.models import (
     AttendanceLog,
@@ -1042,8 +1043,12 @@ def device_settings(request):
 def shift_list(request):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
-    shifts = Shift.objects.all()
-    return render(request, "core/shift_list.html", {"shifts": shifts, "active_tab": "settings"})
+    shifts = Shift.objects.annotate(user_count=Count("customuser"))
+    return render(
+        request,
+        "core/shift_list.html",
+        {"shifts": shifts, "active_tab": "settings"},
+    )
 
 
 @login_required
@@ -1069,11 +1074,16 @@ def shift_delete(request, pk):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
     shift = get_object_or_404(Shift, pk=pk)
+    affected = shift.customuser_set.count()
     if request.method == "POST":
         shift.delete()
         messages.success(request, "حذف شد.")
         return redirect("shift_list")
-    return render(request, "core/confirm_delete.html", {"object": shift, "cancel_url": "shift_list"})
+    return render(
+        request,
+        "core/confirm_delete.html",
+        {"object": shift, "cancel_url": "shift_list", "affected_count": affected},
+    )
 
 
 @login_required
@@ -1081,8 +1091,14 @@ def shift_delete(request, pk):
 def group_list(request):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
-    groups = Group.objects.select_related("shift").all()
-    return render(request, "core/group_list.html", {"groups": groups, "active_tab": "settings"})
+    groups = Group.objects.select_related("shift").annotate(
+        user_count=Count("customuser")
+    )
+    return render(
+        request,
+        "core/group_list.html",
+        {"groups": groups, "active_tab": "settings"},
+    )
 
 
 @login_required
@@ -1108,11 +1124,16 @@ def group_delete(request, pk):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
     grp = get_object_or_404(Group, pk=pk)
+    affected = grp.customuser_set.count()
     if request.method == "POST":
         grp.delete()
         messages.success(request, "حذف شد.")
         return redirect("group_list")
-    return render(request, "core/confirm_delete.html", {"object": grp, "cancel_url": "group_list"})
+    return render(
+        request,
+        "core/confirm_delete.html",
+        {"object": grp, "cancel_url": "group_list", "affected_count": affected},
+    )
 
 
 @login_required

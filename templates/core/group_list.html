@@ -8,20 +8,21 @@
 <div class="table-responsive">
 <table class="management-table">
   <thead>
-    <tr><th>نام</th><th>شیفت</th><th>عملیات</th></tr>
+    <tr><th>نام</th><th>شیفت</th><th>کاربران</th><th>عملیات</th></tr>
   </thead>
   <tbody>
   {% for g in groups %}
     <tr>
       <td>{{ g.name }}</td>
       <td>{{ g.shift }}</td>
+      <td>{{ g.user_count }}</td>
       <td>
         <a href="{% url 'group_edit' g.pk %}"><i class="fas fa-edit"></i></a>
         <a href="{% url 'group_delete' g.pk %}"><i class="fas fa-trash-alt"></i></a>
       </td>
     </tr>
   {% empty %}
-    <tr><td colspan="3">هیچ گروهی ثبت نشده است.</td></tr>
+    <tr><td colspan="4">هیچ گروهی ثبت نشده است.</td></tr>
   {% endfor %}
   </tbody>
 </table>
