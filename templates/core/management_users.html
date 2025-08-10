@@ -66,7 +66,6 @@
       <thead>
         <tr>
           <th><input type="checkbox" id="select-all"></th>
-          <th>ردیف</th>
           <th>کد پرسنلی</th>
           <th>نام و نام خانوادگی</th>
           <th>وضعیت</th>
@@ -78,7 +77,6 @@
         {% for user in users %}
           <tr>
             <td><input type="checkbox" name="selected_users" value="{{ user.id }}"></td>
-            <td>{{ forloop.counter }}</td>
             <td>{{ user.personnel_code }}</td>
             <td>{{ user.get_full_name }}</td>
             <td>
@@ -96,12 +94,12 @@
               {% endif %}
             </td>
             <td>
-              <a href="{% url 'admin_user_profile' user.pk %}" title="پروفایل"><i class="fas fa-user"></i></a>
-              <a href="#" class="delete-user" data-url="{% url 'user_delete' user.pk %}" title="حذف"><i class="fas fa-trash-alt"></i></a>
+              <a href="{% url 'admin_user_profile' user.pk %}" class="btn btn-sm">پروفایل</a>
+              <button type="button" class="btn btn-danger btn-sm delete-user" data-url="{% url 'user_delete' user.pk %}">حذف</button>
             </td>
           </tr>
         {% empty %}
-          <tr><td colspan="7">هیچ کاربری یافت نشد</td></tr>
+          <tr><td colspan="6">هیچ کاربری یافت نشد</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -148,11 +146,11 @@ document.querySelectorAll('.delete-user').forEach(btn => {
   btn.addEventListener('click', function(ev){
     ev.preventDefault();
     deleteForm.action = this.dataset.url;
-    modal.style.display = 'flex';
+    modal.classList.add('open');
   });
 });
 document.getElementById('cancel-delete').addEventListener('click', function(){
-  modal.style.display = 'none';
+  modal.classList.remove('open');
 });
 
 // toggle group/shift selects based on action

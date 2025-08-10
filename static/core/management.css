@@ -216,6 +216,10 @@
   z-index: 1000;
 }
 
+.modal.open {
+  display: flex;
+}
+
 .modal-content {
   background: var(--color-bg);
   border-radius: var(--radius);
