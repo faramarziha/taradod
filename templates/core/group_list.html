@@ -17,7 +17,9 @@
       <td>{{ g.user_count }}</td>
       <td>{{ g.shift }}</td>
       <td>
-        <a href="{% url 'group_edit' g.pk %}"><i class="fas fa-edit"></i></a>
+        <a href="{% url 'group_edit' g.pk %}" class="btn btn-sm">
+          <i class="fas fa-edit" style="margin-left:0.4rem;"></i> ویرایش
+        </a>
         <button type="button" class="btn btn-danger btn-sm delete-item" data-url="{% url 'group_delete' g.pk %}" data-name="{{ g.name }}" data-affected="{{ g.user_count }}">
           <i class="fas fa-trash-alt"></i>
         </button>

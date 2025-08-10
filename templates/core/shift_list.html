@@ -18,7 +18,9 @@
       <td>{{ s.start_time|time:"H:i" }}</td>
       <td>{{ s.end_time|time:"H:i" }}</td>
       <td>
-        <a href="{% url 'shift_edit' s.pk %}"><i class="fas fa-edit"></i></a>
+        <a href="{% url 'shift_edit' s.pk %}" class="btn btn-sm">
+          <i class="fas fa-edit" style="margin-left:0.4rem;"></i> ویرایش
+        </a>
         <button type="button" class="btn btn-danger btn-sm delete-item" data-url="{% url 'shift_delete' s.pk %}" data-name="{{ s.name }}" data-affected="{{ s.user_count }}">
           <i class="fas fa-trash-alt"></i>
         </button>
