@@ -18,7 +18,9 @@
       <td>{{ g.shift }}</td>
       <td>
         <a href="{% url 'group_edit' g.pk %}"><i class="fas fa-edit"></i></a>
-        <a href="{% url 'group_delete' g.pk %}"><i class="fas fa-trash-alt"></i></a>
+        <button type="button" class="btn btn-danger btn-sm delete-item" data-url="{% url 'group_delete' g.pk %}" data-name="{{ g.name }}" data-affected="{{ g.user_count }}">
+          <i class="fas fa-trash-alt"></i>
+        </button>
       </td>
     </tr>
   {% empty %}
@@ -27,4 +29,39 @@
   </tbody>
 </table>
 </div>
+<div id="delete-modal" class="modal">
+  <div class="modal-content">
+    <p id="delete-message"></p>
+    <form method="post" id="delete-form">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger">حذف</button>
+      <button type="button" class="btn" id="cancel-delete">انصراف</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const modal = document.getElementById('delete-modal');
+const deleteForm = document.getElementById('delete-form');
+const deleteMsg = document.getElementById('delete-message');
+document.querySelectorAll('.delete-item').forEach(btn => {
+  btn.addEventListener('click', function(ev){
+    ev.preventDefault();
+    const name = this.dataset.name;
+    const affected = this.dataset.affected;
+    let msg = `آیا از حذف ${name} مطمئن هستید؟`;
+    if(affected && parseInt(affected) > 0){
+      msg = `حذف ${name} بر روی ${affected} کاربر تأثیر خواهد گذاشت. آیا مطمئن هستید؟`;
+    }
+    deleteMsg.textContent = msg;
+    deleteForm.action = this.dataset.url;
+    modal.classList.add('open');
+  });
+});
+document.getElementById('cancel-delete').addEventListener('click', function(){
+  modal.classList.remove('open');
+});
+</script>
 {% endblock %}
