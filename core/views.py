@@ -76,6 +76,11 @@ def _shift_bounds(date, shift):
     return start_dt, end_dt
 
 
+def _weekday_index(date):
+    """Convert Python weekday (Mon=0) to app convention (Sat=0)."""
+    return (date.weekday() + 2) % 7
+
+
 def _get_face_encoding_from_base64(data_url: str):
     """از Base64 خروجی بایت می‌گیرد و بردار چهره (128 بعدی) را برمی‌گرداند."""
     try:
@@ -310,7 +315,7 @@ def user_profile(request):
     # Determine today's status for the user
     status = "holiday"
     first_in = None
-    if not WeeklyHoliday.objects.filter(weekday=today.weekday()).exists():
+    if not WeeklyHoliday.objects.filter(weekday=_weekday_index(today)).exists():
         logs = AttendanceLog.objects.filter(user=u, timestamp__date=today).order_by("timestamp")
         if logs.exists():
             status = "present"
@@ -354,7 +359,7 @@ def user_profile(request):
         date_g = date_j.togregorian()
         if date_g > today:
             break
-        if WeeklyHoliday.objects.filter(weekday=date_g.weekday()).exists():
+        if WeeklyHoliday.objects.filter(weekday=_weekday_index(date_g)).exists():
             continue
         if LeaveRequest.objects.filter(
             user=u,
@@ -391,6 +396,31 @@ def user_profile(request):
         "absent_days": absent_days,
     }
 
+    # Attendance logs for selected month
+    month_param = request.GET.get("month")
+    if month_param:
+        ly, lm = [int(x) for x in month_param.split("-")]
+    else:
+        t = jdatetime.date.today()
+        ly, lm = t.year, t.month
+    days = jdatetime.j_days_in_month[lm - 1]
+    start_g = jdatetime.date(ly, lm, 1).togregorian()
+    end_g = jdatetime.date(ly, lm, days).togregorian()
+    qs = AttendanceLog.objects.filter(user=u, timestamp__date__range=(start_g, end_g)).order_by("timestamp")
+    daily_logs = {d: {"in": None, "out": None} for d in range(1, days + 1)}
+    for log in qs:
+        jd = jdatetime.date.fromgregorian(date=log.timestamp.date())
+        info = daily_logs.get(jd.day)
+        if log.log_type == "in" and info["in"] is None:
+            info["in"] = log.timestamp.time()
+        if log.log_type == "out":
+            info["out"] = log.timestamp.time()
+    prev_m = (jdatetime.date(ly, lm, 1) - jdatetime.timedelta(days=1))
+    next_m = (jdatetime.date(ly, lm, days) + jdatetime.timedelta(days=1))
+
+    edit_requests = EditRequest.objects.filter(user=u).order_by("-created_at")
+    leave_requests = LeaveRequest.objects.select_related("leave_type").filter(user=u).order_by("-created_at")
+
     return render(
         request,
         "core/user_profile.html",
@@ -399,6 +429,13 @@ def user_profile(request):
             "today_status": today_status,
             "recent_events": events,
             "monthly_stats": monthly_stats,
+            "daily_logs": daily_logs,
+            "log_jyear": ly,
+            "log_jmonth": lm,
+            "prev_month": f"{prev_m.year}-{prev_m.month:02d}",
+            "next_month": f"{next_m.year}-{next_m.month:02d}",
+            "edit_requests": edit_requests,
+            "leave_requests": leave_requests,
         },
     )
 
@@ -453,7 +490,7 @@ def edit_request(request):
                 obj.timestamp = obj.timestamp.replace(tzinfo=None)
             obj.save()
             messages.success(request, "درخواست شما ثبت شد و در انتظار تأیید است.")
-            return redirect("my_logs")
+            return redirect(reverse("user_profile") + "#edit-requests")
     else:
         form = EditRequestForm(user=u)
     return render(request, "core/edit_request_form.html", {"form": form, "user": u})
@@ -471,7 +508,7 @@ def leave_request(request):
                 obj = form.save(commit=False)
                 obj.save()
                 messages.success(request, "درخواست مرخصی ثبت شد.")
-                return redirect("user_profile")
+                return redirect(reverse("user_profile") + "#leave-requests")
         else:
             if form.is_valid():
                 return render(
@@ -482,16 +519,6 @@ def leave_request(request):
     else:
         form = LeaveRequestForm(user=u)
     return render(request, "core/leave_request_form.html", {"form": form, "user": u})
-
-
-def user_edit_requests(request):
-    """Display current user's edit requests and their status."""
-    uid = request.session.get("inquiry_user_id")
-    if not uid:
-        return redirect("user_inquiry")
-    u = get_object_or_404(User, id=uid)
-    requests_qs = EditRequest.objects.filter(user=u).order_by("-created_at")
-    return render(request, "core/my_edit_requests.html", {"user": u, "requests": requests_qs})
 
 
 def cancel_edit_request(request, pk):
@@ -506,17 +533,7 @@ def cancel_edit_request(request, pk):
         req.cancelled_by_user = True
         req.save()
         messages.info(request, "درخواست ویرایش لغو شد.")
-    return redirect("user_edit_requests")
-
-
-def user_leave_requests(request):
-    """Display current user's leave requests and their status."""
-    uid = request.session.get("inquiry_user_id")
-    if not uid:
-        return redirect("user_inquiry")
-    u = get_object_or_404(User, id=uid)
-    requests_qs = LeaveRequest.objects.select_related("leave_type").filter(user=u).order_by("-created_at")
-    return render(request, "core/my_leave_requests.html", {"user": u, "requests": requests_qs})
+    return redirect(reverse("user_profile") + "#edit-requests")
 
 
 def cancel_leave_request(request, pk):
@@ -531,7 +548,7 @@ def cancel_leave_request(request, pk):
         req.cancelled_by_user = True
         req.save()
         messages.info(request, "درخواست مرخصی لغو شد.")
-    return redirect("user_leave_requests")
+    return redirect(reverse("user_profile") + "#leave-requests")
 
 
 # —————————————————————————
@@ -803,7 +820,7 @@ def management_dashboard(request):
         return redirect("management_face_check")
 
     today = timezone.now().date()
-    is_holiday = WeeklyHoliday.objects.filter(weekday=today.weekday()).exists()
+    is_holiday = WeeklyHoliday.objects.filter(weekday=_weekday_index(today)).exists()
 
     group_id = request.GET.get("group")
     shift_id = request.GET.get("shift")
@@ -1068,7 +1085,7 @@ def monthly_profile(request):
         tardy_minutes = 0
         absence_days = 0
         while day <= end_g:
-            if day.weekday() in weekly_holidays or day in leave_days:
+            if _weekday_index(day) in weekly_holidays or day in leave_days:
                 day += timedelta(days=1)
                 continue
             mandatory_minutes += shift_minutes
@@ -1124,7 +1141,7 @@ def attendance_status(request):
     else:
         target_date = timezone.now().date()
 
-    holiday = WeeklyHoliday.objects.filter(weekday=target_date.weekday()).exists()
+    holiday = WeeklyHoliday.objects.filter(weekday=_weekday_index(target_date)).exists()
     if holiday:
         present_users = leave_users = absent_users = User.objects.none()
     else:
@@ -1159,7 +1176,7 @@ def api_attendance_status(request):
     else:
         target_date = timezone.now().date()
 
-    holiday = WeeklyHoliday.objects.filter(weekday=target_date.weekday()).exists()
+    holiday = WeeklyHoliday.objects.filter(weekday=_weekday_index(target_date)).exists()
     if holiday:
         present_users = leave_users = absent_users = []
     else:

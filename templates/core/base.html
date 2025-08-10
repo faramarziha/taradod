@@ -30,6 +30,15 @@
   <footer class="site-footer">
   </footer>
   <script src="{% static 'core/global.js' %}" defer></script>
+  {% if messages %}
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      {% for message in messages %}
+        showAlert("{{ message|escapejs }}", "{{ message.tags }}");
+      {% endfor %}
+    });
+  </script>
+  {% endif %}
   {% block extra_js %}{% endblock %}
 </body>
 </html>
