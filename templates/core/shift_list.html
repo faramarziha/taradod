@@ -13,7 +13,7 @@
   <tbody>
   {% for s in shifts %}
     <tr>
-      <td>{{ s.name }}</td>
+      <td>{{ s.name }} <span style="color:var(--color-muted);">({{ s.user_count }} کاربر)</span></td>
       <td>{{ s.start_time|time:"H:i" }}</td>
       <td>{{ s.end_time|time:"H:i" }}</td>
       <td>

@@ -5,6 +5,7 @@ import secrets
 from datetime import timedelta, datetime, time
 
 import face_recognition
+import holidays
 import numpy as np
 from PIL import Image
 from django.contrib import messages
@@ -21,6 +22,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from django.db.models import Q
 
 from attendance.models import (
     AttendanceLog,
@@ -1000,7 +1002,26 @@ def weekly_holidays(request):
             existing = set(days)
     else:
         form = WeeklyHolidayForm(initial={"days": [str(d) for d in existing]})
-    return render(request, "core/weekly_holidays.html", {"form": form, "active_tab": "weekly_holidays"})
+
+    iran_holidays = holidays.Iran()
+    today = datetime.today().date()
+    upcoming = [
+        (jdatetime.date.fromgregorian(date=d), name)
+        for d, name in iran_holidays.items()
+        if d >= today
+    ]
+    upcoming.sort(key=lambda x: x[0].togregorian())
+    upcoming = upcoming[:10]
+
+    return render(
+        request,
+        "core/weekly_holidays.html",
+        {
+            "form": form,
+            "active_tab": "weekly_holidays",
+            "official_holidays": upcoming,
+        },
+    )
 
 
 @login_required
@@ -1042,8 +1063,16 @@ def device_settings(request):
 def shift_list(request):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
-    shifts = Shift.objects.all()
-    return render(request, "core/shift_list.html", {"shifts": shifts, "active_tab": "settings"})
+    shifts = list(Shift.objects.all())
+    for s in shifts:
+        s.user_count = CustomUser.objects.filter(
+            Q(shift=s) | Q(group__shift=s)
+        ).distinct().count()
+    return render(
+        request,
+        "core/shift_list.html",
+        {"shifts": shifts, "active_tab": "settings"},
+    )
 
 
 @login_required
@@ -1069,11 +1098,24 @@ def shift_delete(request, pk):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
     shift = get_object_or_404(Shift, pk=pk)
+    affected_users = (
+        CustomUser.objects.filter(Q(shift=shift) | Q(group__shift=shift))
+        .distinct()
+        .count()
+    )
     if request.method == "POST":
         shift.delete()
         messages.success(request, "حذف شد.")
         return redirect("shift_list")
-    return render(request, "core/confirm_delete.html", {"object": shift, "cancel_url": "shift_list"})
+    return render(
+        request,
+        "core/confirm_delete.html",
+        {
+            "object": shift,
+            "cancel_url": "shift_list",
+            "affected_users": affected_users,
+        },
+    )
 
 
 @login_required
@@ -1081,8 +1123,14 @@ def shift_delete(request, pk):
 def group_list(request):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
-    groups = Group.objects.select_related("shift").all()
-    return render(request, "core/group_list.html", {"groups": groups, "active_tab": "settings"})
+    groups = list(Group.objects.select_related("shift").all())
+    for g in groups:
+        g.user_count = CustomUser.objects.filter(group=g).count()
+    return render(
+        request,
+        "core/group_list.html",
+        {"groups": groups, "active_tab": "settings"},
+    )
 
 
 @login_required
@@ -1108,11 +1156,20 @@ def group_delete(request, pk):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
     grp = get_object_or_404(Group, pk=pk)
+    affected_users = CustomUser.objects.filter(group=grp).count()
     if request.method == "POST":
         grp.delete()
         messages.success(request, "حذف شد.")
         return redirect("group_list")
-    return render(request, "core/confirm_delete.html", {"object": grp, "cancel_url": "group_list"})
+    return render(
+        request,
+        "core/confirm_delete.html",
+        {
+            "object": grp,
+            "cancel_url": "group_list",
+            "affected_users": affected_users,
+        },
+    )
 
 
 @login_required
