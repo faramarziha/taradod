@@ -6,6 +6,8 @@ from datetime import timedelta, datetime, time
 
 import face_recognition
 import numpy as np
+import cv2
+import os
 from PIL import Image
 from django.contrib import messages
 from django.contrib.auth import get_user_model, login, logout
@@ -91,6 +93,84 @@ def _get_face_encoding_from_base64(data_url: str):
     except Exception as e:
         print("Face encode error:", e)
         return None
+
+
+def _verify_action(frames, action):
+    """Check requested random action in given frames using simple landmarks heuristics."""
+    metrics = []
+    for frame in frames:
+        landmarks = face_recognition.face_landmarks(frame)
+        if not landmarks:
+            continue
+        lm = landmarks[0]
+        if action == "blink":
+            left = np.array(lm["left_eye"])
+            right = np.array(lm["right_eye"])
+            def ear(eye):
+                A = np.linalg.norm(eye[1] - eye[5])
+                B = np.linalg.norm(eye[2] - eye[4])
+                C = np.linalg.norm(eye[0] - eye[3])
+                return (A + B) / (2.0 * C)
+            metrics.append((ear(left) + ear(right)) / 2.0)
+        elif action == "smile":
+            top = np.mean(lm["top_lip"], axis=0)
+            bottom = np.mean(lm["bottom_lip"], axis=0)
+            metrics.append(abs(top[1] - bottom[1]))
+        elif action == "turn_head":
+            nose = np.mean(lm["nose_tip"], axis=0)
+            metrics.append(nose[0])
+    if not metrics:
+        return False
+    if action == "blink":
+        return min(metrics) < 0.18
+    if action == "smile":
+        return max(metrics) - min(metrics) > 5
+    if action == "turn_head":
+        return max(metrics) - min(metrics) > 15
+    return False
+
+
+def _process_video_action(data_url, action):
+    """Extract encoding and raw image bytes from a video data URL if action verified."""
+    tmp_path = None
+    try:
+        if not data_url or "," not in data_url:
+            return None, None
+        _, b64data = data_url.split(",", 1)
+        video_bytes = base64.b64decode(b64data)
+
+        faces_dir = os.path.join(settings.MEDIA_ROOT, "faces")
+        os.makedirs(faces_dir, exist_ok=True)
+        tmp_path = os.path.join(faces_dir, f"tmp_{secrets.token_hex(8)}.webm")
+        with open(tmp_path, "wb") as f:
+            f.write(video_bytes)
+
+        cap = cv2.VideoCapture(tmp_path)
+        frames = []
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            frames.append(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        cap.release()
+    except Exception as e:
+        print("Video decode error:", e)
+        frames = []
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
+    if not frames or not _verify_action(frames, action):
+        return None, None
+    encs = face_recognition.face_encodings(frames[0], num_jitters=3, model="large")
+    if not encs:
+        return None, None
+    img = Image.fromarray(frames[0])
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG")
+    return encs[0], buf.getvalue()
 
 
 # —————————————————————————
@@ -241,36 +321,18 @@ def api_verify_face(request):
 @require_POST
 @login_required
 def api_register_face(request):
-    """ثبت چهرهٔ کاربر با بررسی حرکت ساده برای جلوگیری از تقلب."""
-    img1 = request.POST.get("image1")
-    img2 = request.POST.get("image2")
-    if img1 and img2:
-        enc1 = _get_face_encoding_from_base64(img1)
-        enc2 = _get_face_encoding_from_base64(img2)
-        if enc1 is None or enc2 is None:
-            return JsonResponse({"ok": False, "msg": "چهره واضح نیست."})
-        # تفاوت دو تصویر باید از حدی بیشتر باشد تا اطمینان پیدا کنیم عکس ثابت نیست
-        movement = np.linalg.norm(enc1 - enc2)
-        if movement < 0.08:
-            return JsonResponse({"ok": False, "msg": "حرکت تشخیص داده نشد."})
-        enc = (enc1 + enc2) / 2
-        data_url = img1
-    else:
-        # حالت قدیمی، بدون لایونس
-        data_url = request.POST.get("image", "")
-        enc = _get_face_encoding_from_base64(data_url)
-        if enc is None:
-            return JsonResponse({"ok": False, "msg": "چهره‌ای شناسایی نشد."})
+    """ثبت چهرهٔ کاربر با دریافت ویدئو و بررسی حرکت تصادفی."""
+    action = request.POST.get("action", "")
+    video_data = request.POST.get("video", "")
+    enc, img_bytes = _process_video_action(video_data, action)
+    if enc is None or img_bytes is None:
+        return JsonResponse({"ok": False, "msg": "حرکت یا چهره تشخیص داده نشد."})
 
     request.user.face_encoding = enc.tobytes()
 
-    # ذخیرهٔ تصویر خام
     try:
-        header, b64data = data_url.split(",", 1)
-        fmt = header.split(";")[0].split("/")[1]
-        img_data = base64.b64decode(b64data)
-        filename = f"{request.user.username}_face.{fmt}"
-        request.user.face_image.save(filename, ContentFile(img_data), save=False)
+        filename = f"{request.user.username}_face.jpeg"
+        request.user.face_image.save(filename, ContentFile(img_bytes), save=False)
     except Exception:
         pass
 
