@@ -286,6 +286,66 @@ label {
   justify-content: center;
 }
 
+.profile-meta {
+  margin-top: 0.4rem;
+}
+
+.today-status-card {
+  margin: 1rem auto;
+  padding: 1rem;
+  border-radius: var(--radius);
+  text-align: center;
+  color: #fff;
+}
+.today-status-card.status-present { background: var(--color-secondary); }
+.today-status-card.status-absent { background: var(--color-error); }
+.today-status-card.status-leave { background: #2196f3; }
+.today-status-card.status-holiday { background: var(--color-muted); }
+
+.section-title {
+  color: var(--color-primary-dark);
+  margin-top: 1.5rem;
+  margin-bottom: 0.6rem;
+  text-align: right;
+}
+
+.recent-events ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.recent-events li {
+  margin-bottom: 0.4rem;
+  font-size: 0.95rem;
+}
+
+.stats-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+.stat-card {
+  background: var(--color-bg);
+  padding: 0.8rem 1rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  text-align: center;
+  min-width: 150px;
+  flex: 1;
+}
+.stat-card .label {
+  display: block;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+.stat-card .value {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
 /* general page wrapper for centering card layouts */
 .page {
   width: 100%;

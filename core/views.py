@@ -301,7 +301,102 @@ def user_profile(request):
     if not uid:
         return redirect("user_inquiry")
     u = get_object_or_404(User, id=uid)
-    return render(request, "core/user_profile.html", {"user": u})
+    today = timezone.now().date()
+
+    # Determine today's status for the user
+    status = "holiday"
+    first_in = None
+    if not WeeklyHoliday.objects.filter(weekday=today.weekday()).exists():
+        logs = AttendanceLog.objects.filter(user=u, timestamp__date=today).order_by("timestamp")
+        if logs.exists():
+            status = "present"
+            first_in = logs.first().timestamp.time()
+        elif LeaveRequest.objects.filter(
+            user=u,
+            status="approved",
+            start_date__lte=today,
+            end_date__gte=today,
+        ).exists():
+            status = "leave"
+        else:
+            status = "absent"
+    today_status = {"status": status, "first_in": first_in}
+
+    # Gather recent notifications from leave and edit requests
+    events = []
+    leave_events = LeaveRequest.objects.filter(user=u).order_by("-created_at")[:4]
+    for r in leave_events:
+        msg = f"درخواست مرخصی شما برای تاریخ {r.start_date} تا {r.end_date} {r.get_status_display()}."
+        events.append({"created_at": r.created_at, "message": msg})
+    edit_events = EditRequest.objects.filter(user=u).order_by("-created_at")[:4]
+    for r in edit_events:
+        time_str = r.timestamp.strftime("%Y-%m-%d %H:%M")
+        msg = f"درخواست ویرایش تردد شما برای {time_str} {r.get_status_display()}."
+        events.append({"created_at": r.created_at, "message": msg})
+    events = sorted(events, key=lambda x: x["created_at"], reverse=True)[:4]
+
+    # Monthly performance statistics
+    today_j = jdatetime.date.today()
+    jy, jm = today_j.year, today_j.month
+    days_in_month = jdatetime.j_days_in_month[jm - 1]
+    total_work_seconds = 0
+    total_delay_seconds = 0
+    absent_days = 0
+    shift = _get_user_shift(u)
+    default_start = time(9, 0)
+    default_end = time(17, 0)
+    for d in range(1, days_in_month + 1):
+        date_j = jdatetime.date(jy, jm, d)
+        date_g = date_j.togregorian()
+        if date_g > today:
+            break
+        if WeeklyHoliday.objects.filter(weekday=date_g.weekday()).exists():
+            continue
+        if LeaveRequest.objects.filter(
+            user=u,
+            status="approved",
+            start_date__lte=date_g,
+            end_date__gte=date_g,
+        ).exists():
+            continue
+        logs = AttendanceLog.objects.filter(user=u, timestamp__date=date_g).order_by("timestamp")
+        if logs.exists():
+            first_log = logs.first().timestamp
+            last_log = logs.last().timestamp
+            shift_start = shift.start_time if shift else default_start
+            shift_end = shift.end_time if shift else default_end
+            start_dt = datetime.combine(date_g, shift_start)
+            end_dt = datetime.combine(date_g, shift_end)
+            if shift_end <= shift_start:
+                end_dt += timedelta(days=1)
+            if first_log.tzinfo is not None:
+                first_log = first_log.replace(tzinfo=None)
+            if last_log.tzinfo is not None:
+                last_log = last_log.replace(tzinfo=None)
+            work_start = max(first_log, start_dt)
+            work_end = min(last_log, end_dt)
+            if work_end > work_start:
+                total_work_seconds += (work_end - work_start).total_seconds()
+            if first_log > start_dt:
+                total_delay_seconds += (first_log - start_dt).total_seconds()
+        else:
+            absent_days += 1
+    monthly_stats = {
+        "total_hours": round(total_work_seconds / 3600, 2),
+        "total_delay": int(total_delay_seconds / 60),
+        "absent_days": absent_days,
+    }
+
+    return render(
+        request,
+        "core/user_profile.html",
+        {
+            "user": u,
+            "today_status": today_status,
+            "recent_events": events,
+            "monthly_stats": monthly_stats,
+        },
+    )
 
 
 def my_logs(request):
