@@ -490,7 +490,7 @@ def edit_request(request):
                 obj.timestamp = obj.timestamp.replace(tzinfo=None)
             obj.save()
             messages.success(request, "درخواست شما ثبت شد و در انتظار تأیید است.")
-            return redirect("user_edit_requests")
+            return redirect(reverse("user_profile") + "#edit-requests")
     else:
         form = EditRequestForm(user=u)
     return render(request, "core/edit_request_form.html", {"form": form, "user": u})
@@ -508,7 +508,7 @@ def leave_request(request):
                 obj = form.save(commit=False)
                 obj.save()
                 messages.success(request, "درخواست مرخصی ثبت شد.")
-                return redirect("user_leave_requests")
+                return redirect(reverse("user_profile") + "#leave-requests")
         else:
             if form.is_valid():
                 return render(
@@ -519,16 +519,6 @@ def leave_request(request):
     else:
         form = LeaveRequestForm(user=u)
     return render(request, "core/leave_request_form.html", {"form": form, "user": u})
-
-
-def user_edit_requests(request):
-    """Display current user's edit requests and their status."""
-    uid = request.session.get("inquiry_user_id")
-    if not uid:
-        return redirect("user_inquiry")
-    u = get_object_or_404(User, id=uid)
-    requests_qs = EditRequest.objects.filter(user=u).order_by("-created_at")
-    return render(request, "core/my_edit_requests.html", {"user": u, "requests": requests_qs})
 
 
 def cancel_edit_request(request, pk):
@@ -543,17 +533,7 @@ def cancel_edit_request(request, pk):
         req.cancelled_by_user = True
         req.save()
         messages.info(request, "درخواست ویرایش لغو شد.")
-    return redirect("user_edit_requests")
-
-
-def user_leave_requests(request):
-    """Display current user's leave requests and their status."""
-    uid = request.session.get("inquiry_user_id")
-    if not uid:
-        return redirect("user_inquiry")
-    u = get_object_or_404(User, id=uid)
-    requests_qs = LeaveRequest.objects.select_related("leave_type").filter(user=u).order_by("-created_at")
-    return render(request, "core/my_leave_requests.html", {"user": u, "requests": requests_qs})
+    return redirect(reverse("user_profile") + "#edit-requests")
 
 
 def cancel_leave_request(request, pk):
@@ -568,7 +548,7 @@ def cancel_leave_request(request, pk):
         req.cancelled_by_user = True
         req.save()
         messages.info(request, "درخواست مرخصی لغو شد.")
-    return redirect("user_leave_requests")
+    return redirect(reverse("user_profile") + "#leave-requests")
 
 
 # —————————————————————————
