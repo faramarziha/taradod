@@ -5,10 +5,10 @@
 <div class="card page page-md profile-card fade-in">
   <div class="profile-banner">
     <div class="today-status-card status-{{ today_status.status }}">
-      <h3>وضعیت امروز شما</h3>
+      <h3>حضور امروز</h3>
       <p>
         {% if today_status.status == 'present' %}
-          حاضر{% if today_status.first_in %} - اولین ورود: {{ today_status.first_in|time:"H:i" }}{% endif %}
+          حاضر از {% if today_status.first_in %}{{ today_status.first_in|time:"H:i" }}{% else %}-{% endif %}
         {% elif today_status.status == 'absent' %}
           غایب
         {% elif today_status.status == 'leave' %}
@@ -62,9 +62,6 @@
           {% endfor %}
         </tbody>
       </table>
-    </div>
-    <div class="profile-actions">
-      <a class="btn" href="{% url 'edit_request' %}" style="margin-left:0.5rem;"><i class="fa fa-edit" style="margin-left:0.4rem;"></i> درخواست ویرایش</a>
     </div>
   </div>
 
@@ -133,6 +130,9 @@
     {% else %}
     <div class="alert-error" style="text-align:right;margin:2rem 0;">درخواستی ثبت نشده است.</div>
     {% endif %}
+    <div class="profile-actions" style="margin-top:1rem;">
+      <a class="btn" href="{% url 'edit_request' %}" style="margin-left:0.5rem;"><i class="fa fa-edit" style="margin-left:0.4rem;"></i> درخواست جدید</a>
+    </div>
   </div>
 
   <div id="leave-requests" class="tab-content">

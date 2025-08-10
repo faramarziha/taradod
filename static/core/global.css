@@ -596,7 +596,7 @@ label {
   padding: 0.5rem 1rem;
   background: var(--color-surface);
   color: var(--color-primary-dark);
-  border-radius: var(--radius) var(--radius) 0 0;
+  border-radius: 0 0 var(--radius) var(--radius);
   text-decoration: none;
   white-space: nowrap;
 }
