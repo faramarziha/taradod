@@ -3,7 +3,13 @@
 {% block management_content %}
 <h2 class="page-title"><i class="fas fa-trash-alt"></i> حذف</h2>
 <div class="card">
-  <p>آیا از حذف <b>{{ object }}</b> مطمئن هستید؟</p>
+  <p>
+    {% if affected_count is not None %}
+      حذف <b>{{ object }}</b> بر روی {{ affected_count }} کاربر تأثیر خواهد گذاشت. آیا مطمئن هستید؟
+    {% else %}
+      آیا از حذف <b>{{ object }}</b> مطمئن هستید؟
+    {% endif %}
+  </p>
   <form method="post">
     {% csrf_token %}
     <button type="submit" class="btn alert-error">حذف</button>
