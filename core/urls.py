@@ -12,7 +12,6 @@ urlpatterns = [
     path("logout/",           LogoutView.as_view(next_page="home"), name="logout"),
     path('management/dashboard/', views.management_dashboard, name='management_dashboard'),
     path('management/reports/', views.user_reports, name='management_reports'),
-    path('management/reports/monthly/', views.monthly_profile, name='monthly_profile'),
     path('management/suspicions/', views.suspicious_logs, name='suspicious_logs'),
     path('management/suspicions/<int:pk>/action/', views.suspicious_log_action, name='suspicious_log_action'),
     path('management/edit-requests/', views.edit_requests, name='edit_requests'),
@@ -35,7 +34,6 @@ urlpatterns = [
     # —————— کاربر عادی ——————
     path("user/inquiry/",           views.user_inquiry,                   name="user_inquiry"),
     path("user/profile/",           views.user_profile,                  name="user_profile"),
-    path("user/logs/",              views.my_logs,                        name="my_logs"),
     path("user/edit-request/",     views.edit_request,                  name="edit_request"),
     path("user/leave-request/",    views.leave_request,                 name="leave_request"),
     path("user/edit-request/<int:pk>/cancel/",  views.cancel_edit_request,  name="cancel_edit_request"),
