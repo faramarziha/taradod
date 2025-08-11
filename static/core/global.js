@@ -49,4 +49,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  if (window.jalaliDatepicker) {
+    jalaliDatepicker.startWatch({time:true, hasSecond:false});
+  }
+
 });

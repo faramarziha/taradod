@@ -1,7 +1,6 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django_jalali import forms as jforms
-from django_jalali.admin.widgets import AdminjDateWidget
 import jdatetime
 from attendance import models as attendance_models
 from attendance.models import (
@@ -15,6 +14,26 @@ from attendance.models import (
 )
 
 User = get_user_model()
+
+
+class JalaliDateInput(forms.TextInput):
+    """Widget for JalaliDatePicker date inputs."""
+
+    def __init__(self, attrs=None):
+        base_attrs = {"data-jdp": "", "data-jdp-only-date": ""}
+        if attrs:
+            base_attrs.update(attrs)
+        super().__init__(attrs=base_attrs)
+
+
+class JalaliTimeInput(forms.TextInput):
+    """Widget for JalaliDatePicker time inputs."""
+
+    def __init__(self, attrs=None):
+        base_attrs = {"data-jdp": "", "data-jdp-only-time": ""}
+        if attrs:
+            base_attrs.update(attrs)
+        super().__init__(attrs=base_attrs)
 
 class InquiryForm(forms.Form):
     personnel_code = forms.CharField(label="کد پرسنلی", max_length=20)
@@ -37,12 +56,9 @@ class CustomUserSimpleForm(forms.ModelForm):
 
 
 class EditRequestForm(forms.ModelForm):
-    date = jforms.jDateField(label="تاریخ", widget=AdminjDateWidget())
+    date = jforms.jDateField(label="تاریخ", widget=JalaliDateInput())
     log_type = forms.ChoiceField(choices=LOG_TYPE_CHOICES, label="نوع تردد")
-    time = forms.TimeField(
-        label="ساعت",
-        widget=forms.TimeInput(format="%H:%M", attrs={"type": "time", "step": 60}),
-    )
+    time = forms.TimeField(label="ساعت", widget=JalaliTimeInput())
 
     class Meta:
         model = EditRequest
@@ -100,7 +116,7 @@ class EditRequestForm(forms.ModelForm):
 
 
 class LeaveRequestForm(forms.ModelForm):
-    start_date = jforms.jDateField(label="از تاریخ", widget=AdminjDateWidget())
+    start_date = jforms.jDateField(label="از تاریخ", widget=JalaliDateInput())
     duration = forms.IntegerField(label="مدت (روز)", min_value=1)
     leave_type = forms.ModelChoiceField(
         queryset=attendance_models.LeaveType.objects.all(),
@@ -155,11 +171,8 @@ class ManualLogForm(forms.Form):
     """Form for admins to directly register an attendance log for a user."""
 
     user = forms.ModelChoiceField(queryset=User.objects.all(), label="کاربر")
-    date = jforms.jDateField(label="تاریخ", widget=AdminjDateWidget())
-    time = forms.TimeField(
-        label="ساعت",
-        widget=forms.TimeInput(format="%H:%M", attrs={"type": "time", "step": 60}),
-    )
+    date = jforms.jDateField(label="تاریخ", widget=JalaliDateInput())
+    time = forms.TimeField(label="ساعت", widget=JalaliTimeInput())
     log_type = forms.ChoiceField(choices=LOG_TYPE_CHOICES, label="نوع تردد")
 
     def clean(self):
@@ -195,8 +208,8 @@ class ManualLeaveForm(forms.ModelForm):
     """Form for admins to directly register a leave for a user."""
 
     user = forms.ModelChoiceField(queryset=User.objects.all(), label="کاربر")
-    start_date = jforms.jDateField(label="از تاریخ", widget=AdminjDateWidget())
-    end_date = jforms.jDateField(label="تا تاریخ", widget=AdminjDateWidget())
+    start_date = jforms.jDateField(label="از تاریخ", widget=JalaliDateInput())
+    end_date = jforms.jDateField(label="تا تاریخ", widget=JalaliDateInput())
 
     leave_type = forms.ModelChoiceField(
         queryset=attendance_models.LeaveType.objects.all(),
@@ -240,14 +253,14 @@ class AttendanceStatusForm(forms.Form):
     """Simple form to pick a Jalali date for attendance status."""
     date = jforms.jDateField(
         label="تاریخ",
-        widget=AdminjDateWidget(),
+        widget=JalaliDateInput(),
         required=False,
     )
 
 
 class UserLogsRangeForm(forms.Form):
-    start = jforms.jDateField(label="از تاریخ", widget=AdminjDateWidget())
-    end = jforms.jDateField(label="تا تاریخ", widget=AdminjDateWidget())
+    start = jforms.jDateField(label="از تاریخ", widget=JalaliDateInput())
+    end = jforms.jDateField(label="تا تاریخ", widget=JalaliDateInput())
 
     def clean(self):
         cleaned = super().clean()
@@ -289,8 +302,8 @@ class ShiftForm(forms.ModelForm):
             "end_time": "پایان",
         }
         widgets = {
-            "start_time": forms.TimeInput(format="%H:%M", attrs={"type": "time"}),
-            "end_time": forms.TimeInput(format="%H:%M", attrs={"type": "time"}),
+            "start_time": JalaliTimeInput(),
+            "end_time": JalaliTimeInput(),
         }
 
 
@@ -314,7 +327,7 @@ class LeaveTypeForm(forms.ModelForm):
 class ReportFilterForm(forms.Form):
     start_date = jforms.jDateField(
         label="از تاریخ",
-        widget=AdminjDateWidget(
+        widget=JalaliDateInput(
             attrs={
                 "placeholder": "۱۴۰۳/۰۵/۱۰",
                 "class": "date-input vjDateField",
@@ -325,7 +338,7 @@ class ReportFilterForm(forms.Form):
     )
     end_date = jforms.jDateField(
         label="تا تاریخ",
-        widget=AdminjDateWidget(
+        widget=JalaliDateInput(
             attrs={
                 "placeholder": "۱۴۰۳/۰۵/۱۰",
                 "class": "date-input vjDateField",

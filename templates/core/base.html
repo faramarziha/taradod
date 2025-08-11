@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="{% static 'fonts/vazir.ttf' %}" as="font" type="font/ttf" crossorigin />
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+  <link rel="stylesheet" href="https://unpkg.com/@majidh1/jalalidatepicker/dist/jalalidatepicker.min.css" />
   {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -29,6 +30,7 @@
   </main>
   <footer class="site-footer">
   </footer>
+  <script src="https://unpkg.com/@majidh1/jalalidatepicker/dist/jalalidatepicker.min.js" defer></script>
   <script src="{% static 'core/global.js' %}" defer></script>
   {% if messages %}
   <script>
