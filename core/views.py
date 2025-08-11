@@ -326,6 +326,33 @@ def user_profile(request):
     u = get_object_or_404(User, id=uid)
     today = timezone.now().date()
 
+    active_tab = None
+    if request.method == "POST":
+        if "edit_submit" in request.POST:
+            edit_form = EditRequestForm(request.POST, user=u)
+            leave_form = LeaveRequestForm(user=u)
+            if edit_form.is_valid():
+                edit_form.save()
+                messages.success(request, "درخواست شما ثبت شد و در انتظار تأیید است.")
+                return redirect(reverse("user_profile") + "#edit-requests")
+            else:
+                active_tab = "edit-requests"
+        elif "leave_submit" in request.POST:
+            leave_form = LeaveRequestForm(request.POST, user=u)
+            edit_form = EditRequestForm(user=u)
+            if leave_form.is_valid():
+                leave_form.save()
+                messages.success(request, "درخواست مرخصی ثبت شد.")
+                return redirect(reverse("user_profile") + "#leave-requests")
+            else:
+                active_tab = "leave-requests"
+        else:
+            edit_form = EditRequestForm(user=u)
+            leave_form = LeaveRequestForm(user=u)
+    else:
+        edit_form = EditRequestForm(user=u)
+        leave_form = LeaveRequestForm(user=u)
+
     # Determine today's status for the user
     status = "holiday"
     first_in = None
@@ -450,89 +477,11 @@ def user_profile(request):
             "next_month": f"{next_m.year}-{next_m.month:02d}",
             "edit_requests": edit_requests,
             "leave_requests": leave_requests,
+            "edit_form": edit_form,
+            "leave_form": leave_form,
+            "active_tab": active_tab,
         },
     )
-
-
-def my_logs(request):
-    uid = request.session.get("inquiry_user_id")
-    if not uid:
-        return redirect("user_inquiry")
-    u = get_object_or_404(User, id=uid)
-    month = request.GET.get("month")
-    if month:
-        jy, jm = [int(x) for x in month.split("-")]
-    else:
-        today_j = jdatetime.date.today()
-        jy, jm = today_j.year, today_j.month
-    days = jdatetime.j_days_in_month[jm - 1]
-    start_g = jdatetime.date(jy, jm, 1).togregorian()
-    end_g = jdatetime.date(jy, jm, days).togregorian()
-    qs = AttendanceLog.objects.filter(user=u, timestamp__date__range=(start_g, end_g)).order_by("timestamp")
-    daily = {d: {"in": None, "out": None} for d in range(1, days + 1)}
-    for log in qs:
-        jd = jdatetime.date.fromgregorian(date=log.timestamp.date())
-        info = daily.get(jd.day)
-        if log.log_type == "in" and info["in"] is None:
-            info["in"] = log.timestamp.time()
-        if log.log_type == "out":
-            info["out"] = log.timestamp.time()
-    prev_month_date = (jdatetime.date(jy, jm, 1) - jdatetime.timedelta(days=1))
-    next_month_date = (jdatetime.date(jy, jm, days) + jdatetime.timedelta(days=1))
-    context = {
-        "user": u,
-        "daily_logs": daily,
-        "jyear": jy,
-        "jmonth": jm,
-        "prev_month": f"{prev_month_date.year}-{prev_month_date.month:02d}",
-        "next_month": f"{next_month_date.year}-{next_month_date.month:02d}",
-    }
-    return render(request, "attendance/my_logs.html", context)
-
-
-def edit_request(request):
-    """Allow a user to request adding a missing attendance log."""
-    uid = request.session.get("inquiry_user_id")
-    if not uid:
-        return redirect("user_inquiry")
-    u = get_object_or_404(User, id=uid)
-    if request.method == "POST":
-        form = EditRequestForm(request.POST, user=u)
-        if form.is_valid():
-            obj = form.save(commit=False)
-            if obj.timestamp.tzinfo is not None:
-                obj.timestamp = obj.timestamp.replace(tzinfo=None)
-            obj.save()
-            messages.success(request, "درخواست شما ثبت شد و در انتظار تأیید است.")
-            return redirect(reverse("user_profile") + "#edit-requests")
-    else:
-        form = EditRequestForm(user=u)
-    return render(request, "core/edit_request_form.html", {"form": form, "user": u})
-
-
-def leave_request(request):
-    uid = request.session.get("inquiry_user_id")
-    if not uid:
-        return redirect("user_inquiry")
-    u = get_object_or_404(User, id=uid)
-    if request.method == "POST":
-        form = LeaveRequestForm(request.POST, user=u)
-        if "confirm" in request.POST:
-            if form.is_valid():
-                obj = form.save(commit=False)
-                obj.save()
-                messages.success(request, "درخواست مرخصی ثبت شد.")
-                return redirect(reverse("user_profile") + "#leave-requests")
-        else:
-            if form.is_valid():
-                return render(
-                    request,
-                    "core/leave_request_confirm.html",
-                    {"form": form, "user": u, "end_date": form.cleaned_data["end_jalali"]},
-                )
-    else:
-        form = LeaveRequestForm(user=u)
-    return render(request, "core/leave_request_form.html", {"form": form, "user": u})
 
 
 def cancel_edit_request(request, pk):

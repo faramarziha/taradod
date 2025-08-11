@@ -130,9 +130,25 @@
     {% else %}
     <div class="alert-error" style="text-align:right;margin:2rem 0;">درخواستی ثبت نشده است.</div>
     {% endif %}
-    <div class="profile-actions" style="margin-top:1rem;">
-      <a class="btn" href="{% url 'edit_request' %}" style="margin-left:0.5rem;"><i class="fa fa-edit" style="margin-left:0.4rem;"></i> درخواست جدید</a>
-    </div>
+    <form method="post" class="card" style="margin-top:1rem;padding:1rem;">
+      {% csrf_token %}
+      {{ edit_form.non_field_errors }}
+      <div class="form-group">
+        {{ edit_form.date.label_tag }}<br>{{ edit_form.date }}
+      </div>
+      <div class="form-group">
+        {{ edit_form.time.label_tag }}<br>{{ edit_form.time }}
+      </div>
+      <div class="form-group">
+        {{ edit_form.log_type.label_tag }}<br>{{ edit_form.log_type }}
+      </div>
+      <div class="form-group">
+        {{ edit_form.note.label_tag }}<br>{{ edit_form.note }}
+      </div>
+      <div class="profile-actions">
+        <button type="submit" name="edit_submit" class="btn"><i class="fa fa-edit" style="margin-left:0.4rem;"></i> ثبت درخواست</button>
+      </div>
+    </form>
   </div>
 
   <div id="leave-requests" class="tab-content">
@@ -195,9 +211,25 @@
     {% else %}
     <div class="alert-error" style="text-align:right;margin:2rem 0;">درخواستی ثبت نشده است.</div>
     {% endif %}
-    <div class="profile-actions">
-      <a class="btn" href="{% url 'leave_request' %}" style="margin-left:0.5rem;"><i class="fa fa-calendar-plus" style="margin-left:0.4rem;"></i> درخواست جدید</a>
-    </div>
+    <form method="post" class="card" style="margin-top:1rem;padding:1rem;">
+      {% csrf_token %}
+      {{ leave_form.non_field_errors }}
+      <div class="form-group">
+        {{ leave_form.leave_type.label_tag }}<br>{{ leave_form.leave_type }}
+      </div>
+      <div class="form-group">
+        {{ leave_form.start_date.label_tag }}<br>{{ leave_form.start_date }}
+      </div>
+      <div class="form-group">
+        {{ leave_form.duration.label_tag }}<br>{{ leave_form.duration }}
+      </div>
+      <div class="form-group">
+        {{ leave_form.reason.label_tag }}<br>{{ leave_form.reason }}
+      </div>
+      <div class="profile-actions">
+        <button type="submit" name="leave_submit" class="btn"><i class="fa fa-calendar-plus" style="margin-left:0.4rem;"></i> ثبت درخواست</button>
+      </div>
+    </form>
   </div>
 
   <div class="profile-actions" style="margin-top:1rem;">
@@ -226,8 +258,12 @@ document.querySelectorAll('.tab-link').forEach(link => {
   });
 });
 
+{% if active_tab %}
+activateTab('#{{ active_tab }}');
+{% else %}
 if(location.hash){
   activateTab(location.hash);
 }
+{% endif %}
 </script>
 {% endblock %}
