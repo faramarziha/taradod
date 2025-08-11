@@ -2,6 +2,7 @@ import base64
 import io
 import json
 import secrets
+import os
 from datetime import timedelta, datetime, time
 
 import face_recognition
@@ -1211,11 +1212,64 @@ def api_attendance_status(request):
 @staff_required
 def suspicious_logs(request):
     """List suspicious recognition attempts for admin review."""
-    logs = SuspiciousLog.objects.select_related('matched_user').order_by('-timestamp')[:50]
+    logs = (
+        SuspiciousLog.objects.select_related('matched_user')
+        .filter(status="pending")
+        .order_by('-timestamp')[:50]
+    )
     return render(request, 'core/suspicious_logs.html', {
         'active_tab': 'suspicions',
         'logs': logs,
     })
+
+
+@login_required
+@staff_required
+@require_POST
+def suspicious_log_action(request, pk):
+    """Process manager action on a suspicious log."""
+    log = get_object_or_404(SuspiciousLog, id=pk, status="pending")
+    action = request.POST.get("action")
+    if action == "confirm":
+        if log.matched_user:
+            u = log.matched_user
+            last_log = AttendanceLog.objects.filter(user=u).order_by('-timestamp').first()
+            today = timezone.now().date()
+            if last_log and last_log.log_type == 'in' and last_log.timestamp.date() < today:
+                end_of_day = datetime.combine(last_log.timestamp.date(), time(23, 59))
+                if end_of_day.tzinfo is not None:
+                    end_of_day = end_of_day.replace(tzinfo=None)
+                AttendanceLog.objects.create(user=u, timestamp=end_of_day, log_type='out', source='auto')
+            log_type = 'out' if last_log and last_log.log_type == 'in' else 'in'
+            AttendanceLog.objects.create(user=u, timestamp=timezone.now(), log_type=log_type, source='manager')
+            if request.POST.get('train') and log.image:
+                try:
+                    img = face_recognition.load_image_file(log.image.path)
+                    encs = face_recognition.face_encodings(img)
+                    if encs:
+                        new_enc = encs[0]
+                        if u.face_encoding:
+                            old = np.frombuffer(u.face_encoding, dtype=np.float64)
+                            new_enc = (old + new_enc) / 2
+                        u.face_encoding = new_enc.tobytes()
+                        if not u.face_image:
+                            with log.image.open('rb') as f:
+                                u.face_image.save(os.path.basename(log.image.name), ContentFile(f.read()), save=False)
+                        u.save()
+                except Exception:
+                    pass
+        log.status = 'confirmed'
+        log.save(update_fields=['status'])
+        messages.success(request, "تردد ثبت شد.")
+    elif action == 'ignore':
+        log.status = 'ignored'
+        log.save(update_fields=['status'])
+        messages.info(request, 'مورد حذف شد.')
+    elif action == 'fraud':
+        log.status = 'fraud'
+        log.save(update_fields=['status'])
+        messages.warning(request, 'به عنوان تقلب ثبت شد.')
+    return redirect('suspicious_logs')
 
 
 @login_required

@@ -9,8 +9,8 @@ class AttendanceLogAdmin(admin.ModelAdmin):
 
 @admin.register(SuspiciousLog)
 class SuspiciousLogAdmin(admin.ModelAdmin):
-    list_display = ("matched_user", "similarity", "timestamp")
-    list_filter = ("matched_user",)
+    list_display = ("matched_user", "similarity", "status", "timestamp")
+    list_filter = ("matched_user", "status")
 
 
 @admin.register(EditRequest)

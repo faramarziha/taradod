@@ -25,6 +25,12 @@ class AttendanceLog(models.Model):
 
 class SuspiciousLog(models.Model):
     """Log for near matches that require admin review."""
+    STATUS_CHOICES = [
+        ("pending", "در انتظار"),
+        ("confirmed", "تأیید شده"),
+        ("ignored", "نادیده گرفته شده"),
+        ("fraud", "تقلب"),
+    ]
     matched_user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
@@ -40,11 +46,11 @@ class SuspiciousLog(models.Model):
         help_text="Captured image triggering the log",
     )
     timestamp = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="pending")
 
     def __str__(self):
-        if self.matched_user:
-            return f"{self.matched_user.username} ? {self.similarity:.3f}"
-        return f"Unknown ? {self.similarity:.3f}"
+        user_part = self.matched_user.username if self.matched_user else "Unknown"
+        return f"{user_part} ? {self.similarity:.3f} ({self.status})"
 
 
 class EditRequest(models.Model):

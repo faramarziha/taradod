@@ -12,7 +12,23 @@
     <div class="row"><span class="label">کاربر پیشنهادی:</span><span>{% if log.matched_user %}{{ log.matched_user.get_full_name }} - {{ log.matched_user.personnel_code }}{% else %}نامشخص{% endif %}</span></div>
     <div class="row"><span class="label">فاصله:</span><span>{{ log.similarity|floatformat:3 }}</span></div>
     <div class="row"><span class="label">زمان:</span><span>{{ log.timestamp|jformat:"%Y/%m/%d %H:%M" }}</span></div>
-    <div class="row"><span class="label">تصویر:</span><span>{% if log.image %}<img src="{{ log.image.url }}" height="40">{% else %}-{% endif %}</span></div>
+    <div class="row"><span class="label">تصاویر:</span>
+      <span style="display:flex;gap:0.5rem;">
+        {% if log.image %}<img src="{{ log.image.url }}" height="80" alt="captured">{% endif %}
+        {% if log.matched_user and log.matched_user.face_image %}<img src="{{ log.matched_user.face_image.url }}" height="80" alt="reference">{% endif %}
+      </span>
+    </div>
+    <div class="row"><span class="label">اقدام:</span>
+      <form method="post" action="{% url 'suspicious_log_action' log.id %}" class="actions" style="flex:1;">
+        {% csrf_token %}
+        <label style="font-size:0.8rem;display:block;margin-bottom:0.3rem;"><input type="checkbox" name="train"> افزودن به آموزش</label>
+        <div style="display:flex;gap:0.3rem;flex-wrap:wrap;">
+          <button name="action" value="confirm" class="btn" style="font-size:0.9rem;">تأیید و ثبت</button>
+          <button name="action" value="ignore" class="btn" style="font-size:0.9rem;background:var(--color-muted);">نادیده گرفتن</button>
+          <button name="action" value="fraud" class="btn btn-danger" style="font-size:0.9rem;">تقلب</button>
+        </div>
+      </form>
+    </div>
   </div>
   {% empty %}
   <div class="alert-error">موردی ثبت نشده است.</div>
@@ -25,8 +41,9 @@
       <tr>
         <th>کاربر پیشنهادی</th>
         <th>فاصله</th>
+        <th>تصاویر</th>
         <th>زمان</th>
-        <th>تصویر</th>
+        <th>اقدام</th>
       </tr>
     </thead>
     <tbody>
@@ -34,11 +51,27 @@
       <tr>
         <td>{% if log.matched_user %}{{ log.matched_user.get_full_name }} - {{ log.matched_user.personnel_code }}{% else %}نامشخص{% endif %}</td>
         <td>{{ log.similarity|floatformat:3 }}</td>
+        <td>
+          <div style="display:flex;gap:0.5rem;">
+            {% if log.image %}<img src="{{ log.image.url }}" height="80" alt="captured">{% endif %}
+            {% if log.matched_user and log.matched_user.face_image %}<img src="{{ log.matched_user.face_image.url }}" height="80" alt="reference">{% endif %}
+          </div>
+        </td>
         <td>{{ log.timestamp|jformat:"%Y/%m/%d %H:%M" }}</td>
-        <td>{% if log.image %}<img src="{{ log.image.url }}" height="40">{% else %}-{% endif %}</td>
+        <td>
+          <form method="post" action="{% url 'suspicious_log_action' log.id %}" style="display:flex;flex-direction:column;gap:0.3rem;">
+            {% csrf_token %}
+            <label style="font-size:0.8rem;"><input type="checkbox" name="train"> افزودن به آموزش</label>
+            <div style="display:flex;gap:0.3rem;flex-wrap:wrap;">
+              <button name="action" value="confirm" class="btn" style="font-size:0.9rem;">تأیید و ثبت</button>
+              <button name="action" value="ignore" class="btn" style="font-size:0.9rem;background:var(--color-muted);">نادیده گرفتن</button>
+              <button name="action" value="fraud" class="btn btn-danger" style="font-size:0.9rem;">تقلب</button>
+            </div>
+          </form>
+        </td>
       </tr>
       {% empty %}
-      <tr><td colspan="4">موردی ثبت نشده است.</td></tr>
+      <tr><td colspan="5">موردی ثبت نشده است.</td></tr>
       {% endfor %}
     </tbody>
   </table>
