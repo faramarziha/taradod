@@ -14,6 +14,7 @@ urlpatterns = [
     path('management/reports/', views.user_reports, name='management_reports'),
     path('management/reports/monthly/', views.monthly_profile, name='monthly_profile'),
     path('management/suspicions/', views.suspicious_logs, name='suspicious_logs'),
+    path('management/suspicions/<int:pk>/action/', views.suspicious_log_action, name='suspicious_log_action'),
     path('management/edit-requests/', views.edit_requests, name='edit_requests'),
     path('management/edit-requests/add-log/', views.add_log, name='add_log'),
     path('management/leave-requests/', views.leave_requests, name='leave_requests'),
