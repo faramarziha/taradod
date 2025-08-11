@@ -49,7 +49,6 @@ from core.forms import (
     GroupForm,
     LeaveTypeForm,
     ReportFilterForm,
-    MonthlyPerformanceForm,
 )
 from .models import Device
 
@@ -434,6 +433,8 @@ def user_profile(request):
 
     edit_requests = EditRequest.objects.filter(user=u).order_by("-created_at")
     leave_requests = LeaveRequest.objects.select_related("leave_type").filter(user=u).order_by("-created_at")
+    edit_form = EditRequestForm(user=u)
+    leave_form = LeaveRequestForm(user=u)
 
     return render(
         request,
@@ -450,46 +451,10 @@ def user_profile(request):
             "next_month": f"{next_m.year}-{next_m.month:02d}",
             "edit_requests": edit_requests,
             "leave_requests": leave_requests,
+            "edit_form": edit_form,
+            "leave_form": leave_form,
         },
     )
-
-
-def my_logs(request):
-    uid = request.session.get("inquiry_user_id")
-    if not uid:
-        return redirect("user_inquiry")
-    u = get_object_or_404(User, id=uid)
-    month = request.GET.get("month")
-    if month:
-        jy, jm = [int(x) for x in month.split("-")]
-    else:
-        today_j = jdatetime.date.today()
-        jy, jm = today_j.year, today_j.month
-    days = jdatetime.j_days_in_month[jm - 1]
-    start_g = jdatetime.date(jy, jm, 1).togregorian()
-    end_g = jdatetime.date(jy, jm, days).togregorian()
-    qs = AttendanceLog.objects.filter(user=u, timestamp__date__range=(start_g, end_g)).order_by("timestamp")
-    daily = {d: {"in": None, "out": None} for d in range(1, days + 1)}
-    for log in qs:
-        jd = jdatetime.date.fromgregorian(date=log.timestamp.date())
-        info = daily.get(jd.day)
-        if log.log_type == "in" and info["in"] is None:
-            info["in"] = log.timestamp.time()
-        if log.log_type == "out":
-            info["out"] = log.timestamp.time()
-    prev_month_date = (jdatetime.date(jy, jm, 1) - jdatetime.timedelta(days=1))
-    next_month_date = (jdatetime.date(jy, jm, days) + jdatetime.timedelta(days=1))
-    context = {
-        "user": u,
-        "daily_logs": daily,
-        "jyear": jy,
-        "jmonth": jm,
-        "prev_month": f"{prev_month_date.year}-{prev_month_date.month:02d}",
-        "next_month": f"{next_month_date.year}-{next_month_date.month:02d}",
-    }
-    return render(request, "attendance/my_logs.html", context)
-
-
 def edit_request(request):
     """Allow a user to request adding a missing attendance log."""
     uid = request.session.get("inquiry_user_id")
@@ -504,10 +469,7 @@ def edit_request(request):
                 obj.timestamp = obj.timestamp.replace(tzinfo=None)
             obj.save()
             messages.success(request, "درخواست شما ثبت شد و در انتظار تأیید است.")
-            return redirect(reverse("user_profile") + "#edit-requests")
-    else:
-        form = EditRequestForm(user=u)
-    return render(request, "core/edit_request_form.html", {"form": form, "user": u})
+    return redirect(reverse("user_profile") + "#edit-requests")
 
 
 def leave_request(request):
@@ -517,22 +479,11 @@ def leave_request(request):
     u = get_object_or_404(User, id=uid)
     if request.method == "POST":
         form = LeaveRequestForm(request.POST, user=u)
-        if "confirm" in request.POST:
-            if form.is_valid():
-                obj = form.save(commit=False)
-                obj.save()
-                messages.success(request, "درخواست مرخصی ثبت شد.")
-                return redirect(reverse("user_profile") + "#leave-requests")
-        else:
-            if form.is_valid():
-                return render(
-                    request,
-                    "core/leave_request_confirm.html",
-                    {"form": form, "user": u, "end_date": form.cleaned_data["end_jalali"]},
-                )
-    else:
-        form = LeaveRequestForm(user=u)
-    return render(request, "core/leave_request_form.html", {"form": form, "user": u})
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.save()
+            messages.success(request, "درخواست مرخصی ثبت شد.")
+    return redirect(reverse("user_profile") + "#leave-requests")
 
 
 def cancel_edit_request(request, pk):
@@ -1034,114 +985,6 @@ def user_reports(request):
 
 @login_required
 @staff_required
-def monthly_profile(request):
-    form = MonthlyPerformanceForm(request.GET or None)
-    report = None
-    logs = []
-    leaves = []
-    selected_user = None
-    if form.is_valid():
-        selected_user = form.cleaned_data['user']
-        year = form.cleaned_data['year']
-        month = int(form.cleaned_data['month'])
-        start_j = jdatetime.date(year, month, 1)
-        if month == 12:
-            next_month = jdatetime.date(year + 1, 1, 1)
-        else:
-            next_month = jdatetime.date(year, month + 1, 1)
-        end_j = next_month - jdatetime.timedelta(days=1)
-        start_g = start_j.togregorian()
-        end_g = end_j.togregorian()
-        logs_qs = AttendanceLog.objects.filter(
-            user=selected_user,
-            timestamp__date__range=(start_g, end_g)
-        ).order_by('timestamp')
-        logs = list(logs_qs)
-        logs_by_day = {}
-        for log in logs:
-            logs_by_day.setdefault(log.timestamp.date(), []).append(log)
-
-        # prepare leave days
-        leaves = LeaveRequest.objects.filter(
-            user=selected_user,
-            start_date__lte=end_g,
-            end_date__gte=start_g,
-            status='approved'
-        )
-        leave_days = set()
-        for leave in leaves:
-            cur = max(leave.start_date, start_g)
-            while cur <= min(leave.end_date, end_g):
-                leave_days.add(cur)
-                cur += timedelta(days=1)
-
-        shift = _get_user_shift(selected_user)
-        shift_start = time(9, 0)
-        shift_end = time(17, 0)
-        if shift:
-            shift_start = shift.start_time
-            shift_end = shift.end_time
-        # shift duration
-        if shift_end <= shift_start:
-            shift_minutes = (
-                datetime.combine(start_g, shift_end) + timedelta(days=1) - datetime.combine(start_g, shift_start)
-            ).seconds // 60
-        else:
-            shift_minutes = (
-                datetime.combine(start_g, shift_end) - datetime.combine(start_g, shift_start)
-            ).seconds // 60
-
-        weekly_holidays = set(WeeklyHoliday.objects.values_list('weekday', flat=True))
-
-        day = start_g
-        total_minutes = 0
-        mandatory_minutes = 0
-        tardy_minutes = 0
-        absence_days = 0
-        while day <= end_g:
-            if _weekday_index(day) in weekly_holidays or day in leave_days:
-                day += timedelta(days=1)
-                continue
-            mandatory_minutes += shift_minutes
-            day_logs = logs_by_day.get(day, [])
-            if day_logs:
-                current_in = None
-                for log in day_logs:
-                    if log.log_type == 'in':
-                        current_in = log.timestamp
-                    elif log.log_type == 'out' and current_in:
-                        total_minutes += int((log.timestamp - current_in).total_seconds() // 60)
-                        current_in = None
-                first_log = day_logs[0]
-                shift_start_dt = datetime.combine(day, shift_start)
-                fl_ts = first_log.timestamp
-                if fl_ts.tzinfo is not None:
-                    fl_ts = fl_ts.replace(tzinfo=None)
-                if fl_ts > shift_start_dt:
-                    tardy_minutes += int((fl_ts - shift_start_dt).total_seconds() // 60)
-            else:
-                absence_days += 1
-            day += timedelta(days=1)
-
-        overtime_minutes = total_minutes - mandatory_minutes
-        report = {
-            'required_hours': round(mandatory_minutes / 60, 2),
-            'present_hours': round(total_minutes / 60, 2),
-            'overtime_minutes': overtime_minutes,
-            'absence_days': absence_days,
-            'tardy_minutes': tardy_minutes,
-        }
-    context = {
-        'active_tab': 'reports',
-        'form': form,
-        'report': report,
-        'logs': logs,
-        'leaves': leaves,
-        'selected_user': selected_user,
-    }
-    return render(request, 'core/monthly_profile.html', context)
-
-
 @login_required
 @staff_required
 def attendance_status(request):
