@@ -32,8 +32,10 @@
 }
 .login-container input[type="text"],
 .login-container input[type="password"] {
-  width: 100%;
+  width: 85%;
   text-align: right;
+  margin: 0 auto;
+  display: block;
 }
 .login-container .btn {
   width: 100%;
