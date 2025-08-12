@@ -1,6 +1,26 @@
 {% extends "core/base_device.html" %}
 {% load static %}
 {% block title %}ثبت چهره برای کاربر{% endblock %}
+{% block extra_css %}
+<style>
+  .user-info-register {
+    position: fixed;
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.65);
+    color: #fff;
+    border-radius: 0.8rem;
+    padding: 0.6rem 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    z-index: 10;
+    direction: rtl;
+  }
+</style>
+{% endblock %}
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -47,6 +67,9 @@ document.addEventListener('DOMContentLoaded', () => {
     .then(data => {
       if (data.ok) {
         message.textContent = "چهره کاربر با موفقیت ثبت شد.";
+        if (data.redirect) {
+          setTimeout(() => { window.location.href = data.redirect; }, 1200);
+        }
       } else {
         message.textContent = data.msg || "ثبت چهره ناموفق بود.";
         btn.disabled = false;
@@ -72,12 +95,12 @@ document.addEventListener('DOMContentLoaded', () => {
 {% endblock %}
 {% block content %}
 <div class="fullscreen-container">
-  <video id="video" autoplay muted playsinline></video>
-  <canvas id="canvas" style="display:none"></canvas>
-  <div class="user-info">
+  <div class="user-info-register">
     <div>{{ user_to_register.get_full_name }}</div>
     <div>کد پرسنلی: {{ user_to_register.personnel_code }} | کد ملی: {{ user_to_register.national_id }}</div>
   </div>
+  <video id="video" autoplay muted playsinline></video>
+  <canvas id="canvas" style="display:none"></canvas>
   <button class="action-btn" id="captureBtn"><i class="fa fa-camera" style="margin-left:0.4rem;"></i> ثبت تصویر</button>
   <div id="captureResult" class="status-bar"></div>
 </div>
