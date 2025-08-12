@@ -454,41 +454,6 @@ def user_profile(request):
     )
 
 
-def my_logs(request):
-    uid = request.session.get("inquiry_user_id")
-    if not uid:
-        return redirect("user_inquiry")
-    u = get_object_or_404(User, id=uid)
-    month = request.GET.get("month")
-    if month:
-        jy, jm = [int(x) for x in month.split("-")]
-    else:
-        today_j = jdatetime.date.today()
-        jy, jm = today_j.year, today_j.month
-    days = jdatetime.j_days_in_month[jm - 1]
-    start_g = jdatetime.date(jy, jm, 1).togregorian()
-    end_g = jdatetime.date(jy, jm, days).togregorian()
-    qs = AttendanceLog.objects.filter(user=u, timestamp__date__range=(start_g, end_g)).order_by("timestamp")
-    daily = {d: {"in": None, "out": None} for d in range(1, days + 1)}
-    for log in qs:
-        jd = jdatetime.date.fromgregorian(date=log.timestamp.date())
-        info = daily.get(jd.day)
-        if log.log_type == "in" and info["in"] is None:
-            info["in"] = log.timestamp.time()
-        if log.log_type == "out":
-            info["out"] = log.timestamp.time()
-    prev_month_date = (jdatetime.date(jy, jm, 1) - jdatetime.timedelta(days=1))
-    next_month_date = (jdatetime.date(jy, jm, days) + jdatetime.timedelta(days=1))
-    context = {
-        "user": u,
-        "daily_logs": daily,
-        "jyear": jy,
-        "jmonth": jm,
-        "prev_month": f"{prev_month_date.year}-{prev_month_date.month:02d}",
-        "next_month": f"{next_month_date.year}-{next_month_date.month:02d}",
-    }
-    return render(request, "attendance/my_logs.html", context)
-
 
 def edit_request(request):
     """Allow a user to request adding a missing attendance log."""
