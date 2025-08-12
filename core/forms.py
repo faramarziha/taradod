@@ -73,6 +73,7 @@ class EditRequestForm(forms.ModelForm):
     def __init__(self, *args, user=None, **kwargs):
         self.user = user
         super().__init__(*args, **kwargs)
+        self.fields["date"].widget.attrs["data-jdp-max-date"] = "today"
         if self.instance.pk and self.instance.timestamp:
             jd = jdatetime.datetime.fromgregorian(datetime=self.instance.timestamp)
             self.initial.setdefault("date", jd.date())
@@ -175,6 +176,10 @@ class ManualLogForm(forms.Form):
     date = jforms.jDateField(label="تاریخ", widget=JalaliDateInput())
     time = forms.TimeField(label="ساعت", widget=JalaliTimeInput())
     log_type = forms.ChoiceField(choices=LOG_TYPE_CHOICES, label="نوع تردد")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["date"].widget.attrs["data-jdp-max-date"] = "today"
 
     def clean(self):
         cleaned = super().clean()
