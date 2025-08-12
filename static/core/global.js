@@ -53,7 +53,8 @@ document.addEventListener("DOMContentLoaded", () => {
     jalaliDatepicker.startWatch({
       time: true,
       hasSecond: false,
-      separatorChars: { date: "-" }
+      separatorChars: { date: "-" },
+      minDate: "attr"
     });
   }
 
