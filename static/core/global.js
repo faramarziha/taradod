@@ -50,7 +50,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (window.jalaliDatepicker) {
-    jalaliDatepicker.startWatch({time:true, hasSecond:false});
+    jalaliDatepicker.startWatch({
+      time: true,
+      hasSecond: false,
+      separatorChars: { date: "-" }
+    });
   }
 
 });
