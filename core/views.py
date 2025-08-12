@@ -823,7 +823,7 @@ def register_face_api(request, user_id):
         pass
 
     target.save()
-    return JsonResponse({"ok": True})
+    return JsonResponse({"ok": True, "redirect": reverse("admin_user_profile", args=[user_id])})
 
 
 # ======= گزارش‌گیری پیشرفته =======
