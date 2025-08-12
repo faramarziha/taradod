@@ -20,7 +20,11 @@ class JalaliDateInput(forms.TextInput):
     """Widget for JalaliDatePicker date inputs."""
 
     def __init__(self, attrs=None):
-        base_attrs = {"data-jdp": "", "data-jdp-only-date": ""}
+        base_attrs = {
+            "data-jdp": "",
+            "data-jdp-only-date": "",
+            "readonly": "readonly",
+        }
         if attrs:
             base_attrs.update(attrs)
         super().__init__(attrs=base_attrs)
@@ -30,7 +34,11 @@ class JalaliTimeInput(forms.TextInput):
     """Widget for JalaliDatePicker time inputs."""
 
     def __init__(self, attrs=None):
-        base_attrs = {"data-jdp": "", "data-jdp-only-time": ""}
+        base_attrs = {
+            "data-jdp": "",
+            "data-jdp-only-time": "",
+            "readonly": "readonly",
+        }
         if attrs:
             base_attrs.update(attrs)
         super().__init__(attrs=base_attrs)
@@ -138,21 +146,33 @@ class LeaveRequestForm(forms.ModelForm):
     def __init__(self, *args, user=None, **kwargs):
         self.user = user
         super().__init__(*args, **kwargs)
+        self.fields["start_date"].widget.attrs["data-jdp-min-date"] = (
+            jdatetime.date.today().strftime("%Y/%m/%d")
+        )
 
     def clean(self):
         cleaned_data = super().clean()
         sd = cleaned_data.get("start_date")
         dur = cleaned_data.get("duration")
+        today = jdatetime.date.today()
         if sd:
-            cleaned_data["start_date"] = sd.togregorian()
-        if sd and dur:
+            if sd < today:
+                self.add_error("start_date", "تاریخ شروع نمی‌تواند در گذشته باشد.")
+            else:
+                cleaned_data["start_date"] = sd.togregorian()
+        if sd and dur and sd >= today:
             end_j = sd + jdatetime.timedelta(days=dur - 1)
             cleaned_data["end_date"] = end_j.togregorian()
             cleaned_data["end_jalali"] = end_j
-        user = self.user or cleaned_data.get("user")
-        if user and sd and dur:
-            if LeaveRequest.objects.filter(user=user, start_date=sd.togregorian(), end_date=end_j.togregorian()).exists():
-                raise forms.ValidationError("برای این بازه قبلاً درخواستی ثبت شده است.")
+            user = self.user or cleaned_data.get("user")
+            if user and LeaveRequest.objects.filter(
+                user=user,
+                start_date=sd.togregorian(),
+                end_date=end_j.togregorian(),
+            ).exists():
+                raise forms.ValidationError(
+                    "برای این بازه قبلاً درخواستی ثبت شده است."
+                )
         return cleaned_data
 
     def save(self, commit=True):
