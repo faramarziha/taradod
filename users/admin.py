@@ -23,7 +23,7 @@ class CustomUserAdmin(UserAdmin):
         }),
     )
 
-    # ستون‌های لیست کاربران در صفحه ادمین
+    # ستون‌های لیست کارکنان در صفحه ادمین
     list_display = (
         "personnel_code",
         "first_name",

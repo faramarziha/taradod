@@ -6,6 +6,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
   const resultDiv = document.getElementById('verifyResult');
 
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -20,7 +21,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+      ctx.save();
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+      ctx.restore();
       const dataUrl = canvas.toDataURL('image/jpeg');
       fetch("{% url 'api_verify_face' %}", {
         method: "POST",

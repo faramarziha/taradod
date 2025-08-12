@@ -1,12 +1,12 @@
 {% extends "core/base_management.html" %}
-{% block title %}مدیریت کاربران{% endblock %}
+{% block title %}مدیریت کارکنان{% endblock %}
 {% block management_content %}
 <h2 class="page-title">
   <i class="fas fa-users-cog"></i>
-  مدیریت کاربران
+  مدیریت کارکنان
 </h2>
 <a class="btn" href="{% url 'user_add' %}" style="margin-bottom:1.4rem;">
-  <i class="fas fa-user-plus" style="margin-left:0.5rem;"></i> افزودن کاربر جدید
+  <i class="fas fa-user-plus" style="margin-left:0.5rem;"></i> افزودن کارمند جدید
 </a>
 
 <form method="get" class="filter-panel" style="margin-bottom:1rem;">
@@ -108,7 +108,7 @@
 
 <div id="delete-modal" class="modal">
   <div class="modal-content">
-    <p>آیا از حذف کاربر مطمئن هستید؟</p>
+    <p>آیا از حذف کارمند مطمئن هستید؟</p>
     <form method="post" id="delete-form">
       {% csrf_token %}
       <button type="submit" class="btn btn-danger">حذف</button>
@@ -132,7 +132,7 @@ const bulkForm = document.getElementById('bulk-form');
 if(bulkForm){
   bulkForm.addEventListener('submit', function(e){
     if(document.getElementById('bulk-action-select').value === 'delete'){
-      if(!confirm('آیا از حذف کاربران انتخاب شده مطمئن هستید؟')){
+      if(!confirm('آیا از حذف کارکنان انتخاب شده مطمئن هستید؟')){
         e.preventDefault();
       }
     }

@@ -1,20 +1,20 @@
 {% extends "core/base_management.html" %}
 {% load jformat %}
-{% block title %}گزارش کاربران{% endblock %}
+{% block title %}گزارش کارکنان{% endblock %}
 {% block management_content %}
 <h2 style="text-align:right;">
-  <i class="fas fa-file-alt" style="margin-left:0.5rem;"></i> گزارش کاربران
+  <i class="fas fa-file-alt" style="margin-left:0.5rem;"></i> گزارش کارکنان
  </h2>
 <div class="dashboard-stats">
   <div class="dashboard-card">
     <i class="fas fa-user-check"></i>
     <div class="value">{{ active_users }}</div>
-    <div class="label">کاربر فعال</div>
+    <div class="label">کارمند فعال</div>
   </div>
   <div class="dashboard-card">
     <i class="fas fa-user-times"></i>
     <div class="value">{{ inactive_users }}</div>
-    <div class="label">کاربر غیرفعال</div>
+    <div class="label">کارمند غیرفعال</div>
   </div>
   <div class="dashboard-card">
     <i class="fas fa-user-slash"></i>
@@ -63,7 +63,7 @@
     <table class="management-table">
       <thead>
         <tr>
-          <th>کاربر</th>
+          <th>کارمند</th>
           <th>تاریخ</th>
           <th>ساعت</th>
           <th>نوع</th>
@@ -77,7 +77,7 @@
           <td>{{ log.timestamp|jformat:"%Y/%m/%d" }}</td>
           <td>{{ log.timestamp|time:"H:i" }}</td>
           <td>{% if log.log_type == 'in' %}ورود{% else %}خروج{% endif %}</td>
-          <td>{% if log.source == 'self' %}کاربر{% elif log.source == 'auto' %}سیستم{% else %}مدیر{% endif %}</td>
+          <td>{% if log.source == 'self' %}کارمند{% elif log.source == 'auto' %}سیستم{% else %}مدیر{% endif %}</td>
         </tr>
         {% empty %}
         <tr><td colspan="5">ترددی ثبت نشده است.</td></tr>

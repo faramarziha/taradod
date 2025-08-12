@@ -91,7 +91,7 @@
   <div class="request-cards mobile-only">
     {% for r in pending_actions %}
     <div class="request-card fade-in">
-      <div class="row"><span class="label">کاربر:</span><span>{{ r.user.get_full_name }}</span></div>
+      <div class="row"><span class="label">کارمند:</span><span>{{ r.user.get_full_name }}</span></div>
       <div class="row"><span class="label">تاریخ:</span><span>{{ r.date }}</span></div>
       <div class="row"><span class="label">نوع:</span><span>{{ r.type_label }}</span></div>
       <div class="actions">
@@ -118,7 +118,7 @@
   <div class="table-responsive desktop-only">
     <table class="management-table">
       <thead>
-        <tr><th>کاربر</th><th>تاریخ</th><th>نوع</th><th>اقدام</th></tr>
+        <tr><th>کارمند</th><th>تاریخ</th><th>نوع</th><th>اقدام</th></tr>
       </thead>
       <tbody>
         {% for r in pending_actions %}
@@ -156,7 +156,7 @@
   <div class="performance-wrapper">
     <div class="performance-box">
       <h4>بدها <span class="info-icon" data-target="bad-info"><i class="fas fa-info-circle"></i></span></h4>
-      <div id="bad-info" class="info-text">کاربرانی با بیشترین روزهای دیرکرد در ماه اخیر</div>
+      <div id="bad-info" class="info-text">کارکنانی با بیشترین روزهای دیرکرد در ماه اخیر</div>
       <table class="performance-table">
         <thead><tr><th>نام</th><th>تعداد</th></tr></thead>
         <tbody>
@@ -170,7 +170,7 @@
     </div>
     <div class="performance-box">
       <h4>خوب‌ها <span class="info-icon" data-target="good-info"><i class="fas fa-info-circle"></i></span></h4>
-      <div id="good-info" class="info-text">کاربرانی با بیشترین روز بدون تأخیر متوالی</div>
+      <div id="good-info" class="info-text">کارکنانی با بیشترین روز بدون تأخیر متوالی</div>
       <table class="performance-table">
         <thead><tr><th>نام</th><th>تعداد</th></tr></thead>
         <tbody>

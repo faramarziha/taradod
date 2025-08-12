@@ -27,7 +27,7 @@
 <div class="request-cards mobile-only">
   {% for r in requests %}
   <div class="request-card fade-in">
-    <div class="row"><span class="label">کاربر:</span><span>{{ r.user.get_full_name }} - {{ r.user.personnel_code }}</span></div>
+    <div class="row"><span class="label">کارمند:</span><span>{{ r.user.get_full_name }} - {{ r.user.personnel_code }}</span></div>
     <div class="row"><span class="label">زمان:</span><span>{{ r.timestamp|jformat:"%Y/%m/%d %H:%M" }}</span></div>
     <div class="row"><span class="label">نوع:</span><span>{% if r.log_type == 'in' %}ورود{% else %}خروج{% endif %}</span></div>
     <div class="row"><span class="label">توضیح:</span><span>{{ r.note|default:"-" }}</span></div>
@@ -58,7 +58,7 @@
 <table class="management-table">
   <thead>
     <tr>
-      <th>کاربر</th>
+      <th>کارمند</th>
       <th>زمان</th>
       <th>نوع</th>
       <th>توضیح</th>

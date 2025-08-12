@@ -36,6 +36,7 @@
   border-radius: var(--radius);
   background: #111;
   direction: ltr;
+  transform: scaleX(-1);
 }
 #device-overlay {
   position: absolute;
@@ -106,7 +107,7 @@
     aspect-ratio: 4/3;
     padding: 0 !important;
   }
-  .device-video-area video,
+.device-video-area video,
 .device-video-area canvas {
   width: 100% !important;
   max-width: 100vw !important;
@@ -117,6 +118,7 @@
   border-radius: 10px;
   display: block;
   margin: 0 auto;
+  transform: scaleX(-1);
 }
 
   .device-message {

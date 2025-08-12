@@ -9,7 +9,7 @@
 <div class="request-cards">
   {% for log in logs %}
   <div class="request-card fade-in">
-    <div class="row"><span class="label">کاربر پیشنهادی:</span><span>{% if log.matched_user %}{{ log.matched_user.get_full_name }} - {{ log.matched_user.personnel_code }}{% else %}نامشخص{% endif %}</span></div>
+    <div class="row"><span class="label">کارمند پیشنهادی:</span><span>{% if log.matched_user %}{{ log.matched_user.get_full_name }} - {{ log.matched_user.personnel_code }}{% else %}نامشخص{% endif %}</span></div>
     <div class="row"><span class="label">فاصله:</span><span>{{ log.similarity|floatformat:3 }}</span></div>
     <div class="row"><span class="label">زمان:</span><span>{{ log.timestamp|jformat:"%Y/%m/%d %H:%M" }}</span></div>
     <div class="row"><span class="label">تصاویر:</span>
@@ -39,7 +39,7 @@
   <table class="management-table">
     <thead>
       <tr>
-        <th>کاربر پیشنهادی</th>
+        <th>کارمند پیشنهادی</th>
         <th>فاصله</th>
         <th>تصاویر</th>
         <th>زمان</th>

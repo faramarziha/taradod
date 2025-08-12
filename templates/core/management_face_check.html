@@ -6,6 +6,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
   const btn = document.getElementById('verifyBtn');
   const msgEl = document.getElementById('verifyResult');
 
@@ -28,7 +29,10 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.disabled = true;
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    canvas.getContext('2d').drawImage(video, 0, 0);
+    ctx.save();
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+    ctx.restore();
     const dataUrl = canvas.toDataURL('image/png');
 
     msgEl.textContent = 'لطفاً صبر کنید...';

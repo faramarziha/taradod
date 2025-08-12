@@ -16,12 +16,12 @@
         <i class="fas fa-user-check"></i> وضعیت حضور
       </a>
       <a href="{% url 'management_users' %}" class="{% if request.resolver_match.url_name == 'management_users' %}active{% endif %}">
-        <i class="fas fa-users"></i> کاربران
+        <i class="fas fa-users"></i> کارکنان
       </a>
       <details class="sidebar-group {% if request.resolver_match.url_name == 'management_reports' or request.resolver_match.url_name == 'monthly_profile' %}open{% endif %}">
         <summary><i class="fas fa-file-alt"></i> گزارش‌ها</summary>
         <nav class="sub-menu">
-          <a href="{% url 'management_reports' %}" class="{% if request.resolver_match.url_name == 'management_reports' %}active{% endif %}">گزارش کاربران</a>
+          <a href="{% url 'management_reports' %}" class="{% if request.resolver_match.url_name == 'management_reports' %}active{% endif %}">گزارش کارکنان</a>
           <a href="{% url 'monthly_profile' %}" class="{% if request.resolver_match.url_name == 'monthly_profile' %}active{% endif %}">پروفایل ماهانه</a>
         </nav>
       </details>

@@ -8,7 +8,7 @@ LOG_TYPE_CHOICES = [
 ]
 
 SOURCE_CHOICES = [
-    ("self", "کاربر"),
+    ("self", "کارمند"),
     ("auto", "سیستم"),
     ("manager", "مدیر"),
 ]

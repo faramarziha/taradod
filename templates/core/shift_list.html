@@ -8,7 +8,7 @@
 <div class="table-responsive">
 <table class="management-table">
   <thead>
-    <tr><th>نام</th><th>تعداد کاربران</th><th>شروع</th><th>پایان</th><th>عملیات</th></tr>
+    <tr><th>نام</th><th>تعداد کارکنان</th><th>شروع</th><th>پایان</th><th>عملیات</th></tr>
   </thead>
   <tbody>
   {% for s in shifts %}
@@ -56,7 +56,7 @@ document.querySelectorAll('.delete-item').forEach(btn => {
     const affected = this.dataset.affected;
     let msg = `آیا از حذف ${name} مطمئن هستید؟`;
     if(affected && parseInt(affected) > 0){
-      msg = `حذف ${name} بر روی ${affected} کاربر تأثیر خواهد گذاشت. آیا مطمئن هستید؟`;
+      msg = `حذف ${name} بر روی ${affected} کارمند تأثیر خواهد گذاشت. آیا مطمئن هستید؟`;
     }
     deleteMsg.textContent = msg;
     deleteForm.action = this.dataset.url;

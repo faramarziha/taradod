@@ -27,7 +27,7 @@
 <div class="request-cards mobile-only">
   {% for r in requests %}
   <div class="request-card fade-in">
-    <div class="row"><span class="label">کاربر:</span><span>{{ r.user.get_full_name }} - {{ r.user.personnel_code }}</span></div>
+    <div class="row"><span class="label">کارمند:</span><span>{{ r.user.get_full_name }} - {{ r.user.personnel_code }}</span></div>
     <div class="row"><span class="label">از:</span><span>{{ r.start_date|jformat:"%Y/%m/%d" }}</span></div>
     <div class="row"><span class="label">تا:</span><span>{{ r.end_date|jformat:"%Y/%m/%d" }}</span></div>
     {% if r.leave_type %}<div class="row"><span class="label">نوع:</span><span>{{ r.leave_type }}</span></div>{% endif %}
@@ -74,7 +74,7 @@
 <table class="management-table">
   <thead>
     <tr>
-      <th>کاربر</th>
+      <th>کارمند</th>
       <th>از</th>
       <th>تا</th>
       <th>نوع</th>

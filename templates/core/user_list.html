@@ -1,11 +1,11 @@
 {% extends "core/base_management.html" %}
-{% block title %}لیست کاربران{% endblock %}
+{% block title %}لیست کارکنان{% endblock %}
 {% block management_content %}
 <h2 style="text-align:right;">
-  <i class="fas fa-list" style="margin-left:0.5rem;"></i> لیست کاربران
+  <i class="fas fa-list" style="margin-left:0.5rem;"></i> لیست کارکنان
 </h2>
 <a class="btn" href="{% url 'user_add' %}" style="margin-bottom:1.2rem;">
-  <i class="fas fa-user-plus" style="margin-left:0.5rem;"></i> افزودن کاربر جدید
+  <i class="fas fa-user-plus" style="margin-left:0.5rem;"></i> افزودن کارمند جدید
 </a>
 <div class="request-cards">
   {% for u in users %}
