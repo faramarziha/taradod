@@ -6,6 +6,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
   const btn = document.getElementById('captureBtn');
   const message = document.getElementById('captureResult');
 
@@ -29,7 +30,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+    ctx.restore();
     captures.push(canvas.toDataURL('image/jpeg'));
     step++;
     if (step < steps.length) {

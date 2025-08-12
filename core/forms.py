@@ -170,7 +170,7 @@ class LeaveRequestForm(forms.ModelForm):
 class ManualLogForm(forms.Form):
     """Form for admins to directly register an attendance log for a user."""
 
-    user = forms.ModelChoiceField(queryset=User.objects.all(), label="کاربر")
+    user = forms.ModelChoiceField(queryset=User.objects.all(), label="کارمند")
     date = jforms.jDateField(label="تاریخ", widget=JalaliDateInput())
     time = forms.TimeField(label="ساعت", widget=JalaliTimeInput())
     log_type = forms.ChoiceField(choices=LOG_TYPE_CHOICES, label="نوع تردد")
@@ -207,7 +207,7 @@ class ManualLogForm(forms.Form):
 class ManualLeaveForm(forms.ModelForm):
     """Form for admins to directly register a leave for a user."""
 
-    user = forms.ModelChoiceField(queryset=User.objects.all(), label="کاربر")
+    user = forms.ModelChoiceField(queryset=User.objects.all(), label="کارمند")
     start_date = jforms.jDateField(label="از تاریخ", widget=JalaliDateInput())
     end_date = jforms.jDateField(label="تا تاریخ", widget=JalaliDateInput())
 
@@ -361,7 +361,7 @@ class ReportFilterForm(forms.Form):
     )
     users = forms.ModelMultipleChoiceField(
         queryset=User.objects.all(),
-        label="کاربران",
+        label="کارکنان",
         required=False,
         widget=forms.SelectMultiple(attrs={"class": "multi-select"}),
     )
@@ -374,7 +374,7 @@ class ReportFilterForm(forms.Form):
 
 
 class MonthlyPerformanceForm(forms.Form):
-    user = forms.ModelChoiceField(queryset=User.objects.all(), label="کاربر")
+    user = forms.ModelChoiceField(queryset=User.objects.all(), label="کارمند")
     year = forms.IntegerField(label="سال", initial=jdatetime.date.today().year)
     MONTH_CHOICES = [
         (1, "فروردین"),

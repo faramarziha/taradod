@@ -556,6 +556,7 @@ label {
   object-fit: contain;
   background: #000;
   direction: ltr;
+  transform: scaleX(-1);
 }
 
 .action-btn {

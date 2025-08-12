@@ -32,7 +32,7 @@ urlpatterns = [
     path("api/verify-face/",        views.api_verify_face,                name="api_verify_face"),
     path("api/register-face/",      views.api_register_face,              name="api_register_face"),
 
-    # —————— کاربر عادی ——————
+    # —————— کارمند عادی ——————
     path("user/inquiry/",           views.user_inquiry,                   name="user_inquiry"),
     path("user/profile/",           views.user_profile,                  name="user_profile"),
     path("user/edit-request/",     views.edit_request,                  name="edit_request"),
@@ -45,7 +45,7 @@ urlpatterns = [
     path("management/face-check/",     views.management_face_check,     name="management_face_check"),
     path("management/face-check/api/", views.api_management_verify_face, name="api_management_verify_face"),
 
-    # مدیریت CRUD کاربران
+    # مدیریت CRUD کارکنان
     path("management/users/",                views.management_users,               name="management_users"),
     path("management/users/add/",            views.user_add,                       name="user_add"),
     path("management/users/<int:pk>/edit/",  views.user_update,                    name="user_update"),

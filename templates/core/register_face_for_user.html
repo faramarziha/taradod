@@ -1,6 +1,6 @@
 {% extends "core/base_device.html" %}
 {% load static %}
-{% block title %}ثبت چهره برای کاربر{% endblock %}
+{% block title %}ثبت چهره برای کارمند{% endblock %}
 {% block extra_css %}
 <style>
   .user-info-register {
@@ -26,6 +26,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
   const btn = document.getElementById('captureBtn');
   const message = document.getElementById('captureResult');
 
@@ -49,7 +50,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+    ctx.restore();
     captures.push(canvas.toDataURL('image/jpeg'));
     step++;
     if (step < steps.length) {
@@ -66,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
     .then(r => r.json())
     .then(data => {
       if (data.ok) {
-        message.textContent = "چهره کاربر با موفقیت ثبت شد.";
+        message.textContent = "چهره کارمند با موفقیت ثبت شد.";
         if (data.redirect) {
           setTimeout(() => { window.location.href = data.redirect; }, 1200);
         }

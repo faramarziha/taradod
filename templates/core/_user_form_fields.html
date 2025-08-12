@@ -14,7 +14,7 @@
   {% endfor %}
   <div class="profile-actions" style="grid-column:1/-1;">
     <button type="submit" class="btn">
-      {% if form.instance.pk %}ذخیره تغییرات{% else %}ایجاد کاربر{% endif %}
+      {% if form.instance.pk %}ذخیره تغییرات{% else %}ایجاد کارمند{% endif %}
     </button>
     <a href="{% if cancel_url %}{{ cancel_url }}{% else %}{% url 'management_users' %}{% endif %}" class="btn" style="background:var(--color-muted);color:#fff;">لغو</a>
   </div>

@@ -145,7 +145,7 @@ def device_face_check(request):
 
 @login_required
 def device_page(request):
-    """صفحهٔ اصلی کیوسک برای ثبت تردد کاربران عادی"""
+    """صفحهٔ اصلی کیوسک برای ثبت تردد کارکنان عادی"""
     return render(request, "core/device.html")
 
 
@@ -260,7 +260,7 @@ def api_verify_face(request):
 @require_POST
 @login_required
 def api_register_face(request):
-    """ثبت چهرهٔ کاربر با بررسی حرکت ساده برای جلوگیری از تقلب."""
+    """ثبت چهرهٔ کارمند با بررسی حرکت ساده برای جلوگیری از تقلب."""
     img1 = request.POST.get("image1")
     img2 = request.POST.get("image2")
     if img1 and img2:
@@ -296,7 +296,7 @@ def api_register_face(request):
     request.user.save()
     return JsonResponse({"ok": True, "redirect": reverse("management_dashboard")})
 # —————————————————————————
-# مشاهده تردد کاربر عادی
+# مشاهده تردد کارمند عادی
 # —————————————————————————
 
 def user_inquiry(request):
@@ -531,7 +531,7 @@ def cancel_leave_request(request, pk):
 
 
 # —————————————————————————
-# پنل مدیریت کاربران
+# پنل مدیریت کارکنان
 # —————————————————————————
 
 staff_required = user_passes_test(lambda u: u.is_staff)
@@ -596,20 +596,20 @@ def management_users(request):
             qs = User.objects.filter(id__in=selected_ids)
             if action == "deactivate":
                 qs.update(is_active=False)
-                messages.success(request, "کاربران انتخاب‌شده غیرفعال شدند.")
+                messages.success(request, "کارکنان انتخاب‌شده غیرفعال شدند.")
             elif action == "assign_group":
                 group_id = request.POST.get("group")
                 if group_id:
                     qs.update(group_id=group_id)
-                    messages.success(request, "گروه کاربران به‌روزرسانی شد.")
+                    messages.success(request, "گروه کارکنان به‌روزرسانی شد.")
             elif action == "assign_shift":
                 shift_id = request.POST.get("shift")
                 if shift_id:
                     qs.update(shift_id=shift_id)
-                    messages.success(request, "شیفت کاربران به‌روزرسانی شد.")
+                    messages.success(request, "شیفت کارکنان به‌روزرسانی شد.")
             elif action == "delete":
                 qs.delete()
-                messages.success(request, "کاربران انتخاب‌شده حذف شدند.")
+                messages.success(request, "کارکنان انتخاب‌شده حذف شدند.")
         return redirect("management_users")
 
     users = User.objects.all().select_related("group", "shift")
@@ -658,11 +658,11 @@ def user_add(request):
             # ست پسورد تصادفی قوی (غیرقابل حدس)
             user.set_password(secrets.token_urlsafe(16))
             user.save()
-            messages.success(request, "کاربر جدید اضافه شد.")
+            messages.success(request, "کارمند جدید اضافه شد.")
             return redirect("register_face_page_for_user", user_id=user.pk)
     else:
         form = CustomUserSimpleForm()
-    return render(request, "core/user_form.html", {"form": form, "title": "افزودن کاربر جدید"})
+    return render(request, "core/user_form.html", {"form": form, "title": "افزودن کارمند جدید"})
 
 @login_required
 @staff_required
@@ -672,11 +672,11 @@ def user_update(request, pk):
         form = CustomUserSimpleForm(request.POST, request.FILES, instance=obj)
         if form.is_valid():
             form.save()
-            messages.success(request, "کاربر ویرایش شد.")
+            messages.success(request, "کارمند ویرایش شد.")
             return redirect("management_users")
     else:
         form = CustomUserSimpleForm(instance=obj)
-    return render(request, "core/user_form.html", {"form": form, "title": "ویرایش کاربر"})
+    return render(request, "core/user_form.html", {"form": form, "title": "ویرایش کارمند"})
 
 @login_required
 @staff_required
@@ -703,7 +703,7 @@ def admin_user_profile(request, pk):
         form = CustomUserSimpleForm(request.POST, request.FILES, instance=user_obj)
         if form.is_valid():
             form.save()
-            messages.success(request, "اطلاعات کاربر به‌روز شد.")
+            messages.success(request, "اطلاعات کارمند به‌روز شد.")
             return redirect("admin_user_profile", pk=pk)
     else:
         form = CustomUserSimpleForm(instance=user_obj)
@@ -745,7 +745,7 @@ def user_face_delete(request, pk):
         user_obj.face_image.delete(save=False)
     user_obj.face_image = None
     user_obj.save()
-    messages.success(request, "چهره کاربر حذف شد.")
+    messages.success(request, "چهره کارمند حذف شد.")
     return redirect("admin_user_profile", pk=pk)
 
 @login_required
@@ -959,7 +959,7 @@ def management_dashboard(request):
     return render(request, 'core/management_dashboard.html', context)
 
 
-# ======= گزارش‌گیری کاربران =======
+# ======= گزارش‌گیری کارکنان =======
 @login_required
 @staff_required
 def user_reports(request):
