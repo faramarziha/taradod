@@ -138,6 +138,7 @@ class LeaveRequestForm(forms.ModelForm):
     def __init__(self, *args, user=None, **kwargs):
         self.user = user
         super().__init__(*args, **kwargs)
+        self.fields["start_date"].widget.attrs["data-jdp-min-date"] = "today"
 
     def clean(self):
         cleaned_data = super().clean()
