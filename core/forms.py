@@ -154,13 +154,9 @@ class LeaveRequestForm(forms.ModelForm):
         cleaned_data = super().clean()
         sd = cleaned_data.get("start_date")
         dur = cleaned_data.get("duration")
-        today = jdatetime.date.today()
         if sd:
-            if sd < today:
-                self.add_error("start_date", "تاریخ شروع نمی‌تواند در گذشته باشد.")
-            else:
-                cleaned_data["start_date"] = sd.togregorian()
-        if sd and dur and sd >= today:
+            cleaned_data["start_date"] = sd.togregorian()
+        if sd and dur:
             end_j = sd + jdatetime.timedelta(days=dur - 1)
             cleaned_data["end_date"] = end_j.togregorian()
             cleaned_data["end_jalali"] = end_j
