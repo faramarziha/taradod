@@ -84,7 +84,7 @@ def _weekday_index(date):
 
 
 def _calculate_monthly_performance(user, year, month):
-    """Return standard monthly performance report and related leaves."""
+    """Return standard monthly performance report, leaves and incomplete days."""
     start_j = jdatetime.date(year, month, 1)
     days_in_month = jdatetime.j_days_in_month[month - 1]
     today_j = jdatetime.date.today()
@@ -142,6 +142,7 @@ def _calculate_monthly_performance(user, year, month):
     mandatory_minutes = 0
     tardy_minutes = 0
     absence_days = 0
+    incomplete_days = set()
 
     i = 0
     for d in range(days_in_month):
@@ -168,6 +169,7 @@ def _calculate_monthly_performance(user, year, month):
         if day_logs or (prev_log and prev_log.log_type == "in"):
             current_in = None
             first_in_ts = None
+            pair_found = False
             if prev_log and prev_log.log_type == "in":
                 current_in = start_dt
                 first_in_ts = start_dt
@@ -182,10 +184,16 @@ def _calculate_monthly_performance(user, year, month):
                         (log.timestamp - current_in).total_seconds() // 60
                     )
                     current_in = None
-            if first_in_ts and first_in_ts > start_dt:
-                tardy_minutes += int(
-                    math.ceil((first_in_ts - start_dt).total_seconds() / 60)
-                )
+                    pair_found = True
+            if pair_found:
+                if first_in_ts and first_in_ts > start_dt:
+                    tardy_minutes += int(
+                        math.ceil((first_in_ts - start_dt).total_seconds() / 60)
+                    )
+            else:
+                absence_days += 1
+                j_day = jdatetime.date.fromgregorian(date=day).day
+                incomplete_days.add(j_day)
         else:
             absence_days += 1
 
@@ -198,7 +206,7 @@ def _calculate_monthly_performance(user, year, month):
         "required_hours": round(mandatory_minutes / 60, 2),
         "overtime_minutes": present_minutes - mandatory_minutes,
     }
-    return report, list(leaves_qs)
+    return report, list(leaves_qs), sorted(incomplete_days)
 
 
 def _get_face_encoding_from_base64(data_url: str):
@@ -479,7 +487,7 @@ def user_profile(request):
 
     # Monthly performance statistics
     today_j = jdatetime.date.today()
-    report, _ = _calculate_monthly_performance(u, today_j.year, today_j.month)
+    report, _, _ = _calculate_monthly_performance(u, today_j.year, today_j.month)
     monthly_stats = {
         "total_hours": report["present_hours"],
         "total_delay": report["tardy_minutes"],
@@ -507,7 +515,7 @@ def user_profile(request):
     qs = AttendanceLog.objects.filter(
         user=u, timestamp__gte=start_dt, timestamp__lt=end_dt
     ).order_by("timestamp")
-    daily_logs = {d: {"in": None, "out": None} for d in range(1, days + 1)}
+    daily_logs = {d: {"in": None, "out": None, "status": ""} for d in range(1, days + 1)}
     for log in qs:
         jd = jdatetime.date.fromgregorian(date=log.timestamp.date())
         info = daily_logs.get(jd.day)
@@ -515,6 +523,14 @@ def user_profile(request):
             info["in"] = log.timestamp.time()
         if log.log_type == "out":
             info["out"] = log.timestamp.time()
+    _, _, incomplete_days = _calculate_monthly_performance(u, ly, lm)
+    for d, info in daily_logs.items():
+        if d in incomplete_days:
+            info["status"] = "incomplete"
+        elif info["in"] is None and info["out"] is None:
+            info["status"] = "absent"
+        else:
+            info["status"] = "present"
     prev_m = (start_j - jdatetime.timedelta(days=1))
     next_m = (end_j + jdatetime.timedelta(days=1))
 
@@ -1123,7 +1139,7 @@ def monthly_profile(request):
         selected_user = form.cleaned_data["user"]
         year = form.cleaned_data["year"]
         month = int(form.cleaned_data["month"])
-        report, leaves = _calculate_monthly_performance(selected_user, year, month)
+        report, leaves, _ = _calculate_monthly_performance(selected_user, year, month)
     context = {
         "active_tab": "reports",
         "form": form,
