@@ -708,6 +708,30 @@ def admin_user_profile(request, pk):
     else:
         form = CustomUserSimpleForm(instance=user_obj)
 
+    # Attendance logs for selected month
+    month_param = request.GET.get("month")
+    if month_param:
+        ly, lm = [int(x) for x in month_param.split("-")]
+    else:
+        t = jdatetime.date.today()
+        ly, lm = t.year, t.month
+    days = jdatetime.j_days_in_month[lm - 1]
+    start_g = jdatetime.date(ly, lm, 1).togregorian()
+    end_g = jdatetime.date(ly, lm, days).togregorian()
+    qs = AttendanceLog.objects.filter(
+        user=user_obj, timestamp__date__range=(start_g, end_g)
+    ).order_by("timestamp")
+    daily_logs = {d: {"in": None, "out": None} for d in range(1, days + 1)}
+    for log in qs:
+        jd = jdatetime.date.fromgregorian(date=log.timestamp.date())
+        info = daily_logs.get(jd.day)
+        if log.log_type == "in" and info["in"] is None:
+            info["in"] = log.timestamp.time()
+        if log.log_type == "out":
+            info["out"] = log.timestamp.time()
+    prev_m = (jdatetime.date(ly, lm, 1) - jdatetime.timedelta(days=1))
+    next_m = (jdatetime.date(ly, lm, days) + jdatetime.timedelta(days=1))
+
     requests_form = UserLogsRangeForm(request.GET or None, prefix="req")
     edit_requests = EditRequest.objects.filter(user=user_obj).order_by("-created_at")
     leave_requests = LeaveRequest.objects.filter(user=user_obj).order_by("-created_at")
@@ -731,6 +755,11 @@ def admin_user_profile(request, pk):
             "requests_form": requests_form,
             "edit_requests": edit_requests,
             "leave_requests": leave_requests,
+            "daily_logs": daily_logs,
+            "log_jyear": ly,
+            "log_jmonth": lm,
+            "prev_month": f"{prev_m.year}-{prev_m.month:02d}",
+            "next_month": f"{next_m.year}-{next_m.month:02d}",
         },
     )
 
