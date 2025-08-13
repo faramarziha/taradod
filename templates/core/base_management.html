@@ -18,7 +18,7 @@
       <a href="{% url 'management_users' %}" class="{% if request.resolver_match.url_name == 'management_users' %}active{% endif %}">
         <i class="fas fa-users"></i> کارکنان
       </a>
-      <details class="sidebar-group {% if request.resolver_match.url_name == 'management_reports' or request.resolver_match.url_name == 'monthly_profile' %}open{% endif %}">
+      <details class="sidebar-group"{% if request.resolver_match.url_name == 'management_reports' or request.resolver_match.url_name == 'monthly_profile' %} open{% endif %}>
         <summary><i class="fas fa-file-alt"></i> گزارش‌ها</summary>
         <nav class="sub-menu">
           <a href="{% url 'management_reports' %}" class="{% if request.resolver_match.url_name == 'management_reports' %}active{% endif %}">گزارش کارکنان</a>
@@ -34,15 +34,13 @@
       <a href="{% url 'leave_requests' %}" class="{% if request.resolver_match.url_name == 'leave_requests' %}active{% endif %}">
         <i class="fas fa-calendar-check"></i> مرخصی‌ها
       </a>
-      <a href="{% url 'weekly_holidays' %}" class="{% if request.resolver_match.url_name == 'weekly_holidays' %}active{% endif %}">
-        <i class="fas fa-calendar-day"></i> تعطیلات هفتگی
-      </a>
-      <details class="sidebar-group {% if request.resolver_match.url_name == 'shift_list' or request.resolver_match.url_name == 'shift_add' or request.resolver_match.url_name == 'shift_edit' or request.resolver_match.url_name == 'group_list' or request.resolver_match.url_name == 'group_add' or request.resolver_match.url_name == 'group_edit' or request.resolver_match.url_name == 'leave_type_list' or request.resolver_match.url_name == 'leave_type_add' or request.resolver_match.url_name == 'leave_type_edit' or request.resolver_match.url_name == 'device_settings' %}open{% endif %}">
+      <details class="sidebar-group"{% if request.resolver_match.url_name == 'shift_list' or request.resolver_match.url_name == 'shift_add' or request.resolver_match.url_name == 'shift_edit' or request.resolver_match.url_name == 'group_list' or request.resolver_match.url_name == 'group_add' or request.resolver_match.url_name == 'group_edit' or request.resolver_match.url_name == 'leave_type_list' or request.resolver_match.url_name == 'leave_type_add' or request.resolver_match.url_name == 'leave_type_edit' or request.resolver_match.url_name == 'device_settings' or request.resolver_match.url_name == 'weekly_holidays' %} open{% endif %}>
         <summary><i class="fas fa-cogs"></i> تنظیمات مجموعه</summary>
         <nav class="sub-menu">
           <a href="{% url 'shift_list' %}" class="{% if request.resolver_match.url_name == 'shift_list' or request.resolver_match.url_name == 'shift_add' or request.resolver_match.url_name == 'shift_edit' %}active{% endif %}">شیفت‌ها</a>
           <a href="{% url 'group_list' %}" class="{% if request.resolver_match.url_name == 'group_list' or request.resolver_match.url_name == 'group_add' or request.resolver_match.url_name == 'group_edit' %}active{% endif %}">گروه‌ها</a>
         <a href="{% url 'leave_type_list' %}" class="{% if request.resolver_match.url_name == 'leave_type_list' or request.resolver_match.url_name == 'leave_type_add' or request.resolver_match.url_name == 'leave_type_edit' %}active{% endif %}">انواع مرخصی</a>
+          <a href="{% url 'weekly_holidays' %}" class="{% if request.resolver_match.url_name == 'weekly_holidays' %}active{% endif %}">تعطیلات هفتگی</a>
           <a href="{% url 'device_settings' %}" class="{% if request.resolver_match.url_name == 'device_settings' %}active{% endif %}">دستگاه</a>
         </nav>
       </details>
