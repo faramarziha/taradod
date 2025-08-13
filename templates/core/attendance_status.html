@@ -2,7 +2,7 @@
 {% load jformat %}
 {% block title %}وضعیت حضور و غیاب{% endblock %}
 {% block management_content %}
-<div class="card page page-md fade-in">
+<div class="card page page-md fade-in attendance-status-page">
 <h2 class="page-title">
   <i class="fas fa-user-check"></i> وضعیت حضور و غیاب
 </h2>
@@ -16,35 +16,44 @@
 </div>
 <div class="status-grid">
   <div class="status-card">
-    <h4>حاضرین</h4>
-    <ul id="present-list">
+    <div class="status-card-header">
+      <h4>حاضرین</h4>
+      <span class="status-badge" id="present-count">{{ present_users|length }}</span>
+    </div>
+    <div class="user-grid" id="present-list">
       {% for u in present_users %}
-        <li>{{ u.get_full_name }} - {{ u.personnel_code }}</li>
+        <div class="user-card"><span class="user-name">{{ u.get_full_name }}</span><span class="user-code">{{ u.personnel_code }}</span></div>
       {% empty %}
-        <li>موردی نیست</li>
+        <div class="empty">موردی نیست</div>
       {% endfor %}
-    </ul>
+    </div>
   </div>
   <div class="status-card">
-    <h4>غایبین</h4>
-    <ul id="absent-list">
+    <div class="status-card-header">
+      <h4>غایبین</h4>
+      <span class="status-badge" id="absent-count">{{ absent_users|length }}</span>
+    </div>
+    <div class="user-grid" id="absent-list">
       {% for u in absent_users %}
-        <li>{{ u.get_full_name }} - {{ u.personnel_code }}</li>
+        <div class="user-card"><span class="user-name">{{ u.get_full_name }}</span><span class="user-code">{{ u.personnel_code }}</span></div>
       {% empty %}
-        <li>موردی نیست</li>
+        <div class="empty">موردی نیست</div>
       {% endfor %}
-    </ul>
+    </div>
   </div>
   <div class="status-card">
-    <h4>مرخصی</h4>
-    <ul id="leave-list">
+    <div class="status-card-header">
+      <h4>مرخصی</h4>
+      <span class="status-badge" id="leave-count">{{ leave_users|length }}</span>
+    </div>
+    <div class="user-grid" id="leave-list">
       {% for u in leave_users %}
-        <li>{{ u.get_full_name }} - {{ u.personnel_code }}</li>
+        <div class="user-card"><span class="user-name">{{ u.get_full_name }}</span><span class="user-code">{{ u.personnel_code }}</span></div>
       {% empty %}
-        <li>موردی نیست</li>
+        <div class="empty">موردی نیست</div>
       {% endfor %}
-    </ul>
-</div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 {% block extra_js %}
@@ -56,11 +65,14 @@ function refreshStatus(){
     .then(r => r.json())
     .then(data => {
       const present = document.getElementById('present-list');
-      present.innerHTML = data.present.map(u => `<li>${u.name} - ${u.code}</li>`).join('') || '<li>موردی نیست</li>';
+      present.innerHTML = data.present.map(u => `<div class=\"user-card\"><span class=\"user-name\">${u.name}</span><span class=\"user-code\">${u.code}</span></div>`).join('') || '<div class="empty">موردی نیست</div>';
+      document.getElementById('present-count').textContent = data.present.length;
       const absent = document.getElementById('absent-list');
-      absent.innerHTML = data.absent.map(u => `<li>${u.name} - ${u.code}</li>`).join('') || '<li>موردی نیست</li>';
+      absent.innerHTML = data.absent.map(u => `<div class=\"user-card\"><span class=\"user-name\">${u.name}</span><span class=\"user-code\">${u.code}</span></div>`).join('') || '<div class="empty">موردی نیست</div>';
+      document.getElementById('absent-count').textContent = data.absent.length;
       const leave = document.getElementById('leave-list');
-      leave.innerHTML = data.leave.map(u => `<li>${u.name} - ${u.code}</li>`).join('') || '<li>موردی نیست</li>';
+      leave.innerHTML = data.leave.map(u => `<div class=\"user-card\"><span class=\"user-name\">${u.name}</span><span class=\"user-code\">${u.code}</span></div>`).join('') || '<div class="empty">موردی نیست</div>';
+      document.getElementById('leave-count').textContent = data.leave.length;
     });
 }
 setInterval(refreshStatus, 30000);
