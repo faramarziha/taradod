@@ -454,6 +454,15 @@
   gap: 0.4rem;
   margin-top: 0.6rem;
 }
+.request-card .action-buttons {
+  display: flex;
+  width: 100%;
+  gap: 0.4rem;
+}
+.request-card .action-buttons button {
+  flex: 1;
+  margin: 0;
+}
 
 /* small-screen adjustments */
 @media (max-width: 900px) {
