@@ -85,6 +85,9 @@ def _weekday_index(date):
 
 def _calculate_monthly_performance(user, year, month):
     """Return standard monthly performance report and related leaves."""
+    EARLY_TOL = timedelta(minutes=30)
+    LATE_TOL = timedelta(minutes=30)
+
     start_j = jdatetime.date(year, month, 1)
     days_in_month = jdatetime.j_days_in_month[month - 1]
     today_j = jdatetime.date.today()
@@ -100,8 +103,8 @@ def _calculate_monthly_performance(user, year, month):
     shift_start = shift.start_time if shift else time(9, 0)
     shift_end = shift.end_time if shift else time(17, 0)
 
-    global_start = datetime.combine(start_g, shift_start)
-    global_end = datetime.combine(end_g, shift_end)
+    global_start = datetime.combine(start_g, shift_start) - EARLY_TOL
+    global_end = datetime.combine(end_g, shift_end) + LATE_TOL
     if shift_end <= shift_start:
         global_end += timedelta(days=1)
 
@@ -154,72 +157,63 @@ def _calculate_monthly_performance(user, year, month):
         end_dt = datetime.combine(day, shift_end)
         if shift_end <= shift_start:
             end_dt += timedelta(days=1)
+        window_start = start_dt - EARLY_TOL
+        window_end = end_dt + LATE_TOL
 
         day_logs = []
         prev_log = logs[i - 1] if i > 0 else None
-        while i < len(logs) and logs[i].timestamp < start_dt:
+        while i < len(logs) and logs[i].timestamp < window_start:
             prev_log = logs[i]
             i += 1
         j = i
-        while j < len(logs) and logs[j].timestamp < end_dt:
+        while j < len(logs) and logs[j].timestamp < window_end:
             day_logs.append(logs[j])
             j += 1
         i = j
 
-        had_in = (prev_log and prev_log.log_type == "in") or any(
-            l.log_type == "in" for l in day_logs
-        )
-        had_out = any(l.log_type == "out" for l in day_logs)
-
-        if had_in and not had_out:
-            first_in_ts = start_dt if prev_log and prev_log.log_type == "in" else None
-            if first_in_ts is None:
-                for l in day_logs:
-                    if l.log_type == "in":
-                        first_in_ts = l.timestamp
-                        break
-            if first_in_ts and first_in_ts > start_dt:
-                tardy_minutes += int(
-                    math.ceil((first_in_ts - start_dt).total_seconds() / 60)
-                )
-            absence_days += 1
-            incomplete_days.append(day)
-            continue
-
-        if had_out and not had_in:
-            absence_days += 1
-            incomplete_days.append(day)
-            continue
-
-        if not had_in and not had_out:
-            absence_days += 1
-            continue
-
+        sessions = []
+        incomplete = False
         current_in = None
         first_in_ts = None
+
         if prev_log and prev_log.log_type == "in":
-            current_in = start_dt
+            current_in = window_start
             first_in_ts = start_dt
+
         for log in day_logs:
             if log.log_type == "in":
+                if current_in is not None:
+                    sessions.append((current_in, log.timestamp))
+                    incomplete = True
+                current_in = log.timestamp
+                if first_in_ts is None and log.timestamp >= start_dt:
+                    first_in_ts = log.timestamp
+            else:  # log_type == "out"
                 if current_in is None:
-                    current_in = log.timestamp
-                    if first_in_ts is None:
-                        first_in_ts = log.timestamp
-            elif log.log_type == "out" and current_in:
-                present_minutes += int(
-                    (log.timestamp - current_in).total_seconds() // 60
-                )
-                current_in = None
+                    incomplete = True
+                else:
+                    sessions.append((current_in, log.timestamp))
+                    current_in = None
 
         if current_in is not None:
-            absence_days += 1
-            incomplete_days.append(day)
+            sessions.append((current_in, window_end))
+            incomplete = True
+
+        for s_start, s_end in sessions:
+            overl_start = max(s_start, start_dt)
+            overl_end = min(s_end, end_dt)
+            if overl_start < overl_end:
+                present_minutes += int((overl_end - overl_start).total_seconds() // 60)
 
         if first_in_ts and first_in_ts > start_dt:
             tardy_minutes += int(
                 math.ceil((first_in_ts - start_dt).total_seconds() / 60)
             )
+
+        if not sessions:
+            absence_days += 1
+        elif incomplete:
+            incomplete_days.append(day)
 
     report = {
         "present_minutes": present_minutes,
