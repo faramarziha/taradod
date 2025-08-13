@@ -173,6 +173,18 @@ button:hover, .btn:hover, input[type="submit"]:hover {
     text-decoration: none;
 }
 
+/* Home page buttons */
+.home-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  align-items: center;
+}
+
+.home-buttons .btn {
+  width: 85%;
+}
+
 input, select, textarea {
   font-family: inherit;
   padding: 0.4rem 0.6rem;
