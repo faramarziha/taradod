@@ -87,7 +87,12 @@ def _calculate_monthly_performance(user, year, month):
     """Return standard monthly performance report and related leaves."""
     start_j = jdatetime.date(year, month, 1)
     days_in_month = jdatetime.j_days_in_month[month - 1]
-    end_j = jdatetime.date(year, month, days_in_month)
+    today_j = jdatetime.date.today()
+    if year == today_j.year and month == today_j.month:
+        days_in_month = today_j.day
+        end_j = today_j
+    else:
+        end_j = jdatetime.date(year, month, days_in_month)
     start_g = start_j.togregorian()
     end_g = end_j.togregorian()
 
@@ -150,7 +155,9 @@ def _calculate_monthly_performance(user, year, month):
             end_dt += timedelta(days=1)
 
         day_logs = []
+        prev_log = logs[i - 1] if i > 0 else None
         while i < len(logs) and logs[i].timestamp < start_dt:
+            prev_log = logs[i]
             i += 1
         j = i
         while j < len(logs) and logs[j].timestamp < end_dt:
@@ -158,9 +165,12 @@ def _calculate_monthly_performance(user, year, month):
             j += 1
         i = j
 
-        if day_logs:
+        if day_logs or (prev_log and prev_log.log_type == "in"):
             current_in = None
             first_in_ts = None
+            if prev_log and prev_log.log_type == "in":
+                current_in = start_dt
+                first_in_ts = start_dt
             for log in day_logs:
                 if log.log_type == "in":
                     if current_in is None:
@@ -484,9 +494,19 @@ def user_profile(request):
         t = jdatetime.date.today()
         ly, lm = t.year, t.month
     days = jdatetime.j_days_in_month[lm - 1]
-    start_g = jdatetime.date(ly, lm, 1).togregorian()
-    end_g = jdatetime.date(ly, lm, days).togregorian()
-    qs = AttendanceLog.objects.filter(user=u, timestamp__date__range=(start_g, end_g)).order_by("timestamp")
+    start_j = jdatetime.date(ly, lm, 1)
+    end_j = jdatetime.date(ly, lm, days)
+    today_j = jdatetime.date.today()
+    if ly == today_j.year and lm == today_j.month:
+        days = today_j.day
+        end_j = today_j
+    start_g = start_j.togregorian()
+    end_g = end_j.togregorian()
+    start_dt = datetime.combine(start_g, time.min)
+    end_dt = datetime.combine(end_g + timedelta(days=1), time.min)
+    qs = AttendanceLog.objects.filter(
+        user=u, timestamp__gte=start_dt, timestamp__lt=end_dt
+    ).order_by("timestamp")
     daily_logs = {d: {"in": None, "out": None} for d in range(1, days + 1)}
     for log in qs:
         jd = jdatetime.date.fromgregorian(date=log.timestamp.date())
@@ -495,8 +515,8 @@ def user_profile(request):
             info["in"] = log.timestamp.time()
         if log.log_type == "out":
             info["out"] = log.timestamp.time()
-    prev_m = (jdatetime.date(ly, lm, 1) - jdatetime.timedelta(days=1))
-    next_m = (jdatetime.date(ly, lm, days) + jdatetime.timedelta(days=1))
+    prev_m = (start_j - jdatetime.timedelta(days=1))
+    next_m = (end_j + jdatetime.timedelta(days=1))
 
     edit_requests = EditRequest.objects.filter(user=u).order_by("-created_at")
     leave_requests = LeaveRequest.objects.select_related("leave_type").filter(user=u).order_by("-created_at")
