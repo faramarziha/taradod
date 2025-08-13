@@ -271,24 +271,76 @@
   gap: 1rem;
   margin-top: 1rem;
 }
-.status-card {
-  background: var(--color-bg);
+
+.attendance-box {
+  background: var(--color-surface);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
   border: 1px solid var(--color-border);
-  padding: 0.8rem;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  max-height: 280px;
 }
-.status-card h4 {
-  margin-bottom: 0.5rem;
+
+.box-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem;
   color: var(--color-primary-dark);
   font-size: 1.05rem;
+  font-weight: 600;
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  background: var(--color-surface);
+  z-index: 1;
+  direction: rtl;
 }
-.status-card ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  max-height: 220px;
+
+.box-header .badge {
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: 9999px;
+  padding: 0 0.4rem;
+  font-size: 0.8rem;
+  line-height: 1.2;
+}
+
+.box-list {
+  padding: 0.5rem;
   overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.5rem;
+  direction: rtl;
+}
+
+.person-card {
+  background: #f8fafc;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.95rem;
+  direction: rtl;
+}
+
+.person-name {
+  font-weight: 600;
+}
+
+.person-code {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.empty {
+  text-align: center;
+  color: var(--color-muted);
 }
 
 .status-lists {
