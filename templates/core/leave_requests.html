@@ -2,110 +2,63 @@
 {% load jformat %}
 {% block title %}درخواست‌های مرخصی{% endblock %}
 {% block management_content %}
-<h2 class="page-title">
-  <i class="fas fa-calendar-check"></i>
-  درخواست‌های مرخصی
-</h2>
-<form method="get" class="form-inline" style="margin-bottom:1rem;">
-  <select name="group">
-    <option value="">همه گروه‌ها</option>
-    {% for g in groups %}
-      <option value="{{ g.id }}" {% if g.id|stringformat:'s' == selected_group %}selected{% endif %}>{{ g.name }}</option>
-    {% endfor %}
-  </select>
-  <select name="shift">
-    <option value="">همه شیفت‌ها</option>
-    {% for s in shifts %}
-      <option value="{{ s.id }}" {% if s.id|stringformat:'s' == selected_shift %}selected{% endif %}>{{ s.name }}</option>
-    {% endfor %}
-  </select>
-  <button class="btn" type="submit">اعمال</button>
-</form>
-<a class="btn" href="{% url 'add_leave' %}" style="margin-bottom:1rem;">
-  <i class="fas fa-plus" style="margin-left:0.4rem;"></i> ثبت دستی مرخصی
-</a>
-<div class="request-cards mobile-only">
-  {% for r in requests %}
-  <div class="request-card fade-in">
-    <div class="row"><span class="label">کارمند:</span><span>{{ r.user.get_full_name }} - {{ r.user.personnel_code }}</span></div>
-    <div class="row"><span class="label">از:</span><span>{{ r.start_date|jformat:"%Y/%m/%d" }}</span></div>
-    <div class="row"><span class="label">تا:</span><span>{{ r.end_date|jformat:"%Y/%m/%d" }}</span></div>
-    {% if r.leave_type %}<div class="row"><span class="label">نوع:</span><span>{{ r.leave_type }}</span></div>{% endif %}
-    <div class="row"><span class="label">توضیح:</span><span>{{ r.reason|default:"-" }}</span></div>
-    <div class="row"><span class="label">وضعیت:</span>
-      <span>
-        {% if r.status == 'pending' %}در انتظار{% elif r.status == 'approved' %}تأیید شده{% elif r.status == 'cancelled' %}لغو شده{% else %}رد شده{% endif %}
-      </span>
-    </div>
-    <div class="actions">
-      {% if r.status == 'pending' %}
-      <form method="post" class="actions" style="flex:1;">
-        {% csrf_token %}
-        <input type="hidden" name="req_id" value="{{ r.id }}">
-        <input type="text" name="manager_note" placeholder="توضیح" style="flex:1;min-width:80px;">
-        <button name="action" value="approve" class="btn" style="font-size:0.9rem;">تأیید</button>
-        <button name="action" value="reject" class="btn btn-danger" style="font-size:0.9rem;">رد</button>
-        <button name="action" value="cancel" class="btn" style="background:var(--color-muted);font-size:0.9rem;">لغو</button>
-      </form>
-      {% elif r.start_date > today %}
-      <form method="post" class="actions" style="flex:1;">
-        {% csrf_token %}
-        <input type="hidden" name="req_id" value="{{ r.id }}">
-        <select name="status">
-          <option value="pending" {% if r.status == 'pending' %}selected{% endif %}>در انتظار</option>
-          <option value="approved" {% if r.status == 'approved' %}selected{% endif %}>تأیید شده</option>
-          <option value="rejected" {% if r.status == 'rejected' %}selected{% endif %}>رد شده</option>
-          <option value="cancelled" {% if r.status == 'cancelled' %}selected{% endif %}>لغو شده</option>
-        </select>
-        <input type="text" name="manager_note" placeholder="توضیح" style="flex:1;min-width:80px;">
-        <button name="action" value="update" class="btn" style="font-size:0.9rem;">ثبت</button>
-      </form>
-      {% else %}
-        {{ r.manager_note|default:"-" }}
-      {% endif %}
-    </div>
-  </div>
-  {% empty %}
-  <div class="alert-error">درخواستی وجود ندارد.</div>
-  {% endfor %}
-</div>
+<div class="leave-container">
+  <h2 class="page-title">
+    <i class="fas fa-calendar-check"></i>
+    درخواست‌های مرخصی
+  </h2>
 
-<div class="table-responsive desktop-only">
-<table class="management-table">
-  <thead>
-    <tr>
-      <th>کارمند</th>
-      <th>از</th>
-      <th>تا</th>
-      <th>نوع</th>
-      <th>توضیح</th>
-      <th>وضعیت</th>
-      <th>اقدام / توضیح مدیر</th>
-    </tr>
-  </thead>
-  <tbody>
+  <div class="leave-header">
+    <form method="get" class="filter-form">
+      <select name="group">
+        <option value="">همه گروه‌ها</option>
+        {% for g in groups %}
+          <option value="{{ g.id }}" {% if g.id|stringformat:'s' == selected_group %}selected{% endif %}>{{ g.name }}</option>
+        {% endfor %}
+      </select>
+      <select name="shift">
+        <option value="">همه شیفت‌ها</option>
+        {% for s in shifts %}
+          <option value="{{ s.id }}" {% if s.id|stringformat:'s' == selected_shift %}selected{% endif %}>{{ s.name }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn" type="submit">اعمال</button>
+    </form>
+    <a class="btn manual-leave" href="{% url 'add_leave' %}">
+      <i class="fas fa-plus" style="margin-left:0.4rem;"></i> ثبت دستی مرخصی
+    </a>
+  </div>
+
+  <div class="request-cards mobile-only">
     {% for r in requests %}
-    <tr>
-      <td>{{ r.user.get_full_name }} - {{ r.user.personnel_code }}</td>
-      <td>{{ r.start_date|jformat:"%Y/%m/%d" }}</td>
-      <td>{{ r.end_date|jformat:"%Y/%m/%d" }}</td>
-      <td>{{ r.leave_type|default:"-" }}</td>
-      <td>{{ r.reason|default:"-" }}</td>
-      <td>
-        {% if r.status == 'pending' %}در انتظار{% elif r.status == 'approved' %}تأیید شده{% elif r.status == 'cancelled' %}لغو شده{% else %}رد شده{% endif %}
-      </td>
-      <td>
+    <div class="request-card row-{{ r.status }} fade-in">
+      <div class="row"><span class="label">کارمند:</span>
+        <span class="value">{{ r.user.get_full_name }}<br><small class="code">{{ r.user.personnel_code }}</small></span>
+      </div>
+      <div class="row"><span class="label">تاریخ:</span>
+        <span class="value">{{ r.start_date|jformat:"%Y/%m/%d" }} تا {{ r.end_date|jformat:"%Y/%m/%d" }}</span>
+      </div>
+      {% if r.leave_type %}
+      <div class="row"><span class="label">نوع:</span><span class="leave-type">{{ r.leave_type }}</span></div>
+      {% endif %}
+      <div class="row"><span class="label">توضیح:</span><span class="note" title="{{ r.reason|default:'-' }}">{{ r.reason|default:"-" }}</span></div>
+      <div class="row"><span class="label">وضعیت:</span>
+        <span class="badge badge-{{ r.status }}">
+          {% if r.status == 'pending' %}در انتظار{% elif r.status == 'approved' %}تأیید شده{% elif r.status == 'cancelled' %}لغو شده{% else %}رد شده{% endif %}
+        </span>
+      </div>
+      <div class="actions">
         {% if r.status == 'pending' %}
-        <form method="post" style="display:flex;gap:0.3rem;flex-wrap:wrap;">
+        <form method="post" class="actions-form" style="flex:1;">
           {% csrf_token %}
           <input type="hidden" name="req_id" value="{{ r.id }}">
-          <input type="text" name="manager_note" placeholder="توضیح" style="flex:1;min-width:80px;">
-          <button name="action" value="approve" class="btn" style="font-size:0.9rem;">تأیید</button>
-          <button name="action" value="reject" class="btn btn-danger" style="font-size:0.9rem;">رد</button>
-          <button name="action" value="cancel" class="btn" style="background:var(--color-muted);font-size:0.9rem;">لغو</button>
+          <input type="text" name="manager_note" placeholder="توضیح" class="manager-note">
+          <button name="action" value="approve" class="btn btn-approve" aria-label="تأیید"><i class="fas fa-check"></i> تأیید</button>
+          <button name="action" value="reject" class="btn btn-reject" aria-label="رد"><i class="fas fa-times"></i> رد</button>
+          <button name="action" value="cancel" class="btn btn-cancel" aria-label="لغو"><i class="fas fa-ban"></i> لغو</button>
         </form>
         {% elif r.start_date > today %}
-        <form method="post" style="display:flex;gap:0.3rem;flex-wrap:wrap;">
+        <form method="post" class="actions-form" style="flex:1;">
           {% csrf_token %}
           <input type="hidden" name="req_id" value="{{ r.id }}">
           <select name="status">
@@ -114,18 +67,74 @@
             <option value="rejected" {% if r.status == 'rejected' %}selected{% endif %}>رد شده</option>
             <option value="cancelled" {% if r.status == 'cancelled' %}selected{% endif %}>لغو شده</option>
           </select>
-          <input type="text" name="manager_note" placeholder="توضیح" style="flex:1;min-width:80px;">
-          <button name="action" value="update" class="btn" style="font-size:0.9rem;">ثبت</button>
+          <input type="text" name="manager_note" placeholder="توضیح" class="manager-note">
+          <button name="action" value="update" class="btn btn-update" aria-label="ثبت"><i class="fas fa-save"></i> ثبت</button>
         </form>
         {% else %}
-          {{ r.manager_note|default:"-" }}
+          <span class="note" title="{{ r.manager_note|default:'-' }}">{{ r.manager_note|default:"-" }}</span>
         {% endif %}
-      </td>
-    </tr>
+      </div>
+    </div>
     {% empty %}
-    <tr><td colspan="7">درخواستی وجود ندارد.</td></tr>
+    <div class="alert-error">درخواستی وجود ندارد.</div>
     {% endfor %}
-  </tbody>
-</table>
+  </div>
+
+  <div class="table-responsive desktop-only">
+  <table class="management-table leave-table">
+    <thead>
+      <tr>
+        <th>کارمند</th>
+        <th>از</th>
+        <th>تا</th>
+        <th>نوع</th>
+        <th>توضیح</th>
+        <th>وضعیت</th>
+        <th>اقدام / توضیح مدیر</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in requests %}
+      <tr class="row-{{ r.status }}">
+        <td>{{ r.user.get_full_name }}<div class="code">{{ r.user.personnel_code }}</div></td>
+        <td>{{ r.start_date|jformat:"%Y/%m/%d" }}</td>
+        <td>{{ r.end_date|jformat:"%Y/%m/%d" }}</td>
+        <td>{% if r.leave_type %}<span class="leave-type">{{ r.leave_type }}</span>{% else %}-{% endif %}</td>
+        <td class="note" title="{{ r.reason|default:'-' }}">{{ r.reason|default:"-" }}</td>
+        <td><span class="badge badge-{{ r.status }}">{% if r.status == 'pending' %}در انتظار{% elif r.status == 'approved' %}تأیید شده{% elif r.status == 'cancelled' %}لغو شده{% else %}رد شده{% endif %}</span></td>
+        <td>
+          {% if r.status == 'pending' %}
+          <form method="post" class="actions-form">
+            {% csrf_token %}
+            <input type="hidden" name="req_id" value="{{ r.id }}">
+            <input type="text" name="manager_note" placeholder="توضیح" class="manager-note">
+            <button name="action" value="approve" class="btn btn-approve" aria-label="تأیید"><i class="fas fa-check"></i> تأیید</button>
+            <button name="action" value="reject" class="btn btn-reject" aria-label="رد"><i class="fas fa-times"></i> رد</button>
+            <button name="action" value="cancel" class="btn btn-cancel" aria-label="لغو"><i class="fas fa-ban"></i> لغو</button>
+          </form>
+          {% elif r.start_date > today %}
+          <form method="post" class="actions-form">
+            {% csrf_token %}
+            <input type="hidden" name="req_id" value="{{ r.id }}">
+            <select name="status">
+              <option value="pending" {% if r.status == 'pending' %}selected{% endif %}>در انتظار</option>
+              <option value="approved" {% if r.status == 'approved' %}selected{% endif %}>تأیید شده</option>
+              <option value="rejected" {% if r.status == 'rejected' %}selected{% endif %}>رد شده</option>
+              <option value="cancelled" {% if r.status == 'cancelled' %}selected{% endif %}>لغو شده</option>
+            </select>
+            <input type="text" name="manager_note" placeholder="توضیح" class="manager-note">
+            <button name="action" value="update" class="btn btn-update" aria-label="ثبت"><i class="fas fa-save"></i> ثبت</button>
+          </form>
+          {% else %}
+            <span class="note" title="{{ r.manager_note|default:'-' }}">{{ r.manager_note|default:"-" }}</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7">درخواستی وجود ندارد.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
 </div>
 {% endblock %}

@@ -434,8 +434,8 @@
 /* responsive cards used for leave/edit requests */
 .request-cards { display: none; }
 .request-card {
-  background: var(--color-bg);
-  border-radius: var(--radius);
+  background: #fff;
+  border-radius: 16px;
   box-shadow: var(--shadow);
   border: 1px solid var(--color-border);
   padding: 1rem 0.8rem;
@@ -458,6 +458,96 @@
 /* small-screen adjustments */
 @media (max-width: 900px) {
   .request-cards { display: flex; flex-direction: column; gap: 1rem; }
+}
+
+/* leave requests page */
+.leave-container {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  padding: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.leave-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+}
+
+.leave-header .filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.leave-type {
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 0.2rem 0.6rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 0.5rem;
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.badge-approved { background: #16a34a; }
+.badge-rejected { background: #dc2626; }
+.badge-pending { background: #6b7280; }
+.badge-cancelled { background: #f97316; }
+
+.row-pending { background: #f9fafb; }
+
+.code {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
+.note {
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.actions-form {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.actions-form .btn {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  justify-content: center;
+}
+
+.btn-approve { background: #16a34a; }
+.btn-reject { background: #dc2626; }
+.btn-cancel { background: #f97316; }
+.btn-update { background: var(--color-primary); }
+
+.actions-form .btn:focus {
+  outline: 2px solid var(--color-primary-dark);
+  outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+  .note { max-width: none; }
+  .request-card .actions-form .btn { flex: 1 1 30%; }
 }
 
 /* charts container */
