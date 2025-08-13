@@ -1,5 +1,11 @@
 {% extends "core/base_management.html" %}
 {% load jformat %}
+{% block extra_css %}
+{{ block.super }}
+<style>
+  .page-md { max-width: 785px; }
+</style>
+{% endblock %}
 {% block title %}وضعیت حضور و غیاب{% endblock %}
 {% block management_content %}
 <div class="card page page-md fade-in">
