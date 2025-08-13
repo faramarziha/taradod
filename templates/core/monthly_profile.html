@@ -32,5 +32,15 @@
   </ul>
 </div>
 {% endif %}
+{% if report.incomplete_days %}
+<div class="card" style="margin-top:1rem;">
+  <h4>تردد ناقص</h4>
+  <ul>
+    {% for d in report.incomplete_days %}
+      <li>{{ d|jformat:"%Y/%m/%d" }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
 {% endif %}
 {% endblock %}
