@@ -4,6 +4,7 @@ import json
 import secrets
 import os
 import math
+from bisect import bisect_left
 from datetime import timedelta, datetime, time
 
 import face_recognition
@@ -395,6 +396,11 @@ def user_profile(request):
     absent_days = 0
     default_start = time(9, 0)
     default_end = time(17, 0)
+    shift = _get_user_shift(u)
+    shift_start = shift.start_time if shift else default_start
+    shift_end = shift.end_time if shift else default_end
+    cross_midnight = shift_end <= shift_start
+    timestamps = [log.timestamp for log in all_logs]
     for d in range(1, days_in_month + 1):
         date_j = jdatetime.date(jy, jm, d)
         date_g = date_j.togregorian()
@@ -404,14 +410,13 @@ def user_profile(request):
             continue
         if date_g in leave_days:
             continue
-        shift = _get_user_shift(u)
-        shift_start = shift.start_time if shift else default_start
-        shift_end = shift.end_time if shift else default_end
         start_dt = datetime.combine(date_g, shift_start)
         end_dt = datetime.combine(date_g, shift_end)
-        if shift_end <= shift_start:
+        if cross_midnight:
             end_dt += timedelta(days=1)
-        day_logs = [log for log in all_logs if start_dt <= log.timestamp < end_dt]
+        s_idx = bisect_left(timestamps, start_dt)
+        e_idx = bisect_left(timestamps, end_dt)
+        day_logs = all_logs[s_idx:e_idx]
         if day_logs and any(l.log_type == "in" for l in day_logs):
             work_seconds = 0
             current_in = None
