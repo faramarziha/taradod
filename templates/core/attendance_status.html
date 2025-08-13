@@ -15,55 +15,92 @@
   تاریخ: {{ jdate }}
 </div>
 <div class="status-grid">
-  <div class="status-card">
-    <h4>حاضرین</h4>
-    <ul id="present-list">
+  <div class="attendance-box">
+    <div class="box-header">
+      <span class="box-title">حاضرین</span>
+      <span class="badge" id="present-count">{{ present_users|length }}</span>
+    </div>
+    <div class="box-list" id="present-list">
       {% for u in present_users %}
-        <li>{{ u.get_full_name }} - {{ u.personnel_code }}</li>
+        <div class="person-card">
+          <span class="person-name">{{ u.get_full_name }}</span>
+          <span class="person-code">{{ u.personnel_code }}</span>
+        </div>
       {% empty %}
-        <li>موردی نیست</li>
+        <div class="empty">موردی نیست</div>
       {% endfor %}
-    </ul>
+    </div>
   </div>
-  <div class="status-card">
-    <h4>غایبین</h4>
-    <ul id="absent-list">
+  <div class="attendance-box">
+    <div class="box-header">
+      <span class="box-title">غایبین</span>
+      <span class="badge" id="absent-count">{{ absent_users|length }}</span>
+    </div>
+    <div class="box-list" id="absent-list">
       {% for u in absent_users %}
-        <li>{{ u.get_full_name }} - {{ u.personnel_code }}</li>
+        <div class="person-card">
+          <span class="person-name">{{ u.get_full_name }}</span>
+          <span class="person-code">{{ u.personnel_code }}</span>
+        </div>
       {% empty %}
-        <li>موردی نیست</li>
+        <div class="empty">موردی نیست</div>
       {% endfor %}
-    </ul>
+    </div>
   </div>
-  <div class="status-card">
-    <h4>مرخصی</h4>
-    <ul id="leave-list">
+  <div class="attendance-box">
+    <div class="box-header">
+      <span class="box-title">مرخصی</span>
+      <span class="badge" id="leave-count">{{ leave_users|length }}</span>
+    </div>
+    <div class="box-list" id="leave-list">
       {% for u in leave_users %}
-        <li>{{ u.get_full_name }} - {{ u.personnel_code }}</li>
+        <div class="person-card">
+          <span class="person-name">{{ u.get_full_name }}</span>
+          <span class="person-code">{{ u.personnel_code }}</span>
+        </div>
       {% empty %}
-        <li>موردی نیست</li>
+        <div class="empty">موردی نیست</div>
       {% endfor %}
-    </ul>
-</div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 {% block extra_js %}
-{% if realtime %}
 <script>
+function updateInitialCounts(){
+  ['present','absent','leave'].forEach(type => {
+    const list = document.getElementById(type+'-list');
+    const badge = document.getElementById(type+'-count');
+    badge.textContent = list.querySelectorAll('.person-card').length;
+  });
+}
+updateInitialCounts();
+{% if realtime %}
 function refreshStatus(){
   const dateVal = document.getElementById('id_date').value;
   fetch("{% url 'api_attendance_status' %}?date=" + encodeURIComponent(dateVal))
     .then(r => r.json())
     .then(data => {
-      const present = document.getElementById('present-list');
-      present.innerHTML = data.present.map(u => `<li>${u.name} - ${u.code}</li>`).join('') || '<li>موردی نیست</li>';
-      const absent = document.getElementById('absent-list');
-      absent.innerHTML = data.absent.map(u => `<li>${u.name} - ${u.code}</li>`).join('') || '<li>موردی نیست</li>';
-      const leave = document.getElementById('leave-list');
-      leave.innerHTML = data.leave.map(u => `<li>${u.name} - ${u.code}</li>`).join('') || '<li>موردی نیست</li>';
+      const render = (items, listId, countId) => {
+        const list = document.getElementById(listId);
+        const count = document.getElementById(countId);
+        if(items.length){
+          list.innerHTML = items.map(u => `\
+            <div class="person-card">\
+              <span class="person-name">${u.name}</span>\
+              <span class="person-code">${u.code}</span>\
+            </div>`).join('');
+        }else{
+          list.innerHTML = '<div class="empty">موردی نیست</div>';
+        }
+        count.textContent = items.length;
+      };
+      render(data.present, 'present-list', 'present-count');
+      render(data.absent, 'absent-list', 'absent-count');
+      render(data.leave, 'leave-list', 'leave-count');
     });
 }
 setInterval(refreshStatus, 30000);
-</script>
 {% endif %}
+</script>
 {% endblock %}
