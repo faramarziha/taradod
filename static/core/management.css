@@ -471,11 +471,6 @@
   border-bottom: none;
 }
 
-.btn-small {
-  padding: 0.2rem 0.6rem;
-  font-size: 0.85rem;
-}
-
 
 /* responsive cards used for leave/edit requests */
 .request-cards { display: none; }
