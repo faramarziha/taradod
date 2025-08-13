@@ -3,6 +3,7 @@ import io
 import json
 import secrets
 import os
+import math
 from datetime import timedelta, datetime, time
 
 import face_recognition
@@ -80,6 +81,96 @@ def _shift_bounds(date, shift):
 def _weekday_index(date):
     """Convert Python weekday (Mon=0) to app convention (Sat=0)."""
     return (date.weekday() + 2) % 7
+
+
+def _calculate_monthly_performance(user, year, month, end_date=None):
+    """Calculate monthly work stats and return metrics, logs, and leaves."""
+    start_j = jdatetime.date(year, month, 1)
+    if month == 12:
+        next_j = jdatetime.date(year + 1, 1, 1)
+    else:
+        next_j = jdatetime.date(year, month + 1, 1)
+    start_g = start_j.togregorian()
+    next_g = next_j.togregorian()
+
+    logs = list(
+        AttendanceLog.objects.filter(
+            user=user, timestamp__gte=start_g, timestamp__lt=next_g
+        ).order_by("timestamp")
+    )
+
+    leaves = LeaveRequest.objects.filter(
+        user=user,
+        status="approved",
+        start_date__lt=next_g,
+        end_date__gte=start_g,
+    )
+
+    leave_days = set()
+    for leave in leaves:
+        cur = max(leave.start_date, start_g)
+        while cur <= min(leave.end_date, next_g - timedelta(days=1)):
+            leave_days.add(cur)
+            cur += timedelta(days=1)
+
+    weekly_holidays = set(WeeklyHoliday.objects.values_list("weekday", flat=True))
+
+    total_minutes = 0
+    tardy_minutes = 0
+    absence_days = 0
+    mandatory_minutes = 0
+
+    day = start_g
+    while day < next_g and (end_date is None or day <= end_date):
+        if _weekday_index(day) in weekly_holidays or day in leave_days:
+            day += timedelta(days=1)
+            continue
+
+        shift = _get_user_shift(user)
+        shift_start = shift.start_time if shift else time(9, 0)
+        shift_end = shift.end_time if shift else time(17, 0)
+        start_dt = datetime.combine(day, shift_start)
+        end_dt = datetime.combine(day, shift_end)
+        if shift_end <= shift_start:
+            end_dt += timedelta(days=1)
+
+        shift_minutes = int((end_dt - start_dt).total_seconds() // 60)
+        mandatory_minutes += shift_minutes
+
+        day_logs = [log for log in logs if start_dt <= log.timestamp < end_dt]
+        if day_logs:
+            current_in = None
+            first_in = None
+            work_minutes = 0
+            for log in day_logs:
+                ts = log.timestamp
+                if log.log_type == "in":
+                    if first_in is None:
+                        first_in = ts
+                    current_in = ts
+                elif log.log_type == "out" and current_in:
+                    work_minutes += int((ts - current_in).total_seconds() // 60)
+                    current_in = None
+            total_minutes += work_minutes
+            if first_in:
+                if first_in > start_dt:
+                    tardy_minutes += math.ceil(
+                        (first_in - start_dt).total_seconds() / 60
+                    )
+            else:
+                absence_days += 1
+        else:
+            absence_days += 1
+
+        day += timedelta(days=1)
+
+    metrics = {
+        "total_minutes": total_minutes,
+        "tardy_minutes": tardy_minutes,
+        "absence_days": absence_days,
+        "mandatory_minutes": mandatory_minutes,
+    }
+    return metrics, logs, leaves
 
 
 def _get_face_encoding_from_base64(data_url: str):
@@ -361,53 +452,11 @@ def user_profile(request):
     # Monthly performance statistics
     today_j = jdatetime.date.today()
     jy, jm = today_j.year, today_j.month
-    days_in_month = jdatetime.j_days_in_month[jm - 1]
-    total_work_seconds = 0
-    total_delay_seconds = 0
-    absent_days = 0
-    shift = _get_user_shift(u)
-    default_start = time(9, 0)
-    default_end = time(17, 0)
-    for d in range(1, days_in_month + 1):
-        date_j = jdatetime.date(jy, jm, d)
-        date_g = date_j.togregorian()
-        if date_g > today:
-            break
-        if WeeklyHoliday.objects.filter(weekday=_weekday_index(date_g)).exists():
-            continue
-        if LeaveRequest.objects.filter(
-            user=u,
-            status="approved",
-            start_date__lte=date_g,
-            end_date__gte=date_g,
-        ).exists():
-            continue
-        logs = AttendanceLog.objects.filter(user=u, timestamp__date=date_g).order_by("timestamp")
-        if logs.exists():
-            first_log = logs.first().timestamp
-            last_log = logs.last().timestamp
-            shift_start = shift.start_time if shift else default_start
-            shift_end = shift.end_time if shift else default_end
-            start_dt = datetime.combine(date_g, shift_start)
-            end_dt = datetime.combine(date_g, shift_end)
-            if shift_end <= shift_start:
-                end_dt += timedelta(days=1)
-            if first_log.tzinfo is not None:
-                first_log = first_log.replace(tzinfo=None)
-            if last_log.tzinfo is not None:
-                last_log = last_log.replace(tzinfo=None)
-            work_start = max(first_log, start_dt)
-            work_end = min(last_log, end_dt)
-            if work_end > work_start:
-                total_work_seconds += (work_end - work_start).total_seconds()
-            if first_log > start_dt:
-                total_delay_seconds += (first_log - start_dt).total_seconds()
-        else:
-            absent_days += 1
+    stats, _, _ = _calculate_monthly_performance(u, jy, jm, end_date=today)
     monthly_stats = {
-        "total_hours": round(total_work_seconds / 3600, 2),
-        "total_delay": int(total_delay_seconds / 60),
-        "absent_days": absent_days,
+        "total_hours": round(stats["total_minutes"] / 60, 2),
+        "total_delay": stats["tardy_minutes"],
+        "absent_days": stats["absence_days"],
     }
 
     # Attendance logs for selected month
@@ -1038,92 +1087,14 @@ def monthly_profile(request):
         selected_user = form.cleaned_data['user']
         year = form.cleaned_data['year']
         month = int(form.cleaned_data['month'])
-        start_j = jdatetime.date(year, month, 1)
-        if month == 12:
-            next_month = jdatetime.date(year + 1, 1, 1)
-        else:
-            next_month = jdatetime.date(year, month + 1, 1)
-        end_j = next_month - jdatetime.timedelta(days=1)
-        start_g = start_j.togregorian()
-        end_g = end_j.togregorian()
-        logs_qs = AttendanceLog.objects.filter(
-            user=selected_user,
-            timestamp__date__range=(start_g, end_g)
-        ).order_by('timestamp')
-        logs = list(logs_qs)
-        logs_by_day = {}
-        for log in logs:
-            logs_by_day.setdefault(log.timestamp.date(), []).append(log)
-
-        # prepare leave days
-        leaves = LeaveRequest.objects.filter(
-            user=selected_user,
-            start_date__lte=end_g,
-            end_date__gte=start_g,
-            status='approved'
-        )
-        leave_days = set()
-        for leave in leaves:
-            cur = max(leave.start_date, start_g)
-            while cur <= min(leave.end_date, end_g):
-                leave_days.add(cur)
-                cur += timedelta(days=1)
-
-        shift = _get_user_shift(selected_user)
-        shift_start = time(9, 0)
-        shift_end = time(17, 0)
-        if shift:
-            shift_start = shift.start_time
-            shift_end = shift.end_time
-        # shift duration
-        if shift_end <= shift_start:
-            shift_minutes = (
-                datetime.combine(start_g, shift_end) + timedelta(days=1) - datetime.combine(start_g, shift_start)
-            ).seconds // 60
-        else:
-            shift_minutes = (
-                datetime.combine(start_g, shift_end) - datetime.combine(start_g, shift_start)
-            ).seconds // 60
-
-        weekly_holidays = set(WeeklyHoliday.objects.values_list('weekday', flat=True))
-
-        day = start_g
-        total_minutes = 0
-        mandatory_minutes = 0
-        tardy_minutes = 0
-        absence_days = 0
-        while day <= end_g:
-            if _weekday_index(day) in weekly_holidays or day in leave_days:
-                day += timedelta(days=1)
-                continue
-            mandatory_minutes += shift_minutes
-            day_logs = logs_by_day.get(day, [])
-            if day_logs:
-                current_in = None
-                for log in day_logs:
-                    if log.log_type == 'in':
-                        current_in = log.timestamp
-                    elif log.log_type == 'out' and current_in:
-                        total_minutes += int((log.timestamp - current_in).total_seconds() // 60)
-                        current_in = None
-                first_log = day_logs[0]
-                shift_start_dt = datetime.combine(day, shift_start)
-                fl_ts = first_log.timestamp
-                if fl_ts.tzinfo is not None:
-                    fl_ts = fl_ts.replace(tzinfo=None)
-                if fl_ts > shift_start_dt:
-                    tardy_minutes += int((fl_ts - shift_start_dt).total_seconds() // 60)
-            else:
-                absence_days += 1
-            day += timedelta(days=1)
-
-        overtime_minutes = total_minutes - mandatory_minutes
+        stats, logs, leaves = _calculate_monthly_performance(selected_user, year, month)
+        overtime_minutes = stats['total_minutes'] - stats['mandatory_minutes']
         report = {
-            'required_hours': round(mandatory_minutes / 60, 2),
-            'present_hours': round(total_minutes / 60, 2),
+            'required_hours': round(stats['mandatory_minutes'] / 60, 2),
+            'present_hours': round(stats['total_minutes'] / 60, 2),
             'overtime_minutes': overtime_minutes,
-            'absence_days': absence_days,
-            'tardy_minutes': tardy_minutes,
+            'absence_days': stats['absence_days'],
+            'tardy_minutes': stats['tardy_minutes'],
         }
     context = {
         'active_tab': 'reports',
