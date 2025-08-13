@@ -100,14 +100,14 @@
           <input type="hidden" name="req_id" value="{{ r.id }}">
           <input type="hidden" name="action" value="approve">
           <input type="hidden" name="next" value="management_dashboard">
-          <button class="btn btn-small" type="submit">تأیید</button>
+          <button class="btn" type="submit">تأیید</button>
         </form>
         <form method="post" action="{{ r.action_url }}" style="display:inline-block;">
           {% csrf_token %}
           <input type="hidden" name="req_id" value="{{ r.id }}">
           <input type="hidden" name="action" value="reject">
           <input type="hidden" name="next" value="management_dashboard">
-          <button class="btn btn-small" type="submit" style="background:var(--color-muted);color:#fff;">رد</button>
+          <button class="btn btn-danger" type="submit">رد</button>
         </form>
       </div>
     </div>
@@ -132,14 +132,14 @@
               <input type="hidden" name="req_id" value="{{ r.id }}">
               <input type="hidden" name="action" value="approve">
               <input type="hidden" name="next" value="management_dashboard">
-              <button class="btn btn-small" type="submit">تأیید</button>
+              <button class="btn" type="submit">تأیید</button>
             </form>
             <form method="post" action="{{ r.action_url }}" style="display:inline-block;">
               {% csrf_token %}
               <input type="hidden" name="req_id" value="{{ r.id }}">
               <input type="hidden" name="action" value="reject">
               <input type="hidden" name="next" value="management_dashboard">
-              <button class="btn btn-small" type="submit" style="background:var(--color-muted);color:#fff;">رد</button>
+              <button class="btn btn-danger" type="submit">رد</button>
             </form>
           </td>
         </tr>

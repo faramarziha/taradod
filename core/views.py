@@ -874,7 +874,7 @@ def management_dashboard(request):
             "user": req.user,
             "date": jdatetime.date.fromgregorian(date=req.timestamp.date()).strftime("%Y/%m/%d"),
             "type": "edit",
-            "type_label": "ویرایش تردد",
+            "type_label": f"ویرایش تردد ({req.get_log_type_display()})",
             "action_url": reverse("edit_requests"),
         })
     for req in pending_leave_objs[:5]:

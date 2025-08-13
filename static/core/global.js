@@ -55,6 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
       hasSecond: false,
       separatorChars: { date: "-" },
       minDate: "attr",
+      maxDate: "attr",
       autoReadOnlyInput: true
     });
   }

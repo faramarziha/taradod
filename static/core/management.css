@@ -272,23 +272,69 @@
   margin-top: 1rem;
 }
 .status-card {
-  background: var(--color-bg);
+  background: var(--color-surface);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   border: 1px solid var(--color-border);
-  padding: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
-.status-card h4 {
-  margin-bottom: 0.5rem;
+.status-card-header {
+  position: sticky;
+  top: 0;
+  background: var(--color-surface);
+  text-align: center;
+  padding: 0.6rem;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.4rem;
+}
+.status-card-header h4 {
+  margin: 0;
   color: var(--color-primary-dark);
   font-size: 1.05rem;
 }
-.status-card ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  max-height: 220px;
+.status-badge {
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: 999px;
+  padding: 0 0.5rem;
+  font-size: 0.8rem;
+  line-height: 1.2;
+}
+.user-grid {
+  padding: 0.6rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.6rem;
   overflow-y: auto;
+  flex: 1;
+  max-height: 280px;
+}
+
+@media (min-width: 900px) {
+  .user-grid {
+    max-height: 360px;
+  }
+}
+.user-card {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 0.6rem;
+  padding: 0.4rem 0.6rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.user-name {
+  font-weight: 700;
+}
+.user-code {
+  color: var(--color-muted);
+  font-size: 0.9rem;
 }
 
 .status-lists {
@@ -425,11 +471,6 @@
   border-bottom: none;
 }
 
-.btn-small {
-  padding: 0.2rem 0.6rem;
-  font-size: 0.85rem;
-}
-
 
 /* responsive cards used for leave/edit requests */
 .request-cards { display: none; }
@@ -453,6 +494,15 @@
   flex-wrap: wrap;
   gap: 0.4rem;
   margin-top: 0.6rem;
+}
+.request-card .action-buttons {
+  display: flex;
+  width: 100%;
+  gap: 0.4rem;
+}
+.request-card .action-buttons button {
+  flex: 1;
+  margin: 0;
 }
 
 /* small-screen adjustments */
