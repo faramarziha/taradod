@@ -3,6 +3,8 @@ import io
 import json
 import secrets
 import os
+import math
+from bisect import bisect_left
 from datetime import timedelta, datetime, time
 
 import face_recognition
@@ -359,54 +361,86 @@ def user_profile(request):
     events = sorted(events, key=lambda x: x["created_at"], reverse=True)[:4]
 
     # Monthly performance statistics
-    today_j = jdatetime.date.today()
+    today_g = timezone.now().date()
+    today_j = jdatetime.date.fromgregorian(date=today_g)
     jy, jm = today_j.year, today_j.month
     days_in_month = jdatetime.j_days_in_month[jm - 1]
+    month_start_g = jdatetime.date(jy, jm, 1).togregorian()
+    if jm == 12:
+        next_month_j = jdatetime.date(jy + 1, 1, 1)
+    else:
+        next_month_j = jdatetime.date(jy, jm + 1, 1)
+    month_end_g = next_month_j.togregorian()
+    all_logs = list(
+        AttendanceLog.objects.filter(
+            user=u,
+            timestamp__gte=datetime.combine(month_start_g, time.min),
+            timestamp__lt=datetime.combine(min(today_g + timedelta(days=1), month_end_g), time.min),
+        ).order_by("timestamp")
+    )
+    weekly_holidays = set(WeeklyHoliday.objects.values_list("weekday", flat=True))
+    leaves = LeaveRequest.objects.filter(
+        user=u,
+        status="approved",
+        start_date__lt=month_end_g,
+        end_date__gte=month_start_g,
+    )
+    leave_days = set()
+    for leave in leaves:
+        cur = max(leave.start_date, month_start_g)
+        while cur <= min(leave.end_date, today_g):
+            leave_days.add(cur)
+            cur += timedelta(days=1)
     total_work_seconds = 0
     total_delay_seconds = 0
     absent_days = 0
-    shift = _get_user_shift(u)
     default_start = time(9, 0)
     default_end = time(17, 0)
+    shift = _get_user_shift(u)
+    shift_start = shift.start_time if shift else default_start
+    shift_end = shift.end_time if shift else default_end
+    cross_midnight = shift_end <= shift_start
+    timestamps = [log.timestamp for log in all_logs]
     for d in range(1, days_in_month + 1):
         date_j = jdatetime.date(jy, jm, d)
         date_g = date_j.togregorian()
-        if date_g > today:
+        if date_g > today_g:
             break
-        if WeeklyHoliday.objects.filter(weekday=_weekday_index(date_g)).exists():
+        if _weekday_index(date_g) in weekly_holidays:
             continue
-        if LeaveRequest.objects.filter(
-            user=u,
-            status="approved",
-            start_date__lte=date_g,
-            end_date__gte=date_g,
-        ).exists():
+        if date_g in leave_days:
             continue
-        logs = AttendanceLog.objects.filter(user=u, timestamp__date=date_g).order_by("timestamp")
-        if logs.exists():
-            first_log = logs.first().timestamp
-            last_log = logs.last().timestamp
-            shift_start = shift.start_time if shift else default_start
-            shift_end = shift.end_time if shift else default_end
-            start_dt = datetime.combine(date_g, shift_start)
-            end_dt = datetime.combine(date_g, shift_end)
-            if shift_end <= shift_start:
-                end_dt += timedelta(days=1)
-            if first_log.tzinfo is not None:
-                first_log = first_log.replace(tzinfo=None)
-            if last_log.tzinfo is not None:
-                last_log = last_log.replace(tzinfo=None)
-            work_start = max(first_log, start_dt)
-            work_end = min(last_log, end_dt)
-            if work_end > work_start:
-                total_work_seconds += (work_end - work_start).total_seconds()
-            if first_log > start_dt:
-                total_delay_seconds += (first_log - start_dt).total_seconds()
+        start_dt = datetime.combine(date_g, shift_start)
+        end_dt = datetime.combine(date_g, shift_end)
+        if cross_midnight:
+            end_dt += timedelta(days=1)
+        s_idx = bisect_left(timestamps, start_dt)
+        e_idx = bisect_left(timestamps, end_dt)
+        day_logs = all_logs[s_idx:e_idx]
+        if day_logs and any(l.log_type == "in" for l in day_logs):
+            work_seconds = 0
+            current_in = None
+            first_in = None
+            for log in day_logs:
+                if log.log_type == "in":
+                    if current_in is None:
+                        current_in = log.timestamp
+                        if first_in is None:
+                            first_in = log.timestamp
+                elif log.log_type == "out" and current_in:
+                    work_start = max(current_in, start_dt)
+                    work_end = min(log.timestamp, end_dt)
+                    if work_end > work_start:
+                        work_seconds += (work_end - work_start).total_seconds()
+                    current_in = None
+            total_work_seconds += work_seconds
+            if first_in and first_in > start_dt:
+                total_delay_seconds += (first_in - start_dt).total_seconds()
         else:
             absent_days += 1
     monthly_stats = {
         "total_hours": round(total_work_seconds / 3600, 2),
-        "total_delay": int(total_delay_seconds / 60),
+        "total_delay": math.ceil(total_delay_seconds / 60),
         "absent_days": absent_days,
     }
 
