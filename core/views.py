@@ -55,6 +55,7 @@ from .models import Device
 
 FACE_DISTANCE_THRESHOLD = 0.5
 LIVENESS_MOVEMENT_THRESHOLD = 0.08
+MATCH_SAVE_DISTANCE = 0.6
 
 User = get_user_model()
 
@@ -307,35 +308,36 @@ def device_page(request):
 @user_passes_test(lambda u: u.is_staff)
 def api_device_verify_face(request):
 
-
-
     try:
         data = json.loads(request.body)
-        img1 = data.get("image1")
-        img2 = data.get("image2")
-        if not img1 or not img2:
-            return JsonResponse({"success": False, "error": "ارسال ناقص تصاویر."})
-        enc1 = _get_face_encoding_from_base64(img1)
-        enc2 = _get_face_encoding_from_base64(img2)
-        if enc1 is None or enc2 is None:
-            return JsonResponse({"success": False, "error": "چهره یافت نشد."})
-        movement = np.linalg.norm(enc1 - enc2)
-        if movement < LIVENESS_MOVEMENT_THRESHOLD:
-            return JsonResponse({"success": False, "error": "حرکت تشخیص داده نشد."})
-        enc = (enc1 + enc2) / 2
-
-        if request.user.face_encoding is None:
-            return JsonResponse({"success": False, "error": "چهره مدیر ثبت نشده."})
-
-        known = np.frombuffer(request.user.face_encoding, dtype=np.float64)
-        distance = np.linalg.norm(known - enc)
-        if distance < FACE_DISTANCE_THRESHOLD:
-            return JsonResponse({"success": True, "redirect": reverse("device_page")})
-        else:
-            return JsonResponse({"success": False, "error": "تشخیص ناموفق."})
-
     except Exception:
         return JsonResponse({"success": False, "error": "خطا در پردازش تصویر."})
+
+    img1 = data.get("image1")
+    img2 = data.get("image2")
+    if not img1 or not img2:
+        return JsonResponse({"success": False, "error": "ارسال ناقص تصاویر."})
+
+    enc1 = _get_face_encoding_from_base64(img1)
+    enc2 = _get_face_encoding_from_base64(img2)
+    if enc1 is None or enc2 is None:
+        return JsonResponse({"success": False, "error": "چهره یافت نشد."})
+
+    movement = np.linalg.norm(enc1 - enc2)
+    if movement < LIVENESS_MOVEMENT_THRESHOLD:
+        return JsonResponse({"success": False, "error": "حرکت تشخیص داده نشد."})
+
+    enc = (enc1 + enc2) / 2
+
+    if request.user.face_encoding is None:
+        return JsonResponse({"success": False, "error": "چهره مدیر ثبت نشده."})
+
+    known = np.frombuffer(request.user.face_encoding, dtype=np.float64)
+    distance = np.linalg.norm(known - enc)
+    if distance < FACE_DISTANCE_THRESHOLD:
+        return JsonResponse({"success": True, "redirect": reverse("device_page")})
+
+    return JsonResponse({"success": False, "error": "تشخیص ناموفق."})
 
 @csrf_exempt
 @require_POST
@@ -348,73 +350,77 @@ def api_verify_face(request):
         return JsonResponse({"ok": False, "msg": "دستگاه غیرفعال است."})
     try:
         data = json.loads(request.body)
-        img1 = data.get("image1")
-        img2 = data.get("image2")
-        if not img1 or not img2:
-            return JsonResponse({"ok": False, "msg": "ارسال ناقص تصاویر."})
-        enc1 = _get_face_encoding_from_base64(img1)
-        enc2 = _get_face_encoding_from_base64(img2)
-        if enc1 is None or enc2 is None:
-            return JsonResponse({"ok": False, "msg": "چهره به‌وضوح دیده نشد. لطفاً روبه‌رو و در نور کافی قرار بگیرید."})
-        movement = np.linalg.norm(enc1 - enc2)
-        if movement < LIVENESS_MOVEMENT_THRESHOLD:
-            return JsonResponse({"ok": False, "msg": "حرکت تشخیص داده نشد. لطفاً دستور روی صفحه را اجرا کنید."})
-        enc = (enc1 + enc2) / 2
-        best_user = None
-        best_dist = float("inf")
-
-        for u in User.objects.exclude(face_encoding__isnull=True):
-            known = np.frombuffer(u.face_encoding, dtype=np.float64)
-            dist = np.linalg.norm(known - enc)
-            if dist < best_dist:
-                best_dist = dist
-                best_user = u
-            if dist < FACE_DISTANCE_THRESHOLD:
-                if u.is_staff:
-                    return JsonResponse({"ok": False, "manager_detected": True})
-                last_log = AttendanceLog.objects.filter(user=u).order_by('-timestamp').first()
-                if last_log and timezone.now() - last_log.timestamp < timedelta(minutes=5):
-                    return JsonResponse({"ok": False, "msg": "تردد تکراری"})
-
-                today = timezone.now().date()
-                if last_log and last_log.log_type == 'in' and last_log.timestamp.date() < today:
-                    end_of_day = datetime.combine(last_log.timestamp.date(), time(23, 59))
-                    if end_of_day.tzinfo is not None:
-                        end_of_day = end_of_day.replace(tzinfo=None)
-                    AttendanceLog.objects.create(user=u, timestamp=end_of_day, log_type='out', source='auto')
-
-                log_type = 'out' if last_log and last_log.log_type == 'in' else 'in'
-                AttendanceLog.objects.create(user=u, timestamp=timezone.now(), log_type=log_type, source='self')
-                img_url = u.face_image.url if hasattr(u, 'face_image') and u.face_image else static('core/avatar.png')
-                return JsonResponse({
-                    "ok": True,
-                    "name": f"{u.first_name} {u.last_name}",
-                    "code": u.personnel_code,
-                    "timestamp": timezone.now().isoformat(),
-                    "log_type": log_type,
-                    "image_url": img_url
-                })
-
-        if best_user and best_dist < 0.6:
-                                                     
-            try:
-                raw_img = img1
-                header, b64data = raw_img.split(",", 1)
-                fmt = header.split(";")[0].split("/")[1]
-                img_data = base64.b64decode(b64data)
-                filename = f"suspect_{timezone.now().timestamp()}.{fmt}"
-                log = SuspiciousLog.objects.create(
-                    matched_user=best_user,
-                    similarity=best_dist,
-                )
-                log.image.save(filename, ContentFile(img_data), save=True)
-            except Exception:
-                SuspiciousLog.objects.create(matched_user=best_user, similarity=best_dist)
-            return JsonResponse({"ok": False, "suspicious": True})
-
-        return JsonResponse({"ok": False, "msg": "چهره شما در سیستم ثبت نشده است."})
     except Exception:
         return JsonResponse({"ok": False, "msg": "خطا در پردازش تصویر. لطفاً دوباره تلاش کنید."})
+
+    img1 = data.get("image1")
+    img2 = data.get("image2")
+    if not img1 or not img2:
+        return JsonResponse({"ok": False, "msg": "ارسال ناقص تصاویر."})
+
+    enc1 = _get_face_encoding_from_base64(img1)
+    enc2 = _get_face_encoding_from_base64(img2)
+    if enc1 is None or enc2 is None:
+        return JsonResponse({"ok": False, "msg": "چهره به‌وضوح دیده نشد. لطفاً روبه‌رو و در نور کافی قرار بگیرید."})
+
+    movement = np.linalg.norm(enc1 - enc2)
+    if movement < LIVENESS_MOVEMENT_THRESHOLD:
+        return JsonResponse({"ok": False, "msg": "حرکت تشخیص داده نشد. لطفاً دستور روی صفحه را اجرا کنید."})
+
+    enc = (enc1 + enc2) / 2
+    best_user = None
+    best_dist = float("inf")
+
+    for u in User.objects.exclude(face_encoding__isnull=True):
+        known = np.frombuffer(u.face_encoding, dtype=np.float64)
+        dist = np.linalg.norm(known - enc)
+        if dist < best_dist:
+            best_dist = dist
+            best_user = u
+        if dist < FACE_DISTANCE_THRESHOLD:
+            if u.is_staff:
+                return JsonResponse({"ok": False, "manager_detected": True})
+            last_log = AttendanceLog.objects.filter(user=u).order_by('-timestamp').first()
+            if last_log and timezone.now() - last_log.timestamp < timedelta(minutes=5):
+                return JsonResponse({"ok": False, "msg": "تردد تکراری"})
+
+            today = timezone.now().date()
+            if last_log and last_log.log_type == 'in' and last_log.timestamp.date() < today:
+                end_of_day = datetime.combine(last_log.timestamp.date(), time(23, 59))
+                if end_of_day.tzinfo is not None:
+                    end_of_day = end_of_day.replace(tzinfo=None)
+                AttendanceLog.objects.create(user=u, timestamp=end_of_day, log_type='out', source='auto')
+
+            log_type = 'out' if last_log and last_log.log_type == 'in' else 'in'
+            AttendanceLog.objects.create(user=u, timestamp=timezone.now(), log_type=log_type, source='self')
+            img_url = u.face_image.url if hasattr(u, 'face_image') and u.face_image else static('core/avatar.png')
+            return JsonResponse({
+                "ok": True,
+                "name": f"{u.first_name} {u.last_name}",
+                "code": u.personnel_code,
+                "timestamp": timezone.now().isoformat(),
+                "log_type": log_type,
+                "image_url": img_url
+            })
+
+    if best_user and best_dist < MATCH_SAVE_DISTANCE:
+
+        try:
+            raw_img = img1
+            header, b64data = raw_img.split(",", 1)
+            fmt = header.split(";")[0].split("/")[1]
+            img_data = base64.b64decode(b64data)
+            filename = f"suspect_{timezone.now().timestamp()}.{fmt}"
+            log = SuspiciousLog.objects.create(
+                matched_user=best_user,
+                similarity=best_dist,
+            )
+            log.image.save(filename, ContentFile(img_data), save=True)
+        except Exception:
+            SuspiciousLog.objects.create(matched_user=best_user, similarity=best_dist)
+        return JsonResponse({"ok": False, "suspicious": True})
+
+    return JsonResponse({"ok": False, "msg": "چهره شما در سیستم ثبت نشده است."})
 
 @require_POST
 @login_required
