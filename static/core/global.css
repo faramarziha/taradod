@@ -5,7 +5,7 @@
   font-style: normal;
 }
 
-/* Mobile-first redesign */
+
 :root {
   --color-bg: #f7fafd;
   --color-surface: #fff;
@@ -214,7 +214,7 @@ button:hover, .btn:hover, input[type="submit"]:hover {
     text-decoration: none;
 }
 
-/* Home page buttons */
+
 .home-buttons {
   display: flex;
   flex-direction: column;
@@ -265,7 +265,7 @@ label {
   border: 1px solid var(--color-border);
 }
 
-/* table layout used on both management and user pages */
+
 .management-table {
   width: 100%;
   border-collapse: collapse;
@@ -295,12 +295,12 @@ label {
   background: #e3f2fd44;
 }
 
-/* wrapper for horizontal scroll when needed */
+
 .table-responsive {
   overflow-x: auto;
 }
 
-/* profile page tweaks */
+
 .profile-card { text-align: right; overflow: hidden; }
 .profile-banner {
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
@@ -415,7 +415,7 @@ label {
   font-weight: 600;
 }
 
-/* general page wrapper for centering card layouts */
+
 .page {
   width: 100%;
   max-width: 600px;
@@ -533,7 +533,7 @@ label {
   }
 }
 
-/* grid layout for forms */
+
 .form-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -542,11 +542,11 @@ label {
 .form-grid .form-group { margin-bottom: 0; }
 @media (min-width: 600px) {
   .form-grid { grid-template-columns: repeat(2, 1fr); }
-  /* keep small cards single-column to avoid overflowing backgrounds */
+  
   .page-sm.form-grid { grid-template-columns: 1fr; }
 }
 
-/* card layout for personal logs */
+
 .log-cards { display: none; }
 .log-card {
   background: var(--color-bg);
@@ -562,7 +562,7 @@ label {
 @media (max-width: 650px) {
   .log-cards { display: flex; flex-direction: column; gap: 0.6rem; }
 }
-/* badges for request and status labels */
+
 .badge {
   display: inline-block;
   padding: 0.15rem 0.55rem;
@@ -576,7 +576,7 @@ label {
 .badge-warning { background: #ff9800; }
 .badge-info { background: var(--color-primary); }
 
-/* grid layout for attendance status */
+
 .status-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -634,7 +634,7 @@ label {
   box-shadow: 0 0.4rem 0.8rem rgba(0,0,0,0.3);
 }
 
-/* tabs navigation */
+
 .tabs {
   list-style: none;
   display: flex;
@@ -661,7 +661,7 @@ label {
 .tab-content { display: none; }
 .tab-content.active { display: block; }
 
-/* request card styles */
+
 .request-cards { display: none; }
 .request-card {
   background: var(--color-bg);

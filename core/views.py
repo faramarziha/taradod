@@ -61,7 +61,7 @@ User = get_user_model()
 
 
 def _get_user_shift(user):
-    """Return the effective shift for a user."""
+
     if getattr(user, "shift", None):
         return user.shift
     if getattr(user, "group", None) and user.group and user.group.shift:
@@ -70,7 +70,7 @@ def _get_user_shift(user):
 
 
 def _shift_bounds(date, shift):
-    """Return start and end datetimes for the given date and shift."""
+
     start_dt = datetime.combine(date, shift.start_time)
     end_dt = datetime.combine(date, shift.end_time)
     if shift.end_time <= shift.start_time:
@@ -79,12 +79,12 @@ def _shift_bounds(date, shift):
 
 
 def _weekday_index(date):
-    """Convert Python weekday (Mon=0) to app convention (Sat=0)."""
+
     return (date.weekday() + 2) % 7
 
 
 def _calculate_monthly_performance(user, year, month):
-    """Return standard monthly performance report and related leaves."""
+
     start_j = jdatetime.date(year, month, 1)
     days_in_month = jdatetime.j_days_in_month[month - 1]
     today_j = jdatetime.date.today()
@@ -185,7 +185,7 @@ def _calculate_monthly_performance(user, year, month):
                     session_pairs.append((current_in, log.timestamp))
                     incomplete = True
                 current_in = log.timestamp
-            else:  # out
+            else:       
                 if current_in is not None:
                     session_pairs.append((current_in, log.timestamp))
                     current_in = None
@@ -248,7 +248,7 @@ def _calculate_monthly_performance(user, year, month):
 
 
 def _get_face_encoding_from_base64(data_url: str):
-    """از Base64 خروجی بایت می‌گیرد و بردار چهره (128 بعدی) را برمی‌گرداند."""
+
     try:
         if not data_url or ',' not in data_url:
             return None
@@ -264,15 +264,15 @@ def _get_face_encoding_from_base64(data_url: str):
         return None
 
 
-# —————————————————————————
-# کلاس‌های ورود
-# —————————————————————————
+                           
+               
+                           
 
 class ManagementLoginView(LoginView):
     template_name = "core/management_login.html"
     redirect_authenticated_user = True
     def get_success_url(self):
-        # پس از ورود با رمز، می‌فرستیم برای تأیید چهره مدیریت
+                                                             
         return reverse("management_face_check")
 
 
@@ -288,17 +288,17 @@ class DeviceLoginView(LoginView):
         return redirect("device_face_check")
 
 
-# —————————————————————————
-# صفحات عمومی
-# —————————————————————————
+                           
+             
+                           
 
 def home(request):
     return render(request, "core/home.html")
 
 
-# —————————————————————————
-# بخش دستگاه (کیوسک)
-# —————————————————————————
+                           
+                    
+                           
 
 @login_required
 @user_passes_test(lambda u: u.is_staff)
@@ -310,7 +310,7 @@ def device_face_check(request):
 
 @login_required
 def device_page(request):
-    """صفحهٔ اصلی کیوسک برای ثبت تردد کارکنان عادی"""
+
     return render(request, "core/device.html")
 
 
@@ -318,9 +318,9 @@ def device_page(request):
 @login_required
 @user_passes_test(lambda u: u.is_staff)
 def api_device_verify_face(request):
-    """
-    API تشخیص چهره مدیر برای فعال‌سازی کیوسک
-    """
+
+
+
     try:
         data = json.loads(request.body)
         enc = _get_face_encoding_from_base64(data.get("image", ""))
@@ -402,7 +402,7 @@ def api_verify_face(request):
                 })
 
         if best_user and best_dist < 0.6:
-            # log suspicious attempt for admin review
+                                                     
             try:
                 raw_img = img1 or data.get("image", "")
                 header, b64data = raw_img.split(",", 1)
@@ -425,7 +425,7 @@ def api_verify_face(request):
 @require_POST
 @login_required
 def api_register_face(request):
-    """ثبت چهرهٔ کارمند با بررسی حرکت ساده برای جلوگیری از تقلب."""
+
     img1 = request.POST.get("image1")
     img2 = request.POST.get("image2")
     if img1 and img2:
@@ -433,14 +433,14 @@ def api_register_face(request):
         enc2 = _get_face_encoding_from_base64(img2)
         if enc1 is None or enc2 is None:
             return JsonResponse({"ok": False, "msg": "چهره واضح نیست."})
-        # تفاوت دو تصویر باید از حدی بیشتر باشد تا اطمینان پیدا کنیم عکس ثابت نیست
+                                                                                  
         movement = np.linalg.norm(enc1 - enc2)
         if movement < 0.08:
             return JsonResponse({"ok": False, "msg": "حرکت تشخیص داده نشد."})
         enc = (enc1 + enc2) / 2
         data_url = img1
     else:
-        # حالت قدیمی، بدون لایونس
+                                 
         data_url = request.POST.get("image", "")
         enc = _get_face_encoding_from_base64(data_url)
         if enc is None:
@@ -448,7 +448,7 @@ def api_register_face(request):
 
     request.user.face_encoding = enc.tobytes()
 
-    # ذخیرهٔ تصویر خام
+                      
     try:
         header, b64data = data_url.split(",", 1)
         fmt = header.split(";")[0].split("/")[1]
@@ -460,9 +460,9 @@ def api_register_face(request):
 
     request.user.save()
     return JsonResponse({"ok": True, "redirect": reverse("management_dashboard")})
-# —————————————————————————
-# مشاهده تردد کارمند عادی
-# —————————————————————————
+                           
+                         
+                           
 
 def user_inquiry(request):
     if request.method == "POST":
@@ -491,7 +491,7 @@ def user_profile(request):
     u = get_object_or_404(User, id=uid)
     today = timezone.now().date()
 
-    # Determine today's status for the user
+                                           
     status = "holiday"
     first_in = None
     if not WeeklyHoliday.objects.filter(weekday=_weekday_index(today)).exists():
@@ -510,7 +510,7 @@ def user_profile(request):
             status = "absent"
     today_status = {"status": status, "first_in": first_in}
 
-    # Gather recent notifications from leave and edit requests
+                                                              
     events = []
     leave_events = LeaveRequest.objects.filter(user=u).order_by("-created_at")[:4]
     for r in leave_events:
@@ -523,7 +523,7 @@ def user_profile(request):
         events.append({"created_at": r.created_at, "message": msg})
     events = sorted(events, key=lambda x: x["created_at"], reverse=True)[:4]
 
-    # Monthly performance statistics
+                                    
     today_j = jdatetime.date.today()
     report, _ = _calculate_monthly_performance(u, today_j.year, today_j.month)
     monthly_stats = {
@@ -532,7 +532,7 @@ def user_profile(request):
         "absent_days": report["absence_days"],
     }
 
-    # Attendance logs for selected month
+                                        
     month_param = request.GET.get("month")
     if month_param:
         ly, lm = [int(x) for x in month_param.split("-")]
@@ -588,7 +588,7 @@ def user_profile(request):
 
 
 def edit_request(request):
-    """Allow a user to request adding a missing attendance log."""
+
     uid = request.session.get("inquiry_user_id")
     if not uid:
         return redirect("user_inquiry")
@@ -633,7 +633,7 @@ def leave_request(request):
 
 
 def cancel_edit_request(request, pk):
-    """Allow a user to cancel their pending edit request."""
+
     uid = request.session.get("inquiry_user_id")
     if not uid:
         return redirect("user_inquiry")
@@ -648,7 +648,7 @@ def cancel_edit_request(request, pk):
 
 
 def cancel_leave_request(request, pk):
-    """Allow a user to cancel a pending leave request."""
+
     uid = request.session.get("inquiry_user_id")
     if not uid:
         return redirect("user_inquiry")
@@ -662,16 +662,16 @@ def cancel_leave_request(request, pk):
     return redirect(reverse("user_profile") + "#leave-requests")
 
 
-# —————————————————————————
-# پنل مدیریت کارکنان
-# —————————————————————————
+                           
+                    
+                           
 
 staff_required = user_passes_test(lambda u: u.is_staff)
 
 @login_required
 @staff_required
 def management_face_check(request):
-    """برای مدیریت، ثبت/تأیید چهره و سپس دسترسی به پنل"""
+
     if request.user.face_encoding is None:
         return render(request, "core/register_face.html")
     return render(request, "core/management_face_check.html")
@@ -690,7 +690,7 @@ def api_management_verify_face(request):
             image_data = data.get("image")
             if not image_data:
                 return JsonResponse({"success": False, "error": "عکس ارسال نشده."})
-            # decode image
+                          
             image_b64 = image_data.split(",")[1]
             img_bytes = base64.b64decode(image_b64)
             np_arr = np.frombuffer(img_bytes, np.uint8)
@@ -703,7 +703,7 @@ def api_management_verify_face(request):
             known = np.frombuffer(request.user.face_encoding, dtype=np.float64)
             distance = np.linalg.norm(known - enc)
             if distance < 0.5:
-                # چهره تایید شد! مجوز ورود بده
+                                              
                 request.session["face_verified"] = True
                 return JsonResponse({"success": True})
             else:
@@ -716,11 +716,11 @@ def api_management_verify_face(request):
 @login_required
 @staff_required
 def management_users(request):
-    """Advanced user management center with filtering and bulk actions."""
+
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
 
-    # ---------- Bulk actions ----------
+                                        
     if request.method == "POST":
         action = request.POST.get("bulk_action")
         selected_ids = request.POST.getlist("selected_users")
@@ -746,7 +746,7 @@ def management_users(request):
 
     users = User.objects.all().select_related("group", "shift")
 
-    # ---------- Filtering ----------
+                                     
     q = request.GET.get("q")
     status = request.GET.get("status")
     group = request.GET.get("group")
@@ -787,7 +787,7 @@ def user_add(request):
         form = CustomUserSimpleForm(request.POST, request.FILES)
         if form.is_valid():
             user = form.save(commit=False)
-            # ست پسورد تصادفی قوی (غیرقابل حدس)
+                                               
             user.set_password(secrets.token_urlsafe(16))
             user.save()
             messages.success(request, "کارمند جدید اضافه شد.")
@@ -840,7 +840,7 @@ def admin_user_profile(request, pk):
     else:
         form = CustomUserSimpleForm(instance=user_obj)
 
-    # Attendance logs for selected month
+                                        
     month_param = request.GET.get("month")
     if month_param:
         ly, lm = [int(x) for x in month_param.split("-")]
@@ -952,7 +952,7 @@ def register_face_api(request, user_id):
     return JsonResponse({"ok": True, "redirect": reverse("admin_user_profile", args=[user_id])})
 
 
-# ======= گزارش‌گیری پیشرفته =======
+                                    
 @login_required
 @staff_required
 def management_dashboard(request):
@@ -978,7 +978,7 @@ def management_dashboard(request):
         user__in=users_qs, timestamp__date=today, log_type="out"
     ).count()
 
-    # لیست کارکنان حاضر، غایب و مرخصی
+                                     
     if is_holiday:
         present_users = leave_users = absent_users = users_qs.none()
         present_ids = []
@@ -1020,14 +1020,14 @@ def management_dashboard(request):
                     tardy_ids.append(user.id)
         tardy_users = users_qs.filter(id__in=tardy_ids)
 
-    # هشدارها
+             
     pending_edit_objs = EditRequest.objects.select_related("user").filter(user__in=users_qs, status="pending")
     pending_leave_objs = LeaveRequest.objects.select_related("user").filter(user__in=users_qs, status="pending")
     pending_edits = pending_edit_objs.count()
     pending_leaves = pending_leave_objs.count()
     suspicious_today = SuspiciousLog.objects.filter(matched_user__in=users_qs, timestamp__date=today).count()
 
-    # مرکز اقدامات فوری: ترکیب درخواست‌های مرخصی و ویرایش
+                                                         
     pending_actions = []
     for req in pending_edit_objs[:5]:
         pending_actions.append({
@@ -1048,7 +1048,7 @@ def management_dashboard(request):
             "action_url": reverse("leave_requests"),
         })
 
-    # خوب‌ها و بدها: آمار عملکرد یک ماه اخیر
+                                            
     month_start = today - timedelta(days=30)
     tardy_stats = []
     streak_stats = []
@@ -1120,11 +1120,11 @@ def management_dashboard(request):
     return render(request, 'core/management_dashboard.html', context)
 
 
-# ======= گزارش‌گیری کارکنان =======
+                                    
 @login_required
 @staff_required
 def user_reports(request):
-    # محاسبات آماری
+                   
     active_users = User.objects.filter(is_active=True).count()
     inactive_users = User.objects.filter(is_active=False).count()
     no_face_users = User.objects.filter(face_encoding__isnull=True).count()
@@ -1183,7 +1183,7 @@ def monthly_profile(request):
 @login_required
 @staff_required
 def attendance_status(request):
-    """Display attendance status for a given date."""
+
     if request.GET:
         form = AttendanceStatusForm(request.GET)
     else:
@@ -1221,7 +1221,7 @@ def attendance_status(request):
 @login_required
 @staff_required
 def api_attendance_status(request):
-    """Return attendance lists as JSON for live updates."""
+
     form = AttendanceStatusForm(request.GET or None)
     if form.is_valid() and form.cleaned_data.get("date"):
         target_date = form.cleaned_data["date"].togregorian()
@@ -1249,7 +1249,7 @@ def api_attendance_status(request):
 @login_required
 @staff_required
 def suspicious_logs(request):
-    """List suspicious recognition attempts for admin review."""
+
     logs = (
         SuspiciousLog.objects.select_related('matched_user')
         .filter(status="pending")
@@ -1265,7 +1265,7 @@ def suspicious_logs(request):
 @staff_required
 @require_POST
 def suspicious_log_action(request, pk):
-    """Process manager action on a suspicious log."""
+
     log = get_object_or_404(SuspiciousLog, id=pk, status="pending")
     action = request.POST.get("action")
     if action == "confirm":
@@ -1313,7 +1313,7 @@ def suspicious_log_action(request, pk):
 @login_required
 @staff_required
 def edit_requests(request):
-    """List and process edit requests from users."""
+
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
     if request.method == "POST":
@@ -1374,7 +1374,7 @@ def edit_requests(request):
 @login_required
 @staff_required
 def leave_requests(request):
-    """List and process leave requests from users."""
+
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
     if request.method == "POST":
@@ -1438,7 +1438,7 @@ def leave_requests(request):
 @login_required
 @staff_required
 def add_log(request):
-    """Allow admin to manually register an attendance log for a user."""
+
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
     if request.method == "POST":
@@ -1458,7 +1458,7 @@ def add_log(request):
 @login_required
 @staff_required
 def add_leave(request):
-    """Allow admin to manually register a leave for a user."""
+
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
     if request.method == "POST":

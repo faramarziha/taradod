@@ -17,7 +17,7 @@ User = get_user_model()
 
 
 class JalaliDateInput(forms.TextInput):
-    """Widget for JalaliDatePicker date inputs."""
+
 
     def __init__(self, attrs=None):
         base_attrs = {"data-jdp": "", "data-jdp-only-date": ""}
@@ -27,7 +27,7 @@ class JalaliDateInput(forms.TextInput):
 
 
 class JalaliTimeInput(forms.TextInput):
-    """Widget for JalaliDatePicker time inputs."""
+
 
     def __init__(self, attrs=None):
         base_attrs = {"data-jdp": "", "data-jdp-only-time": ""}
@@ -170,7 +170,7 @@ class LeaveRequestForm(forms.ModelForm):
 
 
 class ManualLogForm(forms.Form):
-    """Form for admins to directly register an attendance log for a user."""
+
 
     user = forms.ModelChoiceField(queryset=User.objects.all(), label="کارمند")
     date = jforms.jDateField(label="تاریخ", widget=JalaliDateInput())
@@ -211,7 +211,7 @@ class ManualLogForm(forms.Form):
 
 
 class ManualLeaveForm(forms.ModelForm):
-    """Form for admins to directly register a leave for a user."""
+
 
     user = forms.ModelChoiceField(queryset=User.objects.all(), label="کارمند")
     start_date = jforms.jDateField(label="از تاریخ", widget=JalaliDateInput())
@@ -256,7 +256,7 @@ class ManualLeaveForm(forms.ModelForm):
 
 
 class AttendanceStatusForm(forms.Form):
-    """Simple form to pick a Jalali date for attendance status."""
+
     date = jforms.jDateField(
         label="تاریخ",
         widget=JalaliDateInput(),

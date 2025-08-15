@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // راه‌اندازی دوربین
+  
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
     navigator.mediaDevices
       .getUserMedia({ video: { facingMode: 'user' } })
@@ -83,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       brightness /= imgData.data.length / 40;
     } catch (e) {
-      // ignore
+      
     }
 
     let color = 'red';

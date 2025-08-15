@@ -1,4 +1,4 @@
-# users/admin.py
+                
 
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
@@ -8,7 +8,7 @@ from .models import CustomUser
 class CustomUserAdmin(UserAdmin):
     model = CustomUser
 
-    # فیلدهای اضافی مربوط به تشخیص چهره را به بخش‌های نمایش اضافه می‌کنیم
+                                                                         
     fieldsets = UserAdmin.fieldsets + (
         ("تشخیص چهره", {
             "fields": ("face_encoding", "face_image"),
@@ -23,7 +23,7 @@ class CustomUserAdmin(UserAdmin):
         }),
     )
 
-    # ستون‌های لیست کارکنان در صفحه ادمین
+                                         
     list_display = (
         "personnel_code",
         "first_name",
