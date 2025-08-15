@@ -127,7 +127,6 @@ if(selectAll){
   });
 }
 
-// bulk delete confirmation
 const bulkForm = document.getElementById('bulk-form');
 if(bulkForm){
   bulkForm.addEventListener('submit', function(e){
@@ -139,7 +138,6 @@ if(bulkForm){
   });
 }
 
-// single delete modal
 const modal = document.getElementById('delete-modal');
 const deleteForm = document.getElementById('delete-form');
 document.querySelectorAll('.delete-user').forEach(btn => {
@@ -153,7 +151,6 @@ document.getElementById('cancel-delete').addEventListener('click', function(){
   modal.classList.remove('open');
 });
 
-// toggle group/shift selects based on action
 const actionSelect = document.getElementById('bulk-action-select');
 const groupSelect = document.getElementById('bulk-group-select');
 const shiftSelect = document.getElementById('bulk-shift-select');
