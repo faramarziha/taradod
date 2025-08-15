@@ -1,4 +1,4 @@
-// اعلان ساده و موقت (success یا error)
+
 function showAlert(message, type = "success", duration = 3200) {
   const old = document.getElementById("main-alert");
   if (old) old.remove();
