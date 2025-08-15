@@ -8,7 +8,6 @@ from attendance.models import (
     EditRequest,
     LeaveRequest,
     LOG_TYPE_CHOICES,
-    WeeklyHoliday,
     Group,
     Shift,
 )
@@ -337,7 +336,6 @@ class ReportFilterForm(forms.Form):
             attrs={
                 "placeholder": "۱۴۰۳/۰۵/۱۰",
                 "class": "date-input vjDateField",
-                "readonly": "readonly",
             }
         ),
         required=False,
@@ -348,7 +346,6 @@ class ReportFilterForm(forms.Form):
             attrs={
                 "placeholder": "۱۴۰۳/۰۵/۱۰",
                 "class": "date-input vjDateField",
-                "readonly": "readonly",
             }
         ),
         required=False,

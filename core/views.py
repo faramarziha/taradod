@@ -10,9 +10,8 @@ import face_recognition
 import numpy as np
 from PIL import Image
 from django.contrib import messages
-from django.contrib.auth import get_user_model, login, logout
+from django.contrib.auth import get_user_model, login
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.conf import settings
 from django.contrib.auth.views import LoginView
 from django.core.files.base import ContentFile
 from django.http import JsonResponse
@@ -54,7 +53,6 @@ from core.forms import (
 )
 from .models import Device
 
-from users.models import CustomUser
 
 
 User = get_user_model()
@@ -67,17 +65,6 @@ def _get_user_shift(user):
     if getattr(user, "group", None) and user.group and user.group.shift:
         return user.group.shift
     return None
-
-
-def _shift_bounds(date, shift):
-
-    start_dt = datetime.combine(date, shift.start_time)
-    end_dt = datetime.combine(date, shift.end_time)
-    if shift.end_time <= shift.start_time:
-        end_dt += timedelta(days=1)
-    return start_dt, end_dt
-
-
 def _weekday_index(date):
 
     return (date.weekday() + 2) % 7
@@ -208,9 +195,9 @@ def _calculate_monthly_performance(user, year, month):
             first_in_ts = start_dt
         else:
             first_in_ts = None
-            for l in day_logs:
-                if l.log_type == "in":
-                    first_in_ts = l.timestamp
+            for log_entry in day_logs:
+                if log_entry.log_type == "in":
+                    first_in_ts = log_entry.timestamp
                     break
 
         if first_in_ts and first_in_ts > start_dt:
@@ -1473,14 +1460,6 @@ def add_leave(request):
         'active_tab': 'leave_requests',
         'form': form,
     })
-
-
-def custom_logout(request):
-    logout(request)
-    request.session.flush()
-    return redirect("home")
-
-
 @login_required
 @staff_required
 def weekly_holidays(request):
