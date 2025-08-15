@@ -11,7 +11,6 @@
         {{ checkbox.tag }}
         <label for="{{ checkbox.id_for_label }}" class="day-box{% if checkbox.data.selected %} selected{% endif %}" data-day="{{ checkbox.choice_value }}">
           {{ checkbox.choice_label }}
-          <small class="events"></small>
         </label>
       </div>
     {% endfor %}
@@ -26,35 +25,14 @@
   .day-box-wrapper input{display:none;}
   .day-box{padding:0.5rem 1rem;border:1px solid #ccc;border-radius:4px;cursor:pointer;min-width:6rem;text-align:center;}
   .day-box.selected{background:var(--color-primary);color:#fff;}
-  .day-box .events{display:block;font-size:0.8rem;margin-top:0.25rem;color:var(--color-muted);}
-</style>
+  </style>
 
-<script src="https://cdn.jsdelivr.net/npm/jalaali-js@1/dist/jalaali.min.js"></script>
-<script>
-  document.querySelectorAll('.day-box-wrapper input[type="checkbox"]').forEach(function(cb){
-    cb.addEventListener('change', function(){
-      const lbl=document.querySelector('label[for="'+cb.id+'"]');
-      if(lbl){lbl.classList.toggle('selected', cb.checked);}
+  <script>
+    document.querySelectorAll('.day-box-wrapper input[type="checkbox"]').forEach(function(cb){
+      cb.addEventListener('change', function(){
+        const lbl=document.querySelector('label[for="'+cb.id+'"]');
+        if(lbl){lbl.classList.toggle('selected', cb.checked);}
+      });
     });
-  });
-
-  const today=new Date();
-  const day=today.getDay(); // 0=Sun ... 6=Sat
-  const diff=(day+1)%7; // days since Saturday
-  const first=new Date(today);
-  first.setDate(today.getDate()-diff);
-
-  document.querySelectorAll('.day-box').forEach(function(label, idx){
-    const d=new Date(first);
-    d.setDate(first.getDate()+idx);
-    const j=jalaali.toJalaali(d);
-    fetch(`https://holidayapi.ir/jalali/${j.jy}/${j.jm}/${j.jd}`)
-      .then(r=>r.json())
-      .then(data=>{
-        if(data && data.isHoliday){
-          label.querySelector('.events').textContent=data.title;
-        }
-      }).catch(()=>{});
-  });
-</script>
+  </script>
 {% endblock %}
