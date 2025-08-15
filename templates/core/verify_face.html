@@ -17,32 +17,49 @@ document.addEventListener('DOMContentLoaded', () => {
     resultDiv.textContent = "دوربین توسط مرورگر پشتیبانی نمی‌شود.";
   }
 
-  setInterval(() => {
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      ctx.save();
-      ctx.scale(-1, 1);
-      ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
-      ctx.restore();
-      const dataUrl = canvas.toDataURL('image/jpeg');
-      fetch("{% url 'api_verify_face' %}", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-CSRFToken": getCsrfToken() },
-        body: JSON.stringify({ image: dataUrl })
-      })
-      .then(r => r.json())
-      .then(data => {
-        if (data.ok) {
-          resultDiv.textContent = "چهره شما تأیید شد.";
-        } else {
-          resultDiv.textContent = data.msg || "چهره مطابقت نداشت.";
-        }
-      }).catch(() => {
-        resultDiv.textContent = "ارتباط با سرور برقرار نشد.";
-      });
+  async function verifyLoop() {
+    if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+      setTimeout(verifyLoop, 1000);
+      return;
     }
-  }, 4000);
+    resultDiv.textContent = 'لطفاً مستقیم به دوربین نگاه کنید.';
+    await wait(1000);
+    const img1 = grabFrame();
+    resultDiv.textContent = 'حالا سرتان را کمی حرکت دهید.';
+    await wait(3000);
+    const img2 = grabFrame();
+    resultDiv.textContent = 'در حال بررسی...';
+    try {
+      const r = await fetch("{% url 'api_verify_face' %}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+        body: JSON.stringify({ image1: img1, image2: img2 })
+      });
+      const data = await r.json();
+      if (data.ok) {
+        resultDiv.textContent = 'چهره شما تأیید شد.';
+      } else {
+        resultDiv.textContent = data.msg || 'چهره مطابقت نداشت.';
+      }
+    } catch (e) {
+      resultDiv.textContent = 'ارتباط با سرور برقرار نشد.';
+    }
+    setTimeout(verifyLoop, 4000);
+  }
+
+  function grabFrame() {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.save();
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+    ctx.restore();
+    return canvas.toDataURL('image/jpeg');
+  }
+
+  function wait(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
 
   function getCsrfToken() {
     let value = "; " + document.cookie;
@@ -50,6 +67,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (parts.length === 2) return parts.pop().split(";").shift();
     return '';
   }
+
+  verifyLoop();
 });
 </script>
 {% endblock %}
