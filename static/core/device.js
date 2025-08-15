@@ -131,12 +131,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   setInterval(updateFraming, 800);
 
-  const challenges = [
-    { key: 'smile', msg: 'لطفاً کمی لبخند بزنید.' },
-    { key: 'left', msg: 'سر خود را به آرامی به چپ بچرخانید.' },
-    { key: 'right', msg: 'سر خود را به آرامی به راست بچرخانید.' },
-  ];
-
   function wait(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
@@ -147,11 +141,13 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     verifying = true;
+    showMessage('لطفاً مستقیم به دوربین نگاه کنید.');
+    await wait(1000);
     const img1 = capture();
-    const challenge = challenges[Math.floor(Math.random() * challenges.length)];
-    showMessage(challenge.msg);
-    await wait(1200);
+    showMessage('حالا سرتان را کمی حرکت دهید.');
+    await wait(3000);
     const img2 = capture();
+    showMessage('در حال بررسی...');
 
     fetch(VERIFY_FACE_URL, {
       method: 'POST',
@@ -159,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'Content-Type': 'application/json',
         'X-CSRFToken': getCsrfToken(),
       },
-      body: JSON.stringify({ image1: img1, image2: img2, challenge: challenge.key }),
+      body: JSON.stringify({ image1: img1, image2: img2 }),
     })
       .then((r) => r.json())
       .then((data) => {
