@@ -9,12 +9,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const ctx = canvas.getContext('2d');
   const btn = document.getElementById('verifyBtn');
   const msgEl = document.getElementById('verifyResult');
-
-  msgEl.textContent = 'صورت خود را در مرکز کادر قرار دهید و دکمه تأیید را بزنید';
+  msgEl.textContent = 'برای شروع دکمه را بزنید و مستقیم نگاه کنید.';
+  let captures = [];
 
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
-      .then(stream => { video.srcObject = stream; msgEl.textContent = ''; })
+      .then(stream => { video.srcObject = stream; })
       .catch(() => { msgEl.textContent = 'اجازه دوربین رد شد'; btn.disabled = true; });
   } else {
     msgEl.textContent = 'دوربین توسط مرورگر پشتیبانی نمی‌شود.';
@@ -22,42 +22,50 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   btn.onclick = async () => {
-    if (video.readyState !== video.HAVE_ENOUGH_DATA) {
-      msgEl.textContent = 'لطفاً صبر کنید تا تصویر دوربین آماده شود';
-      return;
-    }
+    if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
     btn.disabled = true;
+    captures = [];
+    msgEl.textContent = 'لطفاً مستقیم نگاه کنید...';
+    setTimeout(async () => {
+      captures.push(capture());
+      msgEl.textContent = 'حالا سرتان را کمی به چپ یا راست بچرخانید.';
+      setTimeout(async () => {
+        captures.push(capture());
+        msgEl.textContent = 'لطفاً صبر کنید...';
+        try {
+          const res = await fetch('{% url "api_management_verify_face" %}', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCsrf()
+            },
+            body: JSON.stringify({ image1: captures[0], image2: captures[1] })
+          });
+          const j = await res.json();
+          if (j.success) {
+            msgEl.textContent = '✅ تأیید چهره موفق!';
+            setTimeout(() => { window.location.href = '{% url "management_dashboard" %}'; }, 1000);
+          } else {
+            msgEl.textContent = '❌ ' + (j.error || 'شناسایی ناموفق');
+            btn.disabled = false;
+          }
+        } catch (e) {
+          msgEl.textContent = '❌ خطا در ارتباط با سرور';
+          btn.disabled = false;
+        }
+      }, 3000);
+    }, 1000);
+  };
+
+  function capture() {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     ctx.save();
     ctx.scale(-1, 1);
     ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
     ctx.restore();
-    const dataUrl = canvas.toDataURL('image/png');
-
-    msgEl.textContent = 'لطفاً صبر کنید...';
-    try {
-      const res = await fetch('{% url "api_management_verify_face" %}', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCsrf()
-        },
-        body: JSON.stringify({ image: dataUrl })
-      });
-      const j = await res.json();
-      if (j.success) {
-        msgEl.textContent = '✅ تأیید چهره موفق!';
-        setTimeout(() => { window.location.href = '{% url "management_dashboard" %}'; }, 1000);
-      } else {
-        msgEl.textContent = '❌ ' + (j.error || 'شناسایی ناموفق');
-        btn.disabled = false;
-      }
-    } catch (e) {
-      msgEl.textContent = '❌ خطا در ارتباط با سرور';
-      btn.disabled = false;
-    }
-  };
+    return canvas.toDataURL('image/png');
+  }
 
   function getCsrf() {
     return document.cookie.split(';')

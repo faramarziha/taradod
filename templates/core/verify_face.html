@@ -11,38 +11,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
-      .then(stream => { video.srcObject = stream; })
+      .then(stream => { video.srcObject = stream; startSequence(); })
       .catch(() => { resultDiv.textContent = "دسترسی به دوربین ممکن نشد."; });
   } else {
     resultDiv.textContent = "دوربین توسط مرورگر پشتیبانی نمی‌شود.";
   }
 
-  setInterval(() => {
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      ctx.save();
-      ctx.scale(-1, 1);
-      ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
-      ctx.restore();
-      const dataUrl = canvas.toDataURL('image/jpeg');
-      fetch("{% url 'api_verify_face' %}", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-CSRFToken": getCsrfToken() },
-        body: JSON.stringify({ image: dataUrl })
-      })
-      .then(r => r.json())
-      .then(data => {
-        if (data.ok) {
-          resultDiv.textContent = "چهره شما تأیید شد.";
-        } else {
-          resultDiv.textContent = data.msg || "چهره مطابقت نداشت.";
-        }
-      }).catch(() => {
-        resultDiv.textContent = "ارتباط با سرور برقرار نشد.";
-      });
+  function startSequence() {
+    if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+      setTimeout(startSequence, 500);
+      return;
     }
-  }, 4000);
+    const captures = [];
+    resultDiv.textContent = "لطفاً مستقیم نگاه کنید.";
+    setTimeout(() => {
+      captures.push(capture());
+      resultDiv.textContent = "حالا سرتان را کمی به چپ یا راست بچرخانید.";
+      setTimeout(() => {
+        captures.push(capture());
+        resultDiv.textContent = "لطفاً صبر کنید...";
+        fetch("{% url 'api_verify_face' %}", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-CSRFToken": getCsrfToken() },
+          body: JSON.stringify({ image1: captures[0], image2: captures[1] })
+        })
+        .then(r => r.json())
+        .then(data => {
+          if (data.ok) {
+            resultDiv.textContent = "چهره شما تأیید شد.";
+          } else {
+            resultDiv.textContent = data.msg || "چهره مطابقت نداشت.";
+          }
+        }).catch(() => {
+          resultDiv.textContent = "ارتباط با سرور برقرار نشد.";
+        }).finally(() => {
+          setTimeout(startSequence, 4000);
+        });
+      }, 3000);
+    }, 1000);
+  }
+
+  function capture() {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.save();
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+    ctx.restore();
+    return canvas.toDataURL('image/jpeg');
+  }
 
   function getCsrfToken() {
     let value = "; " + document.cookie;

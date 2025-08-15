@@ -53,7 +53,8 @@ from core.forms import (
 )
 from .models import Device
 
-
+FACE_DISTANCE_THRESHOLD = 0.5
+LIVENESS_MOVEMENT_THRESHOLD = 0.08
 
 User = get_user_model()
 
@@ -310,16 +311,28 @@ def api_device_verify_face(request):
 
     try:
         data = json.loads(request.body)
-        enc = _get_face_encoding_from_base64(data.get("image", ""))
-        if enc is None:
-            return JsonResponse({"success": False, "error": "چهره یافت نشد."})
+        img1 = data.get("image1")
+        img2 = data.get("image2")
+        if img1 and img2:
+            enc1 = _get_face_encoding_from_base64(img1)
+            enc2 = _get_face_encoding_from_base64(img2)
+            if enc1 is None or enc2 is None:
+                return JsonResponse({"success": False, "error": "چهره یافت نشد."})
+            movement = np.linalg.norm(enc1 - enc2)
+            if movement < LIVENESS_MOVEMENT_THRESHOLD:
+                return JsonResponse({"success": False, "error": "حرکت تشخیص داده نشد."})
+            enc = (enc1 + enc2) / 2
+        else:
+            enc = _get_face_encoding_from_base64(data.get("image", ""))
+            if enc is None:
+                return JsonResponse({"success": False, "error": "چهره یافت نشد."})
 
         if request.user.face_encoding is None:
             return JsonResponse({"success": False, "error": "چهره مدیر ثبت نشده."})
 
         known = np.frombuffer(request.user.face_encoding, dtype=np.float64)
         distance = np.linalg.norm(known - enc)
-        if distance < 0.5:
+        if distance < FACE_DISTANCE_THRESHOLD:
             return JsonResponse({"success": True, "redirect": reverse("device_page")})
         else:
             return JsonResponse({"success": False, "error": "تشخیص ناموفق."})
@@ -346,7 +359,7 @@ def api_verify_face(request):
             if enc1 is None or enc2 is None:
                 return JsonResponse({"ok": False, "msg": "چهره به‌وضوح دیده نشد. لطفاً روبه‌رو و در نور کافی قرار بگیرید."})
             movement = np.linalg.norm(enc1 - enc2)
-            if movement < 0.08:
+            if movement < LIVENESS_MOVEMENT_THRESHOLD:
                 return JsonResponse({"ok": False, "msg": "حرکت تشخیص داده نشد. لطفاً دستور روی صفحه را اجرا کنید."})
             enc = (enc1 + enc2) / 2
         else:
@@ -362,7 +375,7 @@ def api_verify_face(request):
             if dist < best_dist:
                 best_dist = dist
                 best_user = u
-            if dist < 0.5:
+            if dist < FACE_DISTANCE_THRESHOLD:
                 if u.is_staff:
                     return JsonResponse({"ok": False, "manager_detected": True})
                 last_log = AttendanceLog.objects.filter(user=u).order_by('-timestamp').first()
@@ -422,7 +435,7 @@ def api_register_face(request):
             return JsonResponse({"ok": False, "msg": "چهره واضح نیست."})
                                                                                   
         movement = np.linalg.norm(enc1 - enc2)
-        if movement < 0.08:
+        if movement < LIVENESS_MOVEMENT_THRESHOLD:
             return JsonResponse({"ok": False, "msg": "حرکت تشخیص داده نشد."})
         enc = (enc1 + enc2) / 2
         data_url = img1
@@ -668,35 +681,33 @@ def management_face_check(request):
 @login_required
 @staff_required
 def api_management_verify_face(request):
-    import base64
-    import face_recognition
-
     if request.method == "POST":
         try:
             data = json.loads(request.body)
-            image_data = data.get("image")
-            if not image_data:
-                return JsonResponse({"success": False, "error": "عکس ارسال نشده."})
-                          
-            image_b64 = image_data.split(",")[1]
-            img_bytes = base64.b64decode(image_b64)
-            np_arr = np.frombuffer(img_bytes, np.uint8)
-            import cv2
-            img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-            encs = face_recognition.face_encodings(img)
-            if not encs:
-                return JsonResponse({"success": False, "error": "چهره‌ای شناسایی نشد."})
-            enc = encs[0]
+            img1 = data.get("image1")
+            img2 = data.get("image2")
+            if img1 and img2:
+                enc1 = _get_face_encoding_from_base64(img1)
+                enc2 = _get_face_encoding_from_base64(img2)
+                if enc1 is None or enc2 is None:
+                    return JsonResponse({"success": False, "error": "چهره‌ای شناسایی نشد."})
+                movement = np.linalg.norm(enc1 - enc2)
+                if movement < LIVENESS_MOVEMENT_THRESHOLD:
+                    return JsonResponse({"success": False, "error": "حرکت تشخیص داده نشد."})
+                enc = (enc1 + enc2) / 2
+            else:
+                enc = _get_face_encoding_from_base64(data.get("image", ""))
+                if enc is None:
+                    return JsonResponse({"success": False, "error": "چهره‌ای شناسایی نشد."})
             known = np.frombuffer(request.user.face_encoding, dtype=np.float64)
             distance = np.linalg.norm(known - enc)
-            if distance < 0.5:
-                                              
+            if distance < FACE_DISTANCE_THRESHOLD:
                 request.session["face_verified"] = True
                 return JsonResponse({"success": True})
             else:
                 return JsonResponse({"success": False, "error": "چهره مطابقت نداشت."})
-        except Exception as e:
-            return JsonResponse({"success": False, "error": f"خطا: {e}"})
+        except Exception:
+            return JsonResponse({"success": False, "error": "خطا در پردازش تصویر."})
     return JsonResponse({"success": False, "error": "درخواست نامعتبر."})
 
 
@@ -915,7 +926,7 @@ def register_face_api(request, user_id):
         enc2 = _get_face_encoding_from_base64(img2)
         if enc1 is None or enc2 is None:
             return JsonResponse({"ok": False, "msg": "چهره واضح نیست."})
-        if np.linalg.norm(enc1 - enc2) < 0.08:
+        if np.linalg.norm(enc1 - enc2) < LIVENESS_MOVEMENT_THRESHOLD:
             return JsonResponse({"ok": False, "msg": "حرکت تشخیص داده نشد."})
         enc = (enc1 + enc2) / 2
         data_url = img1
