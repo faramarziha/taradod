@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ctx.scale(-1, 1);
     ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
     ctx.restore();
-    return canvas.toDataURL('image/png');
+    return canvas.toDataURL('image/jpeg');
   }
 
   function wait(ms) {
