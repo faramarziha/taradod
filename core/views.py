@@ -6,13 +6,11 @@ import os
 import math
 from datetime import timedelta, datetime, time
 
-import face_recognition
 import numpy as np
 from PIL import Image
 from django.contrib import messages
-from django.contrib.auth import get_user_model, login, logout
+from django.contrib.auth import get_user_model, login
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.conf import settings
 from django.contrib.auth.views import LoginView
 from django.core.files.base import ContentFile
 from django.http import JsonResponse
@@ -54,14 +52,10 @@ from core.forms import (
 )
 from .models import Device
 
-from users.models import CustomUser
-
-
 User = get_user_model()
 
 
 def _get_user_shift(user):
-
     if getattr(user, "shift", None):
         return user.shift
     if getattr(user, "group", None) and user.group and user.group.shift:
@@ -70,7 +64,6 @@ def _get_user_shift(user):
 
 
 def _shift_bounds(date, shift):
-
     start_dt = datetime.combine(date, shift.start_time)
     end_dt = datetime.combine(date, shift.end_time)
     if shift.end_time <= shift.start_time:
@@ -79,12 +72,10 @@ def _shift_bounds(date, shift):
 
 
 def _weekday_index(date):
-
     return (date.weekday() + 2) % 7
 
 
 def _calculate_monthly_performance(user, year, month):
-
     start_j = jdatetime.date(year, month, 1)
     days_in_month = jdatetime.j_days_in_month[month - 1]
     today_j = jdatetime.date.today()
@@ -185,7 +176,7 @@ def _calculate_monthly_performance(user, year, month):
                     session_pairs.append((current_in, log.timestamp))
                     incomplete = True
                 current_in = log.timestamp
-            else:       
+            else:
                 if current_in is not None:
                     session_pairs.append((current_in, log.timestamp))
                     current_in = None
@@ -195,8 +186,10 @@ def _calculate_monthly_performance(user, year, month):
             session_pairs.append((current_in, window_end))
             incomplete = True
 
-        if not session_pairs and not day_logs and not (
-            prev_log and prev_log.log_type == "in"
+        if (
+            not session_pairs
+            and not day_logs
+            and not (prev_log and prev_log.log_type == "in")
         ):
             absence_days += 1
             continue
@@ -248,9 +241,13 @@ def _calculate_monthly_performance(user, year, month):
 
 
 def _get_face_encoding_from_base64(data_url: str):
+    try:
+        import face_recognition
+    except Exception:
+        return None
 
     try:
-        if not data_url or ',' not in data_url:
+        if not data_url or "," not in data_url:
             return None
         _, b64data = data_url.split(",", 1)
         img_bytes = base64.b64decode(b64data)
@@ -264,21 +261,18 @@ def _get_face_encoding_from_base64(data_url: str):
         return None
 
 
-                           
-               
-                           
-
 class ManagementLoginView(LoginView):
     template_name = "core/management_login.html"
     redirect_authenticated_user = True
+
     def get_success_url(self):
-                                                             
         return reverse("management_face_check")
 
 
 class DeviceLoginView(LoginView):
     template_name = "core/device_login.html"
     redirect_authenticated_user = False
+
     def form_valid(self, form):
         user = form.get_user()
         if not user.is_staff:
@@ -288,17 +282,9 @@ class DeviceLoginView(LoginView):
         return redirect("device_face_check")
 
 
-                           
-             
-                           
-
 def home(request):
     return render(request, "core/home.html")
 
-
-                           
-                    
-                           
 
 @login_required
 @user_passes_test(lambda u: u.is_staff)
@@ -310,7 +296,6 @@ def device_face_check(request):
 
 @login_required
 def device_page(request):
-
     return render(request, "core/device.html")
 
 
@@ -318,9 +303,6 @@ def device_page(request):
 @login_required
 @user_passes_test(lambda u: u.is_staff)
 def api_device_verify_face(request):
-
-
-
     try:
         data = json.loads(request.body)
         enc = _get_face_encoding_from_base64(data.get("image", ""))
@@ -340,6 +322,7 @@ def api_device_verify_face(request):
     except Exception:
         return JsonResponse({"success": False, "error": "خطا در پردازش تصویر."})
 
+
 @csrf_exempt
 @require_POST
 @login_required
@@ -357,15 +340,30 @@ def api_verify_face(request):
             enc1 = _get_face_encoding_from_base64(img1)
             enc2 = _get_face_encoding_from_base64(img2)
             if enc1 is None or enc2 is None:
-                return JsonResponse({"ok": False, "msg": "چهره به‌وضوح دیده نشد. لطفاً روبه‌رو و در نور کافی قرار بگیرید."})
+                return JsonResponse(
+                    {
+                        "ok": False,
+                        "msg": "چهره به‌وضوح دیده نشد. لطفاً روبه‌رو و در نور کافی قرار بگیرید.",
+                    }
+                )
             movement = np.linalg.norm(enc1 - enc2)
             if movement < 0.08:
-                return JsonResponse({"ok": False, "msg": "حرکت تشخیص داده نشد. لطفاً دستور روی صفحه را اجرا کنید."})
+                return JsonResponse(
+                    {
+                        "ok": False,
+                        "msg": "حرکت تشخیص داده نشد. لطفاً دستور روی صفحه را اجرا کنید.",
+                    }
+                )
             enc = (enc1 + enc2) / 2
         else:
             enc = _get_face_encoding_from_base64(data.get("image", ""))
             if enc is None:
-                return JsonResponse({"ok": False, "msg": "چهره به‌وضوح دیده نشد. لطفاً روبه‌رو و در نور کافی قرار بگیرید."})
+                return JsonResponse(
+                    {
+                        "ok": False,
+                        "msg": "چهره به‌وضوح دیده نشد. لطفاً روبه‌رو و در نور کافی قرار بگیرید.",
+                    }
+                )
         best_user = None
         best_dist = float("inf")
 
@@ -378,31 +376,50 @@ def api_verify_face(request):
             if dist < 0.5:
                 if u.is_staff:
                     return JsonResponse({"ok": False, "manager_detected": True})
-                last_log = AttendanceLog.objects.filter(user=u).order_by('-timestamp').first()
-                if last_log and timezone.now() - last_log.timestamp < timedelta(minutes=5):
+                last_log = (
+                    AttendanceLog.objects.filter(user=u).order_by("-timestamp").first()
+                )
+                if last_log and timezone.now() - last_log.timestamp < timedelta(
+                    minutes=5
+                ):
                     return JsonResponse({"ok": False, "msg": "تردد تکراری"})
 
                 today = timezone.now().date()
-                if last_log and last_log.log_type == 'in' and last_log.timestamp.date() < today:
-                    end_of_day = datetime.combine(last_log.timestamp.date(), time(23, 59))
+                if (
+                    last_log
+                    and last_log.log_type == "in"
+                    and last_log.timestamp.date() < today
+                ):
+                    end_of_day = datetime.combine(
+                        last_log.timestamp.date(), time(23, 59)
+                    )
                     if end_of_day.tzinfo is not None:
                         end_of_day = end_of_day.replace(tzinfo=None)
-                    AttendanceLog.objects.create(user=u, timestamp=end_of_day, log_type='out', source='auto')
+                    AttendanceLog.objects.create(
+                        user=u, timestamp=end_of_day, log_type="out", source="auto"
+                    )
 
-                log_type = 'out' if last_log and last_log.log_type == 'in' else 'in'
-                AttendanceLog.objects.create(user=u, timestamp=timezone.now(), log_type=log_type, source='self')
-                img_url = u.face_image.url if hasattr(u, 'face_image') and u.face_image else static('core/avatar.png')
-                return JsonResponse({
-                    "ok": True,
-                    "name": f"{u.first_name} {u.last_name}",
-                    "code": u.personnel_code,
-                    "timestamp": timezone.now().isoformat(),
-                    "log_type": log_type,
-                    "image_url": img_url
-                })
+                log_type = "out" if last_log and last_log.log_type == "in" else "in"
+                AttendanceLog.objects.create(
+                    user=u, timestamp=timezone.now(), log_type=log_type, source="self"
+                )
+                img_url = (
+                    u.face_image.url
+                    if hasattr(u, "face_image") and u.face_image
+                    else static("core/avatar.png")
+                )
+                return JsonResponse(
+                    {
+                        "ok": True,
+                        "name": f"{u.first_name} {u.last_name}",
+                        "code": u.personnel_code,
+                        "timestamp": timezone.now().isoformat(),
+                        "log_type": log_type,
+                        "image_url": img_url,
+                    }
+                )
 
         if best_user and best_dist < 0.6:
-                                                     
             try:
                 raw_img = img1 or data.get("image", "")
                 header, b64data = raw_img.split(",", 1)
@@ -415,17 +432,21 @@ def api_verify_face(request):
                 )
                 log.image.save(filename, ContentFile(img_data), save=True)
             except Exception:
-                SuspiciousLog.objects.create(matched_user=best_user, similarity=best_dist)
+                SuspiciousLog.objects.create(
+                    matched_user=best_user, similarity=best_dist
+                )
             return JsonResponse({"ok": False, "suspicious": True})
 
         return JsonResponse({"ok": False, "msg": "چهره شما در سیستم ثبت نشده است."})
     except Exception:
-        return JsonResponse({"ok": False, "msg": "خطا در پردازش تصویر. لطفاً دوباره تلاش کنید."})
+        return JsonResponse(
+            {"ok": False, "msg": "خطا در پردازش تصویر. لطفاً دوباره تلاش کنید."}
+        )
+
 
 @require_POST
 @login_required
 def api_register_face(request):
-
     img1 = request.POST.get("image1")
     img2 = request.POST.get("image2")
     if img1 and img2:
@@ -433,14 +454,13 @@ def api_register_face(request):
         enc2 = _get_face_encoding_from_base64(img2)
         if enc1 is None or enc2 is None:
             return JsonResponse({"ok": False, "msg": "چهره واضح نیست."})
-                                                                                  
+
         movement = np.linalg.norm(enc1 - enc2)
         if movement < 0.08:
             return JsonResponse({"ok": False, "msg": "حرکت تشخیص داده نشد."})
         enc = (enc1 + enc2) / 2
         data_url = img1
     else:
-                                 
         data_url = request.POST.get("image", "")
         enc = _get_face_encoding_from_base64(data_url)
         if enc is None:
@@ -448,7 +468,6 @@ def api_register_face(request):
 
     request.user.face_encoding = enc.tobytes()
 
-                      
     try:
         header, b64data = data_url.split(",", 1)
         fmt = header.split(";")[0].split("/")[1]
@@ -460,9 +479,7 @@ def api_register_face(request):
 
     request.user.save()
     return JsonResponse({"ok": True, "redirect": reverse("management_dashboard")})
-                           
-                         
-                           
+
 
 def user_inquiry(request):
     if request.method == "POST":
@@ -471,8 +488,7 @@ def user_inquiry(request):
             cd = form.cleaned_data
             try:
                 u = User.objects.get(
-                    personnel_code=cd["personnel_code"],
-                    national_id=cd["national_id"]
+                    personnel_code=cd["personnel_code"], national_id=cd["national_id"]
                 )
             except User.DoesNotExist:
                 form.add_error(None, "اطلاعات معتبر نیست")
@@ -491,11 +507,12 @@ def user_profile(request):
     u = get_object_or_404(User, id=uid)
     today = timezone.now().date()
 
-                                           
     status = "holiday"
     first_in = None
     if not WeeklyHoliday.objects.filter(weekday=_weekday_index(today)).exists():
-        logs = AttendanceLog.objects.filter(user=u, timestamp__date=today).order_by("timestamp")
+        logs = AttendanceLog.objects.filter(user=u, timestamp__date=today).order_by(
+            "timestamp"
+        )
         if logs.exists():
             status = "present"
             first_in = logs.first().timestamp.time()
@@ -510,7 +527,6 @@ def user_profile(request):
             status = "absent"
     today_status = {"status": status, "first_in": first_in}
 
-                                                              
     events = []
     leave_events = LeaveRequest.objects.filter(user=u).order_by("-created_at")[:4]
     for r in leave_events:
@@ -523,7 +539,6 @@ def user_profile(request):
         events.append({"created_at": r.created_at, "message": msg})
     events = sorted(events, key=lambda x: x["created_at"], reverse=True)[:4]
 
-                                    
     today_j = jdatetime.date.today()
     report, _ = _calculate_monthly_performance(u, today_j.year, today_j.month)
     monthly_stats = {
@@ -532,7 +547,6 @@ def user_profile(request):
         "absent_days": report["absence_days"],
     }
 
-                                        
     month_param = request.GET.get("month")
     if month_param:
         ly, lm = [int(x) for x in month_param.split("-")]
@@ -561,11 +575,15 @@ def user_profile(request):
             info["in"] = log.timestamp.time()
         if log.log_type == "out":
             info["out"] = log.timestamp.time()
-    prev_m = (start_j - jdatetime.timedelta(days=1))
-    next_m = (end_j + jdatetime.timedelta(days=1))
+    prev_m = start_j - jdatetime.timedelta(days=1)
+    next_m = end_j + jdatetime.timedelta(days=1)
 
     edit_requests = EditRequest.objects.filter(user=u).order_by("-created_at")
-    leave_requests = LeaveRequest.objects.select_related("leave_type").filter(user=u).order_by("-created_at")
+    leave_requests = (
+        LeaveRequest.objects.select_related("leave_type")
+        .filter(user=u)
+        .order_by("-created_at")
+    )
 
     return render(
         request,
@@ -586,9 +604,7 @@ def user_profile(request):
     )
 
 
-
 def edit_request(request):
-
     uid = request.session.get("inquiry_user_id")
     if not uid:
         return redirect("user_inquiry")
@@ -625,7 +641,11 @@ def leave_request(request):
                 return render(
                     request,
                     "core/leave_request_confirm.html",
-                    {"form": form, "user": u, "end_date": form.cleaned_data["end_jalali"]},
+                    {
+                        "form": form,
+                        "user": u,
+                        "end_date": form.cleaned_data["end_jalali"],
+                    },
                 )
     else:
         form = LeaveRequestForm(user=u)
@@ -633,7 +653,6 @@ def leave_request(request):
 
 
 def cancel_edit_request(request, pk):
-
     uid = request.session.get("inquiry_user_id")
     if not uid:
         return redirect("user_inquiry")
@@ -648,7 +667,6 @@ def cancel_edit_request(request, pk):
 
 
 def cancel_leave_request(request, pk):
-
     uid = request.session.get("inquiry_user_id")
     if not uid:
         return redirect("user_inquiry")
@@ -662,16 +680,12 @@ def cancel_leave_request(request, pk):
     return redirect(reverse("user_profile") + "#leave-requests")
 
 
-                           
-                    
-                           
-
 staff_required = user_passes_test(lambda u: u.is_staff)
+
 
 @login_required
 @staff_required
 def management_face_check(request):
-
     if request.user.face_encoding is None:
         return render(request, "core/register_face.html")
     return render(request, "core/management_face_check.html")
@@ -682,7 +696,12 @@ def management_face_check(request):
 @staff_required
 def api_management_verify_face(request):
     import base64
-    import face_recognition
+
+    try:
+        import face_recognition
+        import cv2
+    except Exception:
+        return JsonResponse({"success": False, "error": "امکان تشخیص چهره وجود ندارد."})
 
     if request.method == "POST":
         try:
@@ -690,11 +709,10 @@ def api_management_verify_face(request):
             image_data = data.get("image")
             if not image_data:
                 return JsonResponse({"success": False, "error": "عکس ارسال نشده."})
-                          
+
             image_b64 = image_data.split(",")[1]
             img_bytes = base64.b64decode(image_b64)
             np_arr = np.frombuffer(img_bytes, np.uint8)
-            import cv2
             img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
             encs = face_recognition.face_encodings(img)
             if not encs:
@@ -703,24 +721,20 @@ def api_management_verify_face(request):
             known = np.frombuffer(request.user.face_encoding, dtype=np.float64)
             distance = np.linalg.norm(known - enc)
             if distance < 0.5:
-                                              
                 request.session["face_verified"] = True
                 return JsonResponse({"success": True})
-            else:
-                return JsonResponse({"success": False, "error": "چهره مطابقت نداشت."})
+            return JsonResponse({"success": False, "error": "چهره مطابقت نداشت."})
         except Exception as e:
-            return JsonResponse({"success": False, "error": f"خطا: {e}"})
+            return JsonResponse({"success": False, "error": str(e)})
     return JsonResponse({"success": False, "error": "درخواست نامعتبر."})
 
 
 @login_required
 @staff_required
 def management_users(request):
-
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
 
-                                        
     if request.method == "POST":
         action = request.POST.get("bulk_action")
         selected_ids = request.POST.getlist("selected_users")
@@ -746,7 +760,6 @@ def management_users(request):
 
     users = User.objects.all().select_related("group", "shift")
 
-                                     
     q = request.GET.get("q")
     status = request.GET.get("status")
     group = request.GET.get("group")
@@ -787,14 +800,17 @@ def user_add(request):
         form = CustomUserSimpleForm(request.POST, request.FILES)
         if form.is_valid():
             user = form.save(commit=False)
-                                               
+
             user.set_password(secrets.token_urlsafe(16))
             user.save()
             messages.success(request, "کارمند جدید اضافه شد.")
             return redirect("register_face_page_for_user", user_id=user.pk)
     else:
         form = CustomUserSimpleForm()
-    return render(request, "core/user_form.html", {"form": form, "title": "افزودن کارمند جدید"})
+    return render(
+        request, "core/user_form.html", {"form": form, "title": "افزودن کارمند جدید"}
+    )
+
 
 @login_required
 @staff_required
@@ -808,7 +824,10 @@ def user_update(request, pk):
             return redirect("management_users")
     else:
         form = CustomUserSimpleForm(instance=obj)
-    return render(request, "core/user_form.html", {"form": form, "title": "ویرایش کارمند"})
+    return render(
+        request, "core/user_form.html", {"form": form, "title": "ویرایش کارمند"}
+    )
+
 
 @login_required
 @staff_required
@@ -840,7 +859,6 @@ def admin_user_profile(request, pk):
     else:
         form = CustomUserSimpleForm(instance=user_obj)
 
-                                        
     month_param = request.GET.get("month")
     if month_param:
         ly, lm = [int(x) for x in month_param.split("-")]
@@ -861,8 +879,8 @@ def admin_user_profile(request, pk):
             info["in"] = log.timestamp.time()
         if log.log_type == "out":
             info["out"] = log.timestamp.time()
-    prev_m = (jdatetime.date(ly, lm, 1) - jdatetime.timedelta(days=1))
-    next_m = (jdatetime.date(ly, lm, days) + jdatetime.timedelta(days=1))
+    prev_m = jdatetime.date(ly, lm, 1) - jdatetime.timedelta(days=1)
+    next_m = jdatetime.date(ly, lm, days) + jdatetime.timedelta(days=1)
 
     requests_form = UserLogsRangeForm(request.GET or None, prefix="req")
     edit_requests = EditRequest.objects.filter(user=user_obj).order_by("-created_at")
@@ -909,11 +927,14 @@ def user_face_delete(request, pk):
     messages.success(request, "چهره کارمند حذف شد.")
     return redirect("admin_user_profile", pk=pk)
 
+
 @login_required
 @staff_required
 def register_face_page_for_user(request, user_id):
     target = get_object_or_404(User, id=user_id)
-    return render(request, "core/register_face_for_user.html", {"user_to_register": target})
+    return render(
+        request, "core/register_face_for_user.html", {"user_to_register": target}
+    )
 
 
 @require_POST
@@ -949,10 +970,11 @@ def register_face_api(request, user_id):
         pass
 
     target.save()
-    return JsonResponse({"ok": True, "redirect": reverse("admin_user_profile", args=[user_id])})
+    return JsonResponse(
+        {"ok": True, "redirect": reverse("admin_user_profile", args=[user_id])}
+    )
 
 
-                                    
 @login_required
 @staff_required
 def management_dashboard(request):
@@ -978,7 +1000,6 @@ def management_dashboard(request):
         user__in=users_qs, timestamp__date=today, log_type="out"
     ).count()
 
-                                     
     if is_holiday:
         present_users = leave_users = absent_users = users_qs.none()
         present_ids = []
@@ -1004,13 +1025,19 @@ def management_dashboard(request):
     tardy_users = User.objects.none()
     if not is_holiday:
         tardy_ids = []
-        present_users_details = users_qs.filter(id__in=present_ids).select_related("shift", "group__shift")
+        present_users_details = users_qs.filter(id__in=present_ids).select_related(
+            "shift", "group__shift"
+        )
         for user in present_users_details:
             shift = _get_user_shift(user)
             shift_start = time(9, 0)
             if shift:
                 shift_start = shift.start_time
-            first_log = AttendanceLog.objects.filter(user=user, timestamp__date=today).order_by("timestamp").first()
+            first_log = (
+                AttendanceLog.objects.filter(user=user, timestamp__date=today)
+                .order_by("timestamp")
+                .first()
+            )
             if first_log:
                 start_dt = datetime.combine(today, shift_start)
                 first_dt = first_log.timestamp
@@ -1020,35 +1047,46 @@ def management_dashboard(request):
                     tardy_ids.append(user.id)
         tardy_users = users_qs.filter(id__in=tardy_ids)
 
-             
-    pending_edit_objs = EditRequest.objects.select_related("user").filter(user__in=users_qs, status="pending")
-    pending_leave_objs = LeaveRequest.objects.select_related("user").filter(user__in=users_qs, status="pending")
+    pending_edit_objs = EditRequest.objects.select_related("user").filter(
+        user__in=users_qs, status="pending"
+    )
+    pending_leave_objs = LeaveRequest.objects.select_related("user").filter(
+        user__in=users_qs, status="pending"
+    )
     pending_edits = pending_edit_objs.count()
     pending_leaves = pending_leave_objs.count()
-    suspicious_today = SuspiciousLog.objects.filter(matched_user__in=users_qs, timestamp__date=today).count()
+    suspicious_today = SuspiciousLog.objects.filter(
+        matched_user__in=users_qs, timestamp__date=today
+    ).count()
 
-                                                         
     pending_actions = []
     for req in pending_edit_objs[:5]:
-        pending_actions.append({
-            "id": req.id,
-            "user": req.user,
-            "date": jdatetime.date.fromgregorian(date=req.timestamp.date()).strftime("%Y/%m/%d"),
-            "type": "edit",
-            "type_label": f"ویرایش تردد ({req.get_log_type_display()})",
-            "action_url": reverse("edit_requests"),
-        })
+        pending_actions.append(
+            {
+                "id": req.id,
+                "user": req.user,
+                "date": jdatetime.date.fromgregorian(
+                    date=req.timestamp.date()
+                ).strftime("%Y/%m/%d"),
+                "type": "edit",
+                "type_label": f"ویرایش تردد ({req.get_log_type_display()})",
+                "action_url": reverse("edit_requests"),
+            }
+        )
     for req in pending_leave_objs[:5]:
-        pending_actions.append({
-            "id": req.id,
-            "user": req.user,
-            "date": jdatetime.date.fromgregorian(date=req.start_date).strftime("%Y/%m/%d"),
-            "type": "leave",
-            "type_label": "مرخصی",
-            "action_url": reverse("leave_requests"),
-        })
+        pending_actions.append(
+            {
+                "id": req.id,
+                "user": req.user,
+                "date": jdatetime.date.fromgregorian(date=req.start_date).strftime(
+                    "%Y/%m/%d"
+                ),
+                "type": "leave",
+                "type_label": "مرخصی",
+                "action_url": reverse("leave_requests"),
+            }
+        )
 
-                                            
     month_start = today - timedelta(days=30)
     tardy_stats = []
     streak_stats = []
@@ -1094,68 +1132,68 @@ def management_dashboard(request):
     device_online = device.online if device else False
 
     context = {
-        'active_tab': 'dashboard',
-        'today_in_logs': today_in_logs,
-        'today_out_logs': today_out_logs,
-        'present_users': present_users,
-        'absent_users': absent_users,
-        'leave_users': leave_users,
-        'present_count': present_users.count(),
-        'absent_count': absent_users.count(),
-        'leave_count': leave_users.count(),
-        'tardy_users': tardy_users,
-        'pending_edits': pending_edits,
-        'pending_leaves': pending_leaves,
-        'suspicious_today': suspicious_today,
-        'pending_actions': pending_actions,
-        'worst_performers': worst_performers,
-        'best_performers': best_performers,
-        'device_online': device_online,
-        'is_holiday': is_holiday,
-        'groups': Group.objects.all(),
-        'shifts': Shift.objects.all(),
-        'selected_group': group_id,
-        'selected_shift': shift_id,
+        "active_tab": "dashboard",
+        "today_in_logs": today_in_logs,
+        "today_out_logs": today_out_logs,
+        "present_users": present_users,
+        "absent_users": absent_users,
+        "leave_users": leave_users,
+        "present_count": present_users.count(),
+        "absent_count": absent_users.count(),
+        "leave_count": leave_users.count(),
+        "tardy_users": tardy_users,
+        "pending_edits": pending_edits,
+        "pending_leaves": pending_leaves,
+        "suspicious_today": suspicious_today,
+        "pending_actions": pending_actions,
+        "worst_performers": worst_performers,
+        "best_performers": best_performers,
+        "device_online": device_online,
+        "is_holiday": is_holiday,
+        "groups": Group.objects.all(),
+        "shifts": Shift.objects.all(),
+        "selected_group": group_id,
+        "selected_shift": shift_id,
     }
-    return render(request, 'core/management_dashboard.html', context)
+    return render(request, "core/management_dashboard.html", context)
 
 
-                                    
 @login_required
 @staff_required
 def user_reports(request):
-                   
     active_users = User.objects.filter(is_active=True).count()
     inactive_users = User.objects.filter(is_active=False).count()
     no_face_users = User.objects.filter(face_encoding__isnull=True).count()
 
     form = ReportFilterForm(request.GET or None)
-    logs_qs = AttendanceLog.objects.select_related('user').order_by('-timestamp')
+    logs_qs = AttendanceLog.objects.select_related("user").order_by("-timestamp")
     if form.is_valid():
         cd = form.cleaned_data
-        if cd['start_date']:
-            logs_qs = logs_qs.filter(timestamp__date__gte=cd['start_date'].togregorian())
-        if cd['end_date']:
-            logs_qs = logs_qs.filter(timestamp__date__lte=cd['end_date'].togregorian())
-        if cd['groups']:
-            logs_qs = logs_qs.filter(user__group__in=cd['groups'])
-        if cd['shifts']:
-            logs_qs = logs_qs.filter(user__shift__in=cd['shifts'])
-        if cd['users']:
-            logs_qs = logs_qs.filter(user__in=cd['users'])
+        if cd["start_date"]:
+            logs_qs = logs_qs.filter(
+                timestamp__date__gte=cd["start_date"].togregorian()
+            )
+        if cd["end_date"]:
+            logs_qs = logs_qs.filter(timestamp__date__lte=cd["end_date"].togregorian())
+        if cd["groups"]:
+            logs_qs = logs_qs.filter(user__group__in=cd["groups"])
+        if cd["shifts"]:
+            logs_qs = logs_qs.filter(user__shift__in=cd["shifts"])
+        if cd["users"]:
+            logs_qs = logs_qs.filter(user__in=cd["users"])
         logs = list(logs_qs[:100])
     else:
         logs = list(logs_qs[:10])
 
     context = {
-        'active_tab': 'reports',
-        'active_users': active_users,
-        'inactive_users': inactive_users,
-        'no_face_users': no_face_users,
-        'logs': logs,
-        'form': form,
+        "active_tab": "reports",
+        "active_users": active_users,
+        "inactive_users": inactive_users,
+        "no_face_users": no_face_users,
+        "logs": logs,
+        "form": form,
     }
-    return render(request, 'core/user_reports.html', context)
+    return render(request, "core/user_reports.html", context)
 
 
 @login_required
@@ -1183,11 +1221,10 @@ def monthly_profile(request):
 @login_required
 @staff_required
 def attendance_status(request):
-
     if request.GET:
         form = AttendanceStatusForm(request.GET)
     else:
-        form = AttendanceStatusForm(initial={'date': jdatetime.date.today()})
+        form = AttendanceStatusForm(initial={"date": jdatetime.date.today()})
     if form.is_valid() and form.cleaned_data.get("date"):
         target_date = form.cleaned_data["date"].togregorian()
     else:
@@ -1197,31 +1234,44 @@ def attendance_status(request):
     if holiday:
         present_users = leave_users = absent_users = User.objects.none()
     else:
-        present_ids = AttendanceLog.objects.filter(timestamp__date=target_date).values_list('user_id', flat=True).distinct()
-        leave_ids = LeaveRequest.objects.filter(start_date__lte=target_date, end_date__gte=target_date).values_list('user_id', flat=True).distinct()
+        present_ids = (
+            AttendanceLog.objects.filter(timestamp__date=target_date)
+            .values_list("user_id", flat=True)
+            .distinct()
+        )
+        leave_ids = (
+            LeaveRequest.objects.filter(
+                start_date__lte=target_date, end_date__gte=target_date
+            )
+            .values_list("user_id", flat=True)
+            .distinct()
+        )
         present_users = User.objects.filter(id__in=present_ids)
         leave_users = User.objects.filter(id__in=leave_ids)
-        absent_users = User.objects.filter(is_active=True).exclude(id__in=present_ids).exclude(id__in=leave_ids)
+        absent_users = (
+            User.objects.filter(is_active=True)
+            .exclude(id__in=present_ids)
+            .exclude(id__in=leave_ids)
+        )
 
     jdate = jdatetime.date.fromgregorian(date=target_date)
 
     context = {
-        'active_tab': 'attendance_status',
-        'present_users': present_users,
-        'absent_users': absent_users,
-        'leave_users': leave_users,
-        'jdate': jdate.strftime('%Y/%m/%d'),
-        'realtime': target_date == timezone.now().date(),
-        'form': form,
-        'holiday': holiday,
+        "active_tab": "attendance_status",
+        "present_users": present_users,
+        "absent_users": absent_users,
+        "leave_users": leave_users,
+        "jdate": jdate.strftime("%Y/%m/%d"),
+        "realtime": target_date == timezone.now().date(),
+        "form": form,
+        "holiday": holiday,
     }
-    return render(request, 'core/attendance_status.html', context)
+    return render(request, "core/attendance_status.html", context)
 
 
 @login_required
 @staff_required
 def api_attendance_status(request):
-
     form = AttendanceStatusForm(request.GET or None)
     if form.is_valid() and form.cleaned_data.get("date"):
         target_date = form.cleaned_data["date"].togregorian()
@@ -1232,16 +1282,39 @@ def api_attendance_status(request):
     if holiday:
         present_users = leave_users = absent_users = []
     else:
-        present_ids = AttendanceLog.objects.filter(timestamp__date=target_date).values_list('user_id', flat=True).distinct()
-        leave_ids = LeaveRequest.objects.filter(start_date__lte=target_date, end_date__gte=target_date).values_list('user_id', flat=True).distinct()
+        present_ids = (
+            AttendanceLog.objects.filter(timestamp__date=target_date)
+            .values_list("user_id", flat=True)
+            .distinct()
+        )
+        leave_ids = (
+            LeaveRequest.objects.filter(
+                start_date__lte=target_date, end_date__gte=target_date
+            )
+            .values_list("user_id", flat=True)
+            .distinct()
+        )
         present_users = User.objects.filter(id__in=present_ids)
         leave_users = User.objects.filter(id__in=leave_ids)
-        absent_users = User.objects.filter(is_active=True).exclude(id__in=present_ids).exclude(id__in=leave_ids)
+        absent_users = (
+            User.objects.filter(is_active=True)
+            .exclude(id__in=present_ids)
+            .exclude(id__in=leave_ids)
+        )
 
     data = {
-        'present': [{'id': u.id, 'name': u.get_full_name(), 'code': u.personnel_code} for u in present_users],
-        'absent': [{'id': u.id, 'name': u.get_full_name(), 'code': u.personnel_code} for u in absent_users],
-        'leave': [{'id': u.id, 'name': u.get_full_name(), 'code': u.personnel_code} for u in leave_users],
+        "present": [
+            {"id": u.id, "name": u.get_full_name(), "code": u.personnel_code}
+            for u in present_users
+        ],
+        "absent": [
+            {"id": u.id, "name": u.get_full_name(), "code": u.personnel_code}
+            for u in absent_users
+        ],
+        "leave": [
+            {"id": u.id, "name": u.get_full_name(), "code": u.personnel_code}
+            for u in leave_users
+        ],
     }
     return JsonResponse(data)
 
@@ -1249,39 +1322,53 @@ def api_attendance_status(request):
 @login_required
 @staff_required
 def suspicious_logs(request):
-
     logs = (
-        SuspiciousLog.objects.select_related('matched_user')
+        SuspiciousLog.objects.select_related("matched_user")
         .filter(status="pending")
-        .order_by('-timestamp')[:50]
+        .order_by("-timestamp")[:50]
     )
-    return render(request, 'core/suspicious_logs.html', {
-        'active_tab': 'suspicions',
-        'logs': logs,
-    })
+    return render(
+        request,
+        "core/suspicious_logs.html",
+        {
+            "active_tab": "suspicions",
+            "logs": logs,
+        },
+    )
 
 
 @login_required
 @staff_required
 @require_POST
 def suspicious_log_action(request, pk):
-
     log = get_object_or_404(SuspiciousLog, id=pk, status="pending")
     action = request.POST.get("action")
     if action == "confirm":
         if log.matched_user:
             u = log.matched_user
-            last_log = AttendanceLog.objects.filter(user=u).order_by('-timestamp').first()
+            last_log = (
+                AttendanceLog.objects.filter(user=u).order_by("-timestamp").first()
+            )
             today = timezone.now().date()
-            if last_log and last_log.log_type == 'in' and last_log.timestamp.date() < today:
+            if (
+                last_log
+                and last_log.log_type == "in"
+                and last_log.timestamp.date() < today
+            ):
                 end_of_day = datetime.combine(last_log.timestamp.date(), time(23, 59))
                 if end_of_day.tzinfo is not None:
                     end_of_day = end_of_day.replace(tzinfo=None)
-                AttendanceLog.objects.create(user=u, timestamp=end_of_day, log_type='out', source='auto')
-            log_type = 'out' if last_log and last_log.log_type == 'in' else 'in'
-            AttendanceLog.objects.create(user=u, timestamp=timezone.now(), log_type=log_type, source='manager')
-            if request.POST.get('train') and log.image:
+                AttendanceLog.objects.create(
+                    user=u, timestamp=end_of_day, log_type="out", source="auto"
+                )
+            log_type = "out" if last_log and last_log.log_type == "in" else "in"
+            AttendanceLog.objects.create(
+                user=u, timestamp=timezone.now(), log_type=log_type, source="manager"
+            )
+            if request.POST.get("train") and log.image:
                 try:
+                    import face_recognition
+
                     img = face_recognition.load_image_file(log.image.path)
                     encs = face_recognition.face_encodings(img)
                     if encs:
@@ -1291,29 +1378,32 @@ def suspicious_log_action(request, pk):
                             new_enc = (old + new_enc) / 2
                         u.face_encoding = new_enc.tobytes()
                         if not u.face_image:
-                            with log.image.open('rb') as f:
-                                u.face_image.save(os.path.basename(log.image.name), ContentFile(f.read()), save=False)
+                            with log.image.open("rb") as f:
+                                u.face_image.save(
+                                    os.path.basename(log.image.name),
+                                    ContentFile(f.read()),
+                                    save=False,
+                                )
                         u.save()
                 except Exception:
                     pass
-        log.status = 'confirmed'
-        log.save(update_fields=['status'])
+        log.status = "confirmed"
+        log.save(update_fields=["status"])
         messages.success(request, "تردد ثبت شد.")
-    elif action == 'ignore':
-        log.status = 'ignored'
-        log.save(update_fields=['status'])
-        messages.info(request, 'مورد حذف شد.')
-    elif action == 'fraud':
-        log.status = 'fraud'
-        log.save(update_fields=['status'])
-        messages.warning(request, 'به عنوان تقلب ثبت شد.')
-    return redirect('suspicious_logs')
+    elif action == "ignore":
+        log.status = "ignored"
+        log.save(update_fields=["status"])
+        messages.info(request, "مورد حذف شد.")
+    elif action == "fraud":
+        log.status = "fraud"
+        log.save(update_fields=["status"])
+        messages.warning(request, "به عنوان تقلب ثبت شد.")
+    return redirect("suspicious_logs")
 
 
 @login_required
 @staff_required
 def edit_requests(request):
-
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
     if request.method == "POST":
@@ -1352,7 +1442,11 @@ def edit_requests(request):
     group_id = request.GET.get("group")
     shift_id = request.GET.get("shift")
 
-    requests = EditRequest.objects.select_related("user").filter(cancelled_by_user=False).order_by("-created_at")
+    requests = (
+        EditRequest.objects.select_related("user")
+        .filter(cancelled_by_user=False)
+        .order_by("-created_at")
+    )
     if group_id:
         requests = requests.filter(user__group_id=group_id)
     if shift_id:
@@ -1374,7 +1468,6 @@ def edit_requests(request):
 @login_required
 @staff_required
 def leave_requests(request):
-
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
     if request.method == "POST":
@@ -1438,7 +1531,6 @@ def leave_requests(request):
 @login_required
 @staff_required
 def add_log(request):
-
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
     if request.method == "POST":
@@ -1449,16 +1541,19 @@ def add_log(request):
             return redirect("edit_requests")
     else:
         form = ManualLogForm()
-    return render(request, "core/manual_log_form.html", {
-        "active_tab": "edit_requests",
-        "form": form,
-    })
+    return render(
+        request,
+        "core/manual_log_form.html",
+        {
+            "active_tab": "edit_requests",
+            "form": form,
+        },
+    )
 
 
 @login_required
 @staff_required
 def add_leave(request):
-
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
     if request.method == "POST":
@@ -1469,16 +1564,14 @@ def add_leave(request):
             return redirect("leave_requests")
     else:
         form = ManualLeaveForm()
-    return render(request, "core/manual_leave_form.html", {
-        'active_tab': 'leave_requests',
-        'form': form,
-    })
-
-
-def custom_logout(request):
-    logout(request)
-    request.session.flush()
-    return redirect("home")
+    return render(
+        request,
+        "core/manual_leave_form.html",
+        {
+            "active_tab": "leave_requests",
+            "form": form,
+        },
+    )
 
 
 @login_required
@@ -1498,7 +1591,11 @@ def weekly_holidays(request):
             existing = set(days)
     else:
         form = WeeklyHolidayForm(initial={"days": [str(d) for d in existing]})
-    return render(request, "core/weekly_holidays.html", {"form": form, "active_tab": "weekly_holidays"})
+    return render(
+        request,
+        "core/weekly_holidays.html",
+        {"form": form, "active_tab": "weekly_holidays"},
+    )
 
 
 @login_required
@@ -1513,13 +1610,19 @@ def user_logs_admin(request, user_id):
         sd = form.cleaned_data.get("start_g")
         ed = form.cleaned_data.get("end_g")
         if sd and ed:
-            logs = AttendanceLog.objects.filter(user=user, timestamp__date__gte=sd, timestamp__date__lte=ed).order_by("timestamp")
-    return render(request, "core/user_logs_admin.html", {
-        "active_tab": "management_users",
-        "user": user,
-        "form": form,
-        "logs": logs,
-    })
+            logs = AttendanceLog.objects.filter(
+                user=user, timestamp__date__gte=sd, timestamp__date__lte=ed
+            ).order_by("timestamp")
+    return render(
+        request,
+        "core/user_logs_admin.html",
+        {
+            "active_tab": "management_users",
+            "user": user,
+            "form": form,
+            "logs": logs,
+        },
+    )
 
 
 @login_required
@@ -1529,11 +1632,16 @@ def device_settings(request):
         return redirect("management_face_check")
     device, _ = Device.objects.get_or_create(id=1, defaults={"name": "Main device"})
     if request.method == "POST" and device.online:
-        action = request.POST.get('action')
-        device.is_active = action != 'deactivate'
-        device.save(update_fields=['is_active'])
-        return redirect('device_settings')
-    return render(request, 'core/device_settings.html', {'device': device, 'active_tab': 'settings'})
+        action = request.POST.get("action")
+        device.is_active = action != "deactivate"
+        device.save(update_fields=["is_active"])
+        return redirect("device_settings")
+    return render(
+        request,
+        "core/device_settings.html",
+        {"device": device, "active_tab": "settings"},
+    )
+
 
 @login_required
 @staff_required
@@ -1565,7 +1673,9 @@ def shift_edit(request, pk=None):
             return redirect("shift_list")
     else:
         form = ShiftForm(instance=instance)
-    return render(request, "core/shift_form.html", {"form": form, "active_tab": "settings"})
+    return render(
+        request, "core/shift_form.html", {"form": form, "active_tab": "settings"}
+    )
 
 
 @require_POST
@@ -1611,7 +1721,9 @@ def group_edit(request, pk=None):
             return redirect("group_list")
     else:
         form = GroupForm(instance=instance)
-    return render(request, "core/group_form.html", {"form": form, "active_tab": "settings"})
+    return render(
+        request, "core/group_form.html", {"form": form, "active_tab": "settings"}
+    )
 
 
 @require_POST
@@ -1632,7 +1744,9 @@ def leave_type_list(request):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
     types = LeaveType.objects.all()
-    return render(request, "core/leave_type_list.html", {"types": types, "active_tab": "settings"})
+    return render(
+        request, "core/leave_type_list.html", {"types": types, "active_tab": "settings"}
+    )
 
 
 @login_required
@@ -1649,7 +1763,9 @@ def leave_type_edit(request, pk=None):
             return redirect("leave_type_list")
     else:
         form = LeaveTypeForm(instance=instance)
-    return render(request, "core/leave_type_form.html", {"form": form, "active_tab": "settings"})
+    return render(
+        request, "core/leave_type_form.html", {"form": form, "active_tab": "settings"}
+    )
 
 
 @require_POST

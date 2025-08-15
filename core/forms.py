@@ -8,7 +8,6 @@ from attendance.models import (
     EditRequest,
     LeaveRequest,
     LOG_TYPE_CHOICES,
-    WeeklyHoliday,
     Group,
     Shift,
 )
@@ -17,8 +16,6 @@ User = get_user_model()
 
 
 class JalaliDateInput(forms.TextInput):
-
-
     def __init__(self, attrs=None):
         base_attrs = {"data-jdp": "", "data-jdp-only-date": ""}
         if attrs:
@@ -27,17 +24,17 @@ class JalaliDateInput(forms.TextInput):
 
 
 class JalaliTimeInput(forms.TextInput):
-
-
     def __init__(self, attrs=None):
         base_attrs = {"data-jdp": "", "data-jdp-only-time": ""}
         if attrs:
             base_attrs.update(attrs)
         super().__init__(attrs=base_attrs)
 
+
 class InquiryForm(forms.Form):
     personnel_code = forms.CharField(label="کد پرسنلی", max_length=20)
-    national_id    = forms.CharField(label="کد ملی",     max_length=10)
+    national_id = forms.CharField(label="کد ملی", max_length=10)
+
 
 class CustomUserSimpleForm(forms.ModelForm):
     class Meta:
@@ -153,7 +150,9 @@ class LeaveRequestForm(forms.ModelForm):
             cleaned_data["end_jalali"] = end_j
         user = self.user or cleaned_data.get("user")
         if user and sd and dur:
-            if LeaveRequest.objects.filter(user=user, start_date=sd.togregorian(), end_date=end_j.togregorian()).exists():
+            if LeaveRequest.objects.filter(
+                user=user, start_date=sd.togregorian(), end_date=end_j.togregorian()
+            ).exists():
                 raise forms.ValidationError("برای این بازه قبلاً درخواستی ثبت شده است.")
         return cleaned_data
 
@@ -170,8 +169,6 @@ class LeaveRequestForm(forms.ModelForm):
 
 
 class ManualLogForm(forms.Form):
-
-
     user = forms.ModelChoiceField(queryset=User.objects.all(), label="کارمند")
     date = jforms.jDateField(label="تاریخ", widget=JalaliDateInput())
     time = forms.TimeField(label="ساعت", widget=JalaliTimeInput())
@@ -211,8 +208,6 @@ class ManualLogForm(forms.Form):
 
 
 class ManualLeaveForm(forms.ModelForm):
-
-
     user = forms.ModelChoiceField(queryset=User.objects.all(), label="کارمند")
     start_date = jforms.jDateField(label="از تاریخ", widget=JalaliDateInput())
     end_date = jforms.jDateField(label="تا تاریخ", widget=JalaliDateInput())
@@ -241,7 +236,9 @@ class ManualLeaveForm(forms.ModelForm):
             cleaned_data["end_date"] = ed.togregorian()
         user = cleaned_data.get("user")
         if user and sd and ed:
-            if LeaveRequest.objects.filter(user=user, start_date=sd.togregorian(), end_date=ed.togregorian()).exists():
+            if LeaveRequest.objects.filter(
+                user=user, start_date=sd.togregorian(), end_date=ed.togregorian()
+            ).exists():
                 raise forms.ValidationError("برای این بازه قبلاً درخواستی ثبت شده است.")
         return cleaned_data
 
@@ -256,7 +253,6 @@ class ManualLeaveForm(forms.ModelForm):
 
 
 class AttendanceStatusForm(forms.Form):
-
     date = jforms.jDateField(
         label="تاریخ",
         widget=JalaliDateInput(),
@@ -396,4 +392,6 @@ class MonthlyPerformanceForm(forms.Form):
         (11, "بهمن"),
         (12, "اسفند"),
     ]
-    month = forms.ChoiceField(label="ماه", choices=MONTH_CHOICES, initial=jdatetime.date.today().month)
+    month = forms.ChoiceField(
+        label="ماه", choices=MONTH_CHOICES, initial=jdatetime.date.today().month
+    )
