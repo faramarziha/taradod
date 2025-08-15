@@ -53,7 +53,9 @@ from core.forms import (
 )
 from .models import Device
 
-
+FACE_DISTANCE_THRESHOLD = 0.5
+LIVENESS_MOVEMENT_THRESHOLD = 0.08
+MATCH_SAVE_DISTANCE = 0.6
 
 User = get_user_model()
 
@@ -310,21 +312,31 @@ def api_device_verify_face(request):
 
     try:
         data = json.loads(request.body)
-        enc = _get_face_encoding_from_base64(data.get("image", ""))
-        if enc is None:
+        img1 = data.get("image1")
+        img2 = data.get("image2")
+        if not img1 or not img2:
+            return JsonResponse({"success": False, "error": "ارسال ناقص تصاویر."})
+        enc1 = _get_face_encoding_from_base64(img1)
+        enc2 = _get_face_encoding_from_base64(img2)
+        if enc1 is None or enc2 is None:
             return JsonResponse({"success": False, "error": "چهره یافت نشد."})
+        movement = np.linalg.norm(enc1 - enc2)
+        if movement < LIVENESS_MOVEMENT_THRESHOLD:
+            return JsonResponse({"success": False, "error": "حرکت تشخیص داده نشد."})
+        enc = (enc1 + enc2) / 2
 
         if request.user.face_encoding is None:
             return JsonResponse({"success": False, "error": "چهره مدیر ثبت نشده."})
 
         known = np.frombuffer(request.user.face_encoding, dtype=np.float64)
         distance = np.linalg.norm(known - enc)
-        if distance < 0.5:
+        if distance < FACE_DISTANCE_THRESHOLD:
             return JsonResponse({"success": True, "redirect": reverse("device_page")})
         else:
             return JsonResponse({"success": False, "error": "تشخیص ناموفق."})
 
-    except Exception:
+    except Exception as e:
+        print("Device verify error:", e)
         return JsonResponse({"success": False, "error": "خطا در پردازش تصویر."})
 
 @csrf_exempt
@@ -340,19 +352,16 @@ def api_verify_face(request):
         data = json.loads(request.body)
         img1 = data.get("image1")
         img2 = data.get("image2")
-        if img1 and img2:
-            enc1 = _get_face_encoding_from_base64(img1)
-            enc2 = _get_face_encoding_from_base64(img2)
-            if enc1 is None or enc2 is None:
-                return JsonResponse({"ok": False, "msg": "چهره به‌وضوح دیده نشد. لطفاً روبه‌رو و در نور کافی قرار بگیرید."})
-            movement = np.linalg.norm(enc1 - enc2)
-            if movement < 0.08:
-                return JsonResponse({"ok": False, "msg": "حرکت تشخیص داده نشد. لطفاً دستور روی صفحه را اجرا کنید."})
-            enc = (enc1 + enc2) / 2
-        else:
-            enc = _get_face_encoding_from_base64(data.get("image", ""))
-            if enc is None:
-                return JsonResponse({"ok": False, "msg": "چهره به‌وضوح دیده نشد. لطفاً روبه‌رو و در نور کافی قرار بگیرید."})
+        if not img1 or not img2:
+            return JsonResponse({"ok": False, "msg": "ارسال ناقص تصاویر."})
+        enc1 = _get_face_encoding_from_base64(img1)
+        enc2 = _get_face_encoding_from_base64(img2)
+        if enc1 is None or enc2 is None:
+            return JsonResponse({"ok": False, "msg": "چهره به‌وضوح دیده نشد. لطفاً روبه‌رو و در نور کافی قرار بگیرید."})
+        movement = np.linalg.norm(enc1 - enc2)
+        if movement < LIVENESS_MOVEMENT_THRESHOLD:
+            return JsonResponse({"ok": False, "msg": "حرکت تشخیص داده نشد. لطفاً دستور روی صفحه را اجرا کنید."})
+        enc = (enc1 + enc2) / 2
         best_user = None
         best_dist = float("inf")
 
@@ -362,7 +371,7 @@ def api_verify_face(request):
             if dist < best_dist:
                 best_dist = dist
                 best_user = u
-            if dist < 0.5:
+            if dist < FACE_DISTANCE_THRESHOLD:
                 if u.is_staff:
                     return JsonResponse({"ok": False, "manager_detected": True})
                 last_log = AttendanceLog.objects.filter(user=u).order_by('-timestamp').first()
@@ -388,10 +397,10 @@ def api_verify_face(request):
                     "image_url": img_url
                 })
 
-        if best_user and best_dist < 0.6:
+        if best_user and best_dist < MATCH_SAVE_DISTANCE:
                                                      
             try:
-                raw_img = img1 or data.get("image", "")
+                raw_img = img1
                 header, b64data = raw_img.split(",", 1)
                 fmt = header.split(";")[0].split("/")[1]
                 img_data = base64.b64decode(b64data)
@@ -401,12 +410,14 @@ def api_verify_face(request):
                     similarity=best_dist,
                 )
                 log.image.save(filename, ContentFile(img_data), save=True)
-            except Exception:
+            except Exception as e:
+                print("Suspicious log save error:", e)
                 SuspiciousLog.objects.create(matched_user=best_user, similarity=best_dist)
             return JsonResponse({"ok": False, "suspicious": True})
 
         return JsonResponse({"ok": False, "msg": "چهره شما در سیستم ثبت نشده است."})
-    except Exception:
+    except Exception as e:
+        print("Verify face error:", e)
         return JsonResponse({"ok": False, "msg": "خطا در پردازش تصویر. لطفاً دوباره تلاش کنید."})
 
 @require_POST
@@ -415,23 +426,20 @@ def api_register_face(request):
 
     img1 = request.POST.get("image1")
     img2 = request.POST.get("image2")
-    if img1 and img2:
-        enc1 = _get_face_encoding_from_base64(img1)
-        enc2 = _get_face_encoding_from_base64(img2)
-        if enc1 is None or enc2 is None:
-            return JsonResponse({"ok": False, "msg": "چهره واضح نیست."})
-                                                                                  
-        movement = np.linalg.norm(enc1 - enc2)
-        if movement < 0.08:
-            return JsonResponse({"ok": False, "msg": "حرکت تشخیص داده نشد."})
-        enc = (enc1 + enc2) / 2
-        data_url = img1
-    else:
-                                 
-        data_url = request.POST.get("image", "")
-        enc = _get_face_encoding_from_base64(data_url)
-        if enc is None:
-            return JsonResponse({"ok": False, "msg": "چهره‌ای شناسایی نشد."})
+    if not img1 or not img2:
+        return JsonResponse({"ok": False, "msg": "ارسال ناقص تصاویر."})
+
+    enc1 = _get_face_encoding_from_base64(img1)
+    enc2 = _get_face_encoding_from_base64(img2)
+    if enc1 is None or enc2 is None:
+        return JsonResponse({"ok": False, "msg": "چهره واضح نیست."})
+
+    movement = np.linalg.norm(enc1 - enc2)
+    if movement < LIVENESS_MOVEMENT_THRESHOLD:
+        return JsonResponse({"ok": False, "msg": "حرکت تشخیص داده نشد."})
+
+    enc = (enc1 + enc2) / 2
+    data_url = img1
 
     request.user.face_encoding = enc.tobytes()
 
@@ -442,8 +450,8 @@ def api_register_face(request):
         img_data = base64.b64decode(b64data)
         filename = f"{request.user.username}_face.{fmt}"
         request.user.face_image.save(filename, ContentFile(img_data), save=False)
-    except Exception:
-        pass
+    except Exception as e:
+        print("Save face image error:", e)
 
     request.user.save()
     return JsonResponse({"ok": True, "redirect": reverse("management_dashboard")})
@@ -668,36 +676,38 @@ def management_face_check(request):
 @login_required
 @staff_required
 def api_management_verify_face(request):
-    import base64
-    import face_recognition
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "درخواست نامعتبر."})
+    try:
+        data = json.loads(request.body)
+    except Exception as e:
+        print("Management verify decode error:", e)
+        return JsonResponse({"success": False, "error": "خطا در پردازش تصویر."})
 
-    if request.method == "POST":
-        try:
-            data = json.loads(request.body)
-            image_data = data.get("image")
-            if not image_data:
-                return JsonResponse({"success": False, "error": "عکس ارسال نشده."})
-                          
-            image_b64 = image_data.split(",")[1]
-            img_bytes = base64.b64decode(image_b64)
-            np_arr = np.frombuffer(img_bytes, np.uint8)
-            import cv2
-            img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-            encs = face_recognition.face_encodings(img)
-            if not encs:
-                return JsonResponse({"success": False, "error": "چهره‌ای شناسایی نشد."})
-            enc = encs[0]
-            known = np.frombuffer(request.user.face_encoding, dtype=np.float64)
-            distance = np.linalg.norm(known - enc)
-            if distance < 0.5:
-                                              
-                request.session["face_verified"] = True
-                return JsonResponse({"success": True})
-            else:
-                return JsonResponse({"success": False, "error": "چهره مطابقت نداشت."})
-        except Exception as e:
-            return JsonResponse({"success": False, "error": f"خطا: {e}"})
-    return JsonResponse({"success": False, "error": "درخواست نامعتبر."})
+    img1 = data.get("image1")
+    img2 = data.get("image2")
+    if not img1 or not img2:
+        return JsonResponse({"success": False, "error": "ارسال ناقص تصاویر."})
+
+    enc1 = _get_face_encoding_from_base64(img1)
+    enc2 = _get_face_encoding_from_base64(img2)
+    if enc1 is None or enc2 is None:
+        return JsonResponse({"success": False, "error": "چهره‌ای شناسایی نشد."})
+
+    movement = np.linalg.norm(enc1 - enc2)
+    if movement < LIVENESS_MOVEMENT_THRESHOLD:
+        return JsonResponse({"success": False, "error": "حرکت تشخیص داده نشد."})
+
+    enc = (enc1 + enc2) / 2
+    if request.user.face_encoding is None:
+        return JsonResponse({"success": False, "error": "چهره مدیر ثبت نشده."})
+
+    known = np.frombuffer(request.user.face_encoding, dtype=np.float64)
+    distance = np.linalg.norm(known - enc)
+    if distance < FACE_DISTANCE_THRESHOLD:
+        request.session["face_verified"] = True
+        return JsonResponse({"success": True})
+    return JsonResponse({"success": False, "error": "چهره مطابقت نداشت."})
 
 
 @login_required
@@ -910,20 +920,16 @@ def register_face_api(request, user_id):
     target = get_object_or_404(User, id=user_id)
     img1 = request.POST.get("image1")
     img2 = request.POST.get("image2")
-    if img1 and img2:
-        enc1 = _get_face_encoding_from_base64(img1)
-        enc2 = _get_face_encoding_from_base64(img2)
-        if enc1 is None or enc2 is None:
-            return JsonResponse({"ok": False, "msg": "چهره واضح نیست."})
-        if np.linalg.norm(enc1 - enc2) < 0.08:
-            return JsonResponse({"ok": False, "msg": "حرکت تشخیص داده نشد."})
-        enc = (enc1 + enc2) / 2
-        data_url = img1
-    else:
-        data_url = request.POST.get("image", "")
-        enc = _get_face_encoding_from_base64(data_url)
-        if enc is None:
-            return JsonResponse({"ok": False, "msg": "چهره‌ای شناسایی نشد."})
+    if not img1 or not img2:
+        return JsonResponse({"ok": False, "msg": "ارسال ناقص تصاویر."})
+    enc1 = _get_face_encoding_from_base64(img1)
+    enc2 = _get_face_encoding_from_base64(img2)
+    if enc1 is None or enc2 is None:
+        return JsonResponse({"ok": False, "msg": "چهره واضح نیست."})
+    if np.linalg.norm(enc1 - enc2) < LIVENESS_MOVEMENT_THRESHOLD:
+        return JsonResponse({"ok": False, "msg": "حرکت تشخیص داده نشد."})
+    enc = (enc1 + enc2) / 2
+    data_url = img1
 
     target.face_encoding = enc.tobytes()
     try:
@@ -932,8 +938,8 @@ def register_face_api(request, user_id):
         img_data = base64.b64decode(b64data)
         filename = f"{target.username}_face.{fmt}"
         target.face_image.save(filename, ContentFile(img_data), save=False)
-    except Exception:
-        pass
+    except Exception as e:
+        print("Save target face image error:", e)
 
     target.save()
     return JsonResponse({"ok": True, "redirect": reverse("admin_user_profile", args=[user_id])})
@@ -1281,8 +1287,8 @@ def suspicious_log_action(request, pk):
                             with log.image.open('rb') as f:
                                 u.face_image.save(os.path.basename(log.image.name), ContentFile(f.read()), save=False)
                         u.save()
-                except Exception:
-                    pass
+                except Exception as e:
+                    print("Suspicious training error:", e)
         log.status = 'confirmed'
         log.save(update_fields=['status'])
         messages.success(request, "تردد ثبت شد.")
