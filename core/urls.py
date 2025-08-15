@@ -3,10 +3,10 @@ from django.contrib.auth.views import LogoutView
 from . import views
 
 urlpatterns = [
-    # صفحهٔ اصلی
+                
     path("", views.home, name="home"),
 
-    # لاگین/لاگ‌اوت
+                   
     path("management/login/", views.ManagementLoginView.as_view(), name="management_login"),
     path("device/login/",     views.DeviceLoginView.as_view(),     name="device_login"),
     path("logout/",           LogoutView.as_view(next_page="home"), name="logout"),
@@ -22,17 +22,17 @@ urlpatterns = [
     path('management/attendance-status/', views.attendance_status, name='attendance_status'),
     path('management/attendance-status/api/', views.api_attendance_status, name='api_attendance_status'),
 
-    # مرحلهٔ دوم: ثبت یا تأیید چهرهٔ مدیر برای فعال‌سازی کیوسک
+                                                              
     path("device/face-check/",      views.device_face_check,              name="device_face_check"),
     path("device/face-check/api/",  views.api_device_verify_face,         name="api_device_verify_face"),
-    # پس از موفقیت، وارد صفحهٔ اصلی کیوسک می‌شود
+                                                
     path("device/",                 views.device_page,                    name="device_page"),
 
-    # API ثبت تردد عادی (کیوسک)
+                               
     path("api/verify-face/",        views.api_verify_face,                name="api_verify_face"),
     path("api/register-face/",      views.api_register_face,              name="api_register_face"),
 
-    # —————— کارمند عادی ——————
+                               
     path("user/inquiry/",           views.user_inquiry,                   name="user_inquiry"),
     path("user/profile/",           views.user_profile,                  name="user_profile"),
     path("user/edit-request/",     views.edit_request,                  name="edit_request"),
@@ -40,12 +40,12 @@ urlpatterns = [
     path("user/edit-request/<int:pk>/cancel/",  views.cancel_edit_request,  name="cancel_edit_request"),
     path("user/leave-request/<int:pk>/cancel/", views.cancel_leave_request, name="cancel_leave_request"),
 
-    # —————— پنل مدیریت ——————
-    # تأیید چهرهٔ مدیر قبل از ورود به پنل
+                              
+                                         
     path("management/face-check/",     views.management_face_check,     name="management_face_check"),
     path("management/face-check/api/", views.api_management_verify_face, name="api_management_verify_face"),
 
-    # مدیریت CRUD کارکنان
+                         
     path("management/users/",                views.management_users,               name="management_users"),
     path("management/users/add/",            views.user_add,                       name="user_add"),
     path("management/users/<int:pk>/edit/",  views.user_update,                    name="user_update"),

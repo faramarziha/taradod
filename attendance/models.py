@@ -24,7 +24,7 @@ class AttendanceLog(models.Model):
 
 
 class SuspiciousLog(models.Model):
-    """Log for near matches that require admin review."""
+
     STATUS_CHOICES = [
         ("pending", "در انتظار"),
         ("confirmed", "تأیید شده"),
@@ -54,7 +54,7 @@ class SuspiciousLog(models.Model):
 
 
 class EditRequest(models.Model):
-    """Employee request for adding a missing attendance log."""
+
 
     STATUS_CHOICES = [
         ("pending", "در انتظار"),
@@ -85,7 +85,7 @@ class EditRequest(models.Model):
 
 
 class LeaveRequest(models.Model):
-    """Employee leave request for a specific date range."""
+
 
     STATUS_CHOICES = [
         ("pending", "در انتظار"),
@@ -131,7 +131,7 @@ class LeaveRequest(models.Model):
 
 
 class WeeklyHoliday(models.Model):
-    """Days of week that are considered holidays (0=Monday)."""
+
 
     WEEKDAY_CHOICES = [
         (0, "شنبه"),
@@ -150,7 +150,7 @@ class WeeklyHoliday(models.Model):
 
 
 class Shift(models.Model):
-    """Simple shift definition with start and end times."""
+
 
     name = models.CharField(max_length=50, unique=True)
     start_time = models.TimeField()
@@ -161,7 +161,7 @@ class Shift(models.Model):
 
 
 class Group(models.Model):
-    """Group of users optionally tied to a shift."""
+
 
     name = models.CharField(max_length=50, unique=True)
     shift = models.ForeignKey(
@@ -173,11 +173,10 @@ class Group(models.Model):
 
 
 class LeaveType(models.Model):
-    """Types of leaves (e.g. vacation, sick)."""
+
 
     name = models.CharField(max_length=50, unique=True)
     description = models.TextField(blank=True)
 
     def __str__(self):
         return self.name
-
