@@ -9,12 +9,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const ctx = canvas.getContext('2d');
   const btn = document.getElementById('verifyBtn');
   const msgEl = document.getElementById('verifyResult');
-
-  msgEl.textContent = 'صورت خود را در مرکز کادر قرار دهید و دکمه تأیید را بزنید';
+  let capture1 = null;
 
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
-      .then(stream => { video.srcObject = stream; msgEl.textContent = ''; })
+      .then(stream => { video.srcObject = stream; })
       .catch(() => { msgEl.textContent = 'اجازه دوربین رد شد'; btn.disabled = true; });
   } else {
     msgEl.textContent = 'دوربین توسط مرورگر پشتیبانی نمی‌شود.';
@@ -22,20 +21,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   btn.onclick = async () => {
-    if (video.readyState !== video.HAVE_ENOUGH_DATA) {
-      msgEl.textContent = 'لطفاً صبر کنید تا تصویر دوربین آماده شود';
-      return;
-    }
+    if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
     btn.disabled = true;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    ctx.save();
-    ctx.scale(-1, 1);
-    ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
-    ctx.restore();
-    const dataUrl = canvas.toDataURL('image/png');
-
-    msgEl.textContent = 'لطفاً صبر کنید...';
+    msgEl.textContent = 'لطفاً مستقیم به دوربین نگاه کنید.';
+    await wait(1000);
+    capture1 = grabFrame();
+    msgEl.textContent = 'حالا سرتان را کمی حرکت دهید.';
+    await wait(3000);
+    const capture2 = grabFrame();
+    msgEl.textContent = 'در حال بررسی...';
     try {
       const res = await fetch('{% url "api_management_verify_face" %}', {
         method: 'POST',
@@ -43,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
           'Content-Type': 'application/json',
           'X-CSRFToken': getCsrf()
         },
-        body: JSON.stringify({ image: dataUrl })
+        body: JSON.stringify({ image1: capture1, image2: capture2 })
       });
       const j = await res.json();
       if (j.success) {
@@ -58,6 +52,20 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.disabled = false;
     }
   };
+
+  function grabFrame() {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.save();
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+    ctx.restore();
+    return canvas.toDataURL('image/png');
+  }
+
+  function wait(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
 
   function getCsrf() {
     return document.cookie.split(';')
