@@ -422,23 +422,20 @@ def api_register_face(request):
 
     img1 = request.POST.get("image1")
     img2 = request.POST.get("image2")
-    if img1 and img2:
-        enc1 = _get_face_encoding_from_base64(img1)
-        enc2 = _get_face_encoding_from_base64(img2)
-        if enc1 is None or enc2 is None:
-            return JsonResponse({"ok": False, "msg": "چهره واضح نیست."})
-                                                                                  
-        movement = np.linalg.norm(enc1 - enc2)
-        if movement < LIVENESS_MOVEMENT_THRESHOLD:
-            return JsonResponse({"ok": False, "msg": "حرکت تشخیص داده نشد."})
-        enc = (enc1 + enc2) / 2
-        data_url = img1
-    else:
-                                 
-        data_url = request.POST.get("image", "")
-        enc = _get_face_encoding_from_base64(data_url)
-        if enc is None:
-            return JsonResponse({"ok": False, "msg": "چهره‌ای شناسایی نشد."})
+    if not img1 or not img2:
+        return JsonResponse({"ok": False, "msg": "ارسال ناقص تصاویر."})
+
+    enc1 = _get_face_encoding_from_base64(img1)
+    enc2 = _get_face_encoding_from_base64(img2)
+    if enc1 is None or enc2 is None:
+        return JsonResponse({"ok": False, "msg": "چهره واضح نیست."})
+
+    movement = np.linalg.norm(enc1 - enc2)
+    if movement < LIVENESS_MOVEMENT_THRESHOLD:
+        return JsonResponse({"ok": False, "msg": "حرکت تشخیص داده نشد."})
+
+    enc = (enc1 + enc2) / 2
+    data_url = img1
 
     request.user.face_encoding = enc.tobytes()
 
@@ -675,31 +672,37 @@ def management_face_check(request):
 @login_required
 @staff_required
 def api_management_verify_face(request):
-    if request.method == "POST":
-        try:
-            data = json.loads(request.body)
-            img1 = data.get("image1")
-            img2 = data.get("image2")
-            if not img1 or not img2:
-                return JsonResponse({"success": False, "error": "ارسال ناقص تصاویر."})
-            enc1 = _get_face_encoding_from_base64(img1)
-            enc2 = _get_face_encoding_from_base64(img2)
-            if enc1 is None or enc2 is None:
-                return JsonResponse({"success": False, "error": "چهره‌ای شناسایی نشد."})
-            movement = np.linalg.norm(enc1 - enc2)
-            if movement < LIVENESS_MOVEMENT_THRESHOLD:
-                return JsonResponse({"success": False, "error": "حرکت تشخیص داده نشد."})
-            enc = (enc1 + enc2) / 2
-            known = np.frombuffer(request.user.face_encoding, dtype=np.float64)
-            distance = np.linalg.norm(known - enc)
-            if distance < FACE_DISTANCE_THRESHOLD:
-                request.session["face_verified"] = True
-                return JsonResponse({"success": True})
-            else:
-                return JsonResponse({"success": False, "error": "چهره مطابقت نداشت."})
-        except Exception:
-            return JsonResponse({"success": False, "error": "خطا در پردازش تصویر."})
-    return JsonResponse({"success": False, "error": "درخواست نامعتبر."})
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "درخواست نامعتبر."})
+    try:
+        data = json.loads(request.body)
+    except Exception:
+        return JsonResponse({"success": False, "error": "خطا در پردازش تصویر."})
+
+    img1 = data.get("image1")
+    img2 = data.get("image2")
+    if not img1 or not img2:
+        return JsonResponse({"success": False, "error": "ارسال ناقص تصاویر."})
+
+    enc1 = _get_face_encoding_from_base64(img1)
+    enc2 = _get_face_encoding_from_base64(img2)
+    if enc1 is None or enc2 is None:
+        return JsonResponse({"success": False, "error": "چهره‌ای شناسایی نشد."})
+
+    movement = np.linalg.norm(enc1 - enc2)
+    if movement < LIVENESS_MOVEMENT_THRESHOLD:
+        return JsonResponse({"success": False, "error": "حرکت تشخیص داده نشد."})
+
+    enc = (enc1 + enc2) / 2
+    if request.user.face_encoding is None:
+        return JsonResponse({"success": False, "error": "چهره مدیر ثبت نشده."})
+
+    known = np.frombuffer(request.user.face_encoding, dtype=np.float64)
+    distance = np.linalg.norm(known - enc)
+    if distance < FACE_DISTANCE_THRESHOLD:
+        request.session["face_verified"] = True
+        return JsonResponse({"success": True})
+    return JsonResponse({"success": False, "error": "چهره مطابقت نداشت."})
 
 
 @login_required
@@ -912,20 +915,16 @@ def register_face_api(request, user_id):
     target = get_object_or_404(User, id=user_id)
     img1 = request.POST.get("image1")
     img2 = request.POST.get("image2")
-    if img1 and img2:
-        enc1 = _get_face_encoding_from_base64(img1)
-        enc2 = _get_face_encoding_from_base64(img2)
-        if enc1 is None or enc2 is None:
-            return JsonResponse({"ok": False, "msg": "چهره واضح نیست."})
-        if np.linalg.norm(enc1 - enc2) < LIVENESS_MOVEMENT_THRESHOLD:
-            return JsonResponse({"ok": False, "msg": "حرکت تشخیص داده نشد."})
-        enc = (enc1 + enc2) / 2
-        data_url = img1
-    else:
-        data_url = request.POST.get("image", "")
-        enc = _get_face_encoding_from_base64(data_url)
-        if enc is None:
-            return JsonResponse({"ok": False, "msg": "چهره‌ای شناسایی نشد."})
+    if not img1 or not img2:
+        return JsonResponse({"ok": False, "msg": "ارسال ناقص تصاویر."})
+    enc1 = _get_face_encoding_from_base64(img1)
+    enc2 = _get_face_encoding_from_base64(img2)
+    if enc1 is None or enc2 is None:
+        return JsonResponse({"ok": False, "msg": "چهره واضح نیست."})
+    if np.linalg.norm(enc1 - enc2) < LIVENESS_MOVEMENT_THRESHOLD:
+        return JsonResponse({"ok": False, "msg": "حرکت تشخیص داده نشد."})
+    enc = (enc1 + enc2) / 2
+    data_url = img1
 
     target.face_encoding = enc.tobytes()
     try:
