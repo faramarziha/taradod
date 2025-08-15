@@ -60,6 +60,14 @@ MATCH_SAVE_DISTANCE = 0.6
 User = get_user_model()
 
 
+def _now():
+    return timezone.now().replace(tzinfo=None)
+
+
+def _to_naive(dt):
+    return dt.replace(tzinfo=None) if dt and dt.tzinfo is not None else dt
+
+
 def _get_user_shift(user):
 
     if getattr(user, "shift", None):
@@ -344,7 +352,8 @@ def api_device_verify_face(request):
 @login_required
 def api_verify_face(request):
     device, _ = Device.objects.get_or_create(id=1, defaults={"name": "Main device"})
-    device.last_seen = timezone.now()
+    now = _now()
+    device.last_seen = now
     device.save(update_fields=["last_seen"])
     if not device.is_active:
         return JsonResponse({"ok": False, "msg": "دستگاه غیرفعال است."})
@@ -375,44 +384,48 @@ def api_verify_face(request):
                 if u.is_staff:
                     return JsonResponse({"ok": False, "manager_detected": True})
                 last_log = AttendanceLog.objects.filter(user=u).order_by('-timestamp').first()
-                if last_log and timezone.now() - last_log.timestamp < timedelta(minutes=5):
+                last_ts = _to_naive(last_log.timestamp) if last_log else None
+                if last_log and now - last_ts < timedelta(minutes=5):
                     return JsonResponse({"ok": False, "msg": "تردد تکراری"})
 
-                today = timezone.now().date()
-                if last_log and last_log.log_type == 'in' and last_log.timestamp.date() < today:
-                    end_of_day = datetime.combine(last_log.timestamp.date(), time(23, 59))
-                    if end_of_day.tzinfo is not None:
-                        end_of_day = end_of_day.replace(tzinfo=None)
+                today = now.date()
+                if last_log and last_log.log_type == 'in' and last_ts.date() < today:
+                    end_of_day = datetime.combine(last_ts.date(), time(23, 59, 59))
                     AttendanceLog.objects.create(user=u, timestamp=end_of_day, log_type='out', source='auto')
+                    last_log = None
 
                 log_type = 'out' if last_log and last_log.log_type == 'in' else 'in'
-                AttendanceLog.objects.create(user=u, timestamp=timezone.now(), log_type=log_type, source='self')
+                AttendanceLog.objects.create(user=u, timestamp=now, log_type=log_type, source='self')
                 img_url = u.face_image.url if hasattr(u, 'face_image') and u.face_image else static('core/avatar.png')
                 return JsonResponse({
                     "ok": True,
                     "name": f"{u.first_name} {u.last_name}",
                     "code": u.personnel_code,
-                    "timestamp": timezone.now().isoformat(),
+                    "timestamp": now.isoformat(),
                     "log_type": log_type,
                     "image_url": img_url
                 })
 
         if best_user and best_dist < MATCH_SAVE_DISTANCE:
-                                                     
             try:
                 raw_img = img1
-                header, b64data = raw_img.split(",", 1)
-                fmt = header.split(";")[0].split("/")[1]
+                if "," in raw_img:
+                    header, b64data = raw_img.split(",", 1)
+                    fmt = header.split(";")[0].split("/")[1]
+                else:
+                    b64data = raw_img
+                    fmt = "png"
                 img_data = base64.b64decode(b64data)
-                filename = f"suspect_{timezone.now().timestamp()}.{fmt}"
+                filename = f"suspect_{int(now.timestamp())}.{fmt}"
                 log = SuspiciousLog.objects.create(
                     matched_user=best_user,
                     similarity=best_dist,
+                    timestamp=now,
                 )
                 log.image.save(filename, ContentFile(img_data), save=True)
             except Exception as e:
                 print("Suspicious log save error:", e)
-                SuspiciousLog.objects.create(matched_user=best_user, similarity=best_dist)
+                SuspiciousLog.objects.create(matched_user=best_user, similarity=best_dist, timestamp=now)
             return JsonResponse({"ok": False, "suspicious": True})
 
         return JsonResponse({"ok": False, "msg": "چهره شما در سیستم ثبت نشده است."})
@@ -445,8 +458,12 @@ def api_register_face(request):
 
                       
     try:
-        header, b64data = data_url.split(",", 1)
-        fmt = header.split(";")[0].split("/")[1]
+        if "," in data_url:
+            header, b64data = data_url.split(",", 1)
+            fmt = header.split(";")[0].split("/")[1]
+        else:
+            b64data = data_url
+            fmt = "png"
         img_data = base64.b64decode(b64data)
         filename = f"{request.user.username}_face.{fmt}"
         request.user.face_image.save(filename, ContentFile(img_data), save=False)
@@ -484,7 +501,7 @@ def user_profile(request):
     if not uid:
         return redirect("user_inquiry")
     u = get_object_or_404(User, id=uid)
-    today = timezone.now().date()
+    today = _now().date()
 
                                            
     status = "holiday"
@@ -592,8 +609,7 @@ def edit_request(request):
         form = EditRequestForm(request.POST, user=u)
         if form.is_valid():
             obj = form.save(commit=False)
-            if obj.timestamp.tzinfo is not None:
-                obj.timestamp = obj.timestamp.replace(tzinfo=None)
+            obj.timestamp = _to_naive(obj.timestamp)
             obj.save()
             messages.success(request, "درخواست شما ثبت شد و در انتظار تأیید است.")
             return redirect(reverse("user_profile") + "#edit-requests")
@@ -635,7 +651,7 @@ def cancel_edit_request(request, pk):
     req = get_object_or_404(EditRequest, id=pk, user_id=uid)
     if req.status == "pending":
         req.status = "cancelled"
-        req.decision_at = timezone.now()
+        req.decision_at = _now()
         req.cancelled_by_user = True
         req.save()
         messages.info(request, "درخواست ویرایش لغو شد.")
@@ -650,7 +666,7 @@ def cancel_leave_request(request, pk):
     req = get_object_or_404(LeaveRequest, id=pk, user_id=uid)
     if req.status == "pending":
         req.status = "cancelled"
-        req.decision_at = timezone.now()
+        req.decision_at = _now()
         req.cancelled_by_user = True
         req.save()
         messages.info(request, "درخواست مرخصی لغو شد.")
@@ -933,8 +949,12 @@ def register_face_api(request, user_id):
 
     target.face_encoding = enc.tobytes()
     try:
-        header, b64data = data_url.split(",", 1)
-        fmt = header.split(";")[0].split("/")[1]
+        if "," in data_url:
+            header, b64data = data_url.split(",", 1)
+            fmt = header.split(";")[0].split("/")[1]
+        else:
+            b64data = data_url
+            fmt = "png"
         img_data = base64.b64decode(b64data)
         filename = f"{target.username}_face.{fmt}"
         target.face_image.save(filename, ContentFile(img_data), save=False)
@@ -952,7 +972,7 @@ def management_dashboard(request):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
 
-    today = timezone.now().date()
+    today = _now().date()
     is_holiday = WeeklyHoliday.objects.filter(weekday=_weekday_index(today)).exists()
 
     group_id = request.GET.get("group")
@@ -1007,8 +1027,7 @@ def management_dashboard(request):
             if first_log:
                 start_dt = datetime.combine(today, shift_start)
                 first_dt = first_log.timestamp
-                if first_dt.tzinfo is not None:
-                    first_dt = first_dt.replace(tzinfo=None)
+                first_dt = _to_naive(first_dt)
                 if first_dt > start_dt:
                     tardy_ids.append(user.id)
         tardy_users = users_qs.filter(id__in=tardy_ids)
@@ -1058,8 +1077,7 @@ def management_dashboard(request):
             )
             if first_log:
                 log_time = first_log.timestamp
-                if log_time.tzinfo is not None:
-                    log_time = log_time.replace(tzinfo=None)
+                log_time = _to_naive(log_time)
                 if log_time.time() > shift_start:
                     tardies += 1
         streak = 0
@@ -1072,9 +1090,7 @@ def management_dashboard(request):
             )
             if not first_log:
                 break
-            log_time = first_log.timestamp
-            if log_time.tzinfo is not None:
-                log_time = log_time.replace(tzinfo=None)
+            log_time = _to_naive(first_log.timestamp)
             if log_time.time() > shift_start:
                 break
             streak += 1
@@ -1184,7 +1200,7 @@ def attendance_status(request):
     if form.is_valid() and form.cleaned_data.get("date"):
         target_date = form.cleaned_data["date"].togregorian()
     else:
-        target_date = timezone.now().date()
+        target_date = _now().date()
 
     holiday = WeeklyHoliday.objects.filter(weekday=_weekday_index(target_date)).exists()
     if holiday:
@@ -1204,7 +1220,7 @@ def attendance_status(request):
         'absent_users': absent_users,
         'leave_users': leave_users,
         'jdate': jdate.strftime('%Y/%m/%d'),
-        'realtime': target_date == timezone.now().date(),
+        'realtime': target_date == _now().date(),
         'form': form,
         'holiday': holiday,
     }
@@ -1219,7 +1235,7 @@ def api_attendance_status(request):
     if form.is_valid() and form.cleaned_data.get("date"):
         target_date = form.cleaned_data["date"].togregorian()
     else:
-        target_date = timezone.now().date()
+        target_date = _now().date()
 
     holiday = WeeklyHoliday.objects.filter(weekday=_weekday_index(target_date)).exists()
     if holiday:
@@ -1265,14 +1281,15 @@ def suspicious_log_action(request, pk):
         if log.matched_user:
             u = log.matched_user
             last_log = AttendanceLog.objects.filter(user=u).order_by('-timestamp').first()
-            today = timezone.now().date()
-            if last_log and last_log.log_type == 'in' and last_log.timestamp.date() < today:
-                end_of_day = datetime.combine(last_log.timestamp.date(), time(23, 59))
-                if end_of_day.tzinfo is not None:
-                    end_of_day = end_of_day.replace(tzinfo=None)
+            last_ts = _to_naive(last_log.timestamp) if last_log else None
+            today = _now().date()
+            if last_log and last_log.log_type == 'in' and last_ts.date() < today:
+                end_of_day = datetime.combine(last_ts.date(), time(23, 59, 59))
                 AttendanceLog.objects.create(user=u, timestamp=end_of_day, log_type='out', source='auto')
+                last_log = None
             log_type = 'out' if last_log and last_log.log_type == 'in' else 'in'
-            AttendanceLog.objects.create(user=u, timestamp=timezone.now(), log_type=log_type, source='manager')
+            now = _now()
+            AttendanceLog.objects.create(user=u, timestamp=now, log_type=log_type, source='manager')
             if request.POST.get('train') and log.image:
                 try:
                     img = face_recognition.load_image_file(log.image.path)
@@ -1317,24 +1334,24 @@ def edit_requests(request):
             if action == "approve":
                 AttendanceLog.objects.create(
                     user=req.user,
-                    timestamp=req.timestamp,
+                    timestamp=_to_naive(req.timestamp),
                     log_type=req.log_type,
                     source="manager",
                 )
                 req.status = "approved"
-                req.decision_at = timezone.now()
+                req.decision_at = _now()
                 req.manager_note = note
                 req.save()
                 messages.success(request, "درخواست تأیید شد.")
             elif action == "reject":
                 req.status = "rejected"
-                req.decision_at = timezone.now()
+                req.decision_at = _now()
                 req.manager_note = note
                 req.save()
                 messages.info(request, "درخواست رد شد.")
             elif action == "cancel":
                 req.status = "cancelled"
-                req.decision_at = timezone.now()
+                req.decision_at = _now()
                 req.manager_note = note
                 req.save()
                 messages.info(request, "درخواست لغو شد.")
@@ -1384,15 +1401,15 @@ def leave_requests(request):
             else:
                 req.status = "cancelled"
                 msg = "درخواست مرخصی لغو شد."
-            req.decision_at = timezone.now()
+            req.decision_at = _now()
             req.manager_note = note
             req.save()
             messages.info(request, msg)
-        elif action == "update" and req.start_date > timezone.now().date():
+        elif action == "update" and req.start_date > _now().date():
             status = request.POST.get("status")
             if status in {"pending", "approved", "rejected", "cancelled"}:
                 req.status = status
-                req.decision_at = timezone.now() if status != "pending" else None
+                req.decision_at = _now() if status != "pending" else None
                 req.manager_note = note
                 req.save()
                 messages.success(request, "وضعیت مرخصی به‌روزرسانی شد.")
@@ -1419,7 +1436,7 @@ def leave_requests(request):
         {
             "active_tab": "leave_requests",
             "requests": requests,
-            "today": timezone.now().date(),
+            "today": _now().date(),
             "groups": Group.objects.all(),
             "shifts": Shift.objects.all(),
             "selected_group": group_id,
