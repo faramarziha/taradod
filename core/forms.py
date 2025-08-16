@@ -14,9 +14,7 @@ from attendance.models import (
 
 User = get_user_model()
 
-
 class JalaliDateInput(forms.TextInput):
-
 
     def __init__(self, attrs=None):
         base_attrs = {"data-jdp": "", "data-jdp-only-date": ""}
@@ -24,9 +22,7 @@ class JalaliDateInput(forms.TextInput):
             base_attrs.update(attrs)
         super().__init__(attrs=base_attrs)
 
-
 class JalaliTimeInput(forms.TextInput):
-
 
     def __init__(self, attrs=None):
         base_attrs = {"data-jdp": "", "data-jdp-only-time": ""}
@@ -52,7 +48,6 @@ class CustomUserSimpleForm(forms.ModelForm):
             "is_active",
             "is_staff",
         ]
-
 
 class EditRequestForm(forms.ModelForm):
     date = jforms.jDateField(label="تاریخ", widget=JalaliDateInput())
@@ -114,7 +109,6 @@ class EditRequestForm(forms.ModelForm):
             instance.save()
         return instance
 
-
 class LeaveRequestForm(forms.ModelForm):
     start_date = jforms.jDateField(label="از تاریخ", widget=JalaliDateInput())
     duration = forms.IntegerField(label="مدت (روز)", min_value=1)
@@ -167,9 +161,7 @@ class LeaveRequestForm(forms.ModelForm):
             instance.save()
         return instance
 
-
 class ManualLogForm(forms.Form):
-
 
     user = forms.ModelChoiceField(queryset=User.objects.all(), label="کارمند")
     date = jforms.jDateField(label="تاریخ", widget=JalaliDateInput())
@@ -208,9 +200,7 @@ class ManualLogForm(forms.Form):
             source="manager",
         )
 
-
 class ManualLeaveForm(forms.ModelForm):
-
 
     user = forms.ModelChoiceField(queryset=User.objects.all(), label="کارمند")
     start_date = jforms.jDateField(label="از تاریخ", widget=JalaliDateInput())
@@ -253,7 +243,6 @@ class ManualLeaveForm(forms.ModelForm):
             instance.save()
         return instance
 
-
 class AttendanceStatusForm(forms.Form):
 
     date = jforms.jDateField(
@@ -261,7 +250,6 @@ class AttendanceStatusForm(forms.Form):
         widget=JalaliDateInput(),
         required=False,
     )
-
 
 class UserLogsRangeForm(forms.Form):
     start = jforms.jDateField(label="از تاریخ", widget=JalaliDateInput())
@@ -279,7 +267,6 @@ class UserLogsRangeForm(forms.Form):
             self.add_error("end", "بازه نامعتبر است")
         return cleaned
 
-
 class WeeklyHolidayForm(forms.Form):
     days = forms.MultipleChoiceField(
         choices=[
@@ -296,7 +283,6 @@ class WeeklyHolidayForm(forms.Form):
         label="روزهای تعطیل",
     )
 
-
 class ShiftForm(forms.ModelForm):
     class Meta:
         model = attendance_models.Shift
@@ -311,7 +297,6 @@ class ShiftForm(forms.ModelForm):
             "end_time": JalaliTimeInput(),
         }
 
-
 class GroupForm(forms.ModelForm):
     class Meta:
         model = attendance_models.Group
@@ -321,13 +306,11 @@ class GroupForm(forms.ModelForm):
             "shift": "شیفت",
         }
 
-
 class LeaveTypeForm(forms.ModelForm):
     class Meta:
         model = attendance_models.LeaveType
         fields = ["name", "description"]
         labels = {"name": "نام", "description": "توضیح"}
-
 
 class ReportFilterForm(forms.Form):
     start_date = jforms.jDateField(
@@ -374,7 +357,6 @@ class ReportFilterForm(forms.Form):
         self.fields["users"].label_from_instance = (
             lambda obj: f"{obj.personnel_code} – {obj.first_name} {obj.last_name}"
         )
-
 
 class MonthlyPerformanceForm(forms.Form):
     user = forms.ModelChoiceField(queryset=User.objects.all(), label="کارمند")

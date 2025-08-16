@@ -25,7 +25,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
     navigator.mediaDevices
       .getUserMedia({ video: { facingMode: 'user' } })
@@ -83,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       brightness /= imgData.data.length / 40;
     } catch (e) {
-      
+
     }
 
     let color = 'red';
@@ -206,4 +205,3 @@ document.addEventListener('DOMContentLoaded', () => {
     return '';
   }
 });
-

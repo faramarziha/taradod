@@ -1,5 +1,3 @@
-                
-
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import CustomUser
@@ -8,7 +6,6 @@ from .models import CustomUser
 class CustomUserAdmin(UserAdmin):
     model = CustomUser
 
-                                                                         
     fieldsets = UserAdmin.fieldsets + (
         ("تشخیص چهره", {
             "fields": ("face_encoding", "face_image"),
@@ -23,7 +20,6 @@ class CustomUserAdmin(UserAdmin):
         }),
     )
 
-                                         
     list_display = (
         "personnel_code",
         "first_name",
