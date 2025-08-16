@@ -60,21 +60,22 @@ MATCH_SAVE_DISTANCE = 0.6
 User = get_user_model()
 
 
-def _now():
-    return timezone.now().replace(tzinfo=None)
-
-
 def _to_naive(dt):
-    return dt.replace(tzinfo=None) if dt and dt.tzinfo is not None else dt
+    return dt.replace(tzinfo=None) if dt and dt.tzinfo else dt
+
+
+def _now():
+    return _to_naive(timezone.now())
 
 
 def _get_user_shift(user):
+    shift = getattr(user, "shift", None)
+    if shift:
+        return shift
+    group = getattr(user, "group", None)
+    return getattr(group, "shift", None)
 
-    if getattr(user, "shift", None):
-        return user.shift
-    if getattr(user, "group", None) and user.group and user.group.shift:
-        return user.group.shift
-    return None
+
 def _weekday_index(date):
 
     return (date.weekday() + 2) % 7
