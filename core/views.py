@@ -59,12 +59,15 @@ MATCH_SAVE_DISTANCE = 0.6
 
 User = get_user_model()
 
+# زمان فعلی بدون منطقه
 def _now():
     return timezone.now().replace(tzinfo=None)
 
+# حذف منطقه زمانی از تاریخ
 def _to_naive(dt):
     return dt.replace(tzinfo=None) if dt and dt.tzinfo is not None else dt
 
+# تعیین شیفت کاربر در صورت وجود
 def _get_user_shift(user):
 
     if getattr(user, "shift", None):
@@ -74,8 +77,10 @@ def _get_user_shift(user):
     return None
 def _weekday_index(date):
 
+    # تبدیل اندیس هفته به فرمت مورد نیاز
     return (date.weekday() + 2) % 7
 
+# محاسبه عملکرد ماهانه کاربر
 def _calculate_monthly_performance(user, year, month):
 
     start_j = jdatetime.date(year, month, 1)
@@ -239,6 +244,7 @@ def _calculate_monthly_performance(user, year, month):
     }
     return report, list(leaves_qs)
 
+# استخراج بردار چهره از رشته base64
 def _get_face_encoding_from_base64(data_url: str):
 
     try:
@@ -273,9 +279,11 @@ class DeviceLoginView(LoginView):
         login(self.request, user)
         return redirect("device_face_check")
 
+# صفحه اصلی
 def home(request):
     return render(request, "core/home.html")
 
+# تأیید چهره مدیر برای دستگاه
 @login_required
 @user_passes_test(lambda u: u.is_staff)
 def device_face_check(request):
@@ -283,11 +291,13 @@ def device_face_check(request):
         return render(request, "core/register_face.html")
     return render(request, "core/device_face_check.html")
 
+# صفحه ثبت تردد
 @login_required
 def device_page(request):
 
     return render(request, "core/device.html")
 
+# API بررسی چهره در دستگاه
 @require_POST
 @login_required
 @user_passes_test(lambda u: u.is_staff)
@@ -322,6 +332,7 @@ def api_device_verify_face(request):
         print("Device verify error:", e)
         return JsonResponse({"success": False, "error": "خطا در پردازش تصویر."})
 
+# API ثبت تردد با تشخیص چهره
 @csrf_exempt
 @require_POST
 @login_required
@@ -410,6 +421,7 @@ def api_verify_face(request):
 
 @require_POST
 @login_required
+# API ثبت چهره کاربر
 def api_register_face(request):
 
     img1 = request.POST.get("image1")
@@ -447,6 +459,7 @@ def api_register_face(request):
     request.user.save()
     return JsonResponse({"ok": True, "redirect": reverse("management_dashboard")})
 
+# فرم استعلام کاربر
 def user_inquiry(request):
     if request.method == "POST":
         form = InquiryForm(request.POST)
@@ -466,6 +479,7 @@ def user_inquiry(request):
         form = InquiryForm()
     return render(request, "core/user_inquiry.html", {"form": form})
 
+# نمایش پروفایل کاربر
 def user_profile(request):
     uid = request.session.get("inquiry_user_id")
     if not uid:
@@ -563,6 +577,7 @@ def user_profile(request):
         },
     )
 
+# ثبت درخواست ویرایش تردد
 def edit_request(request):
 
     uid = request.session.get("inquiry_user_id")
@@ -581,6 +596,7 @@ def edit_request(request):
         form = EditRequestForm(user=u)
     return render(request, "core/edit_request_form.html", {"form": form, "user": u})
 
+# ثبت درخواست مرخصی
 def leave_request(request):
     uid = request.session.get("inquiry_user_id")
     if not uid:
@@ -605,6 +621,7 @@ def leave_request(request):
         form = LeaveRequestForm(user=u)
     return render(request, "core/leave_request_form.html", {"form": form, "user": u})
 
+# لغو درخواست ویرایش
 def cancel_edit_request(request, pk):
 
     uid = request.session.get("inquiry_user_id")
@@ -619,6 +636,7 @@ def cancel_edit_request(request, pk):
         messages.info(request, "درخواست ویرایش لغو شد.")
     return redirect(reverse("user_profile") + "#edit-requests")
 
+# لغو درخواست مرخصی
 def cancel_leave_request(request, pk):
 
     uid = request.session.get("inquiry_user_id")
@@ -637,6 +655,7 @@ staff_required = user_passes_test(lambda u: u.is_staff)
 
 @login_required
 @staff_required
+# صفحه تأیید چهره مدیر
 def management_face_check(request):
 
     if request.user.face_encoding is None:
@@ -646,6 +665,7 @@ def management_face_check(request):
 @csrf_exempt
 @login_required
 @staff_required
+# API تأیید چهره مدیر
 def api_management_verify_face(request):
     if request.method != "POST":
         return JsonResponse({"success": False, "error": "درخواست نامعتبر."})
@@ -682,6 +702,7 @@ def api_management_verify_face(request):
 
 @login_required
 @staff_required
+# مدیریت کارکنان
 def management_users(request):
 
     if not request.session.get("face_verified"):
@@ -746,6 +767,7 @@ def management_users(request):
 
 @login_required
 @staff_required
+# افزودن کارمند جدید
 def user_add(request):
     if request.method == "POST":
         form = CustomUserSimpleForm(request.POST, request.FILES)
@@ -762,6 +784,7 @@ def user_add(request):
 
 @login_required
 @staff_required
+# ویرایش کارمند
 def user_update(request, pk):
     obj = get_object_or_404(User, pk=pk)
     if request.method == "POST":
@@ -777,6 +800,7 @@ def user_update(request, pk):
 @login_required
 @staff_required
 @require_POST
+# حذف کارمند
 def user_delete(request, pk):
     obj = get_object_or_404(User, pk=pk)
     if obj == request.user:
@@ -788,6 +812,7 @@ def user_delete(request, pk):
 
 @login_required
 @staff_required
+# پروفایل کارمند برای مدیریت
 def admin_user_profile(request, pk):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
@@ -860,6 +885,7 @@ def admin_user_profile(request, pk):
 @require_POST
 @login_required
 @staff_required
+# حذف چهره ثبت‌شده کاربر
 def user_face_delete(request, pk):
     user_obj = get_object_or_404(User, pk=pk)
     user_obj.face_encoding = None
@@ -872,6 +898,7 @@ def user_face_delete(request, pk):
 
 @login_required
 @staff_required
+# صفحه ثبت چهره برای کارمند
 def register_face_page_for_user(request, user_id):
     target = get_object_or_404(User, id=user_id)
     return render(request, "core/register_face_for_user.html", {"user_to_register": target})
@@ -879,6 +906,7 @@ def register_face_page_for_user(request, user_id):
 @require_POST
 @login_required
 @staff_required
+# API ثبت چهره کارمند توسط مدیر
 def register_face_api(request, user_id):
     target = get_object_or_404(User, id=user_id)
     img1 = request.POST.get("image1")
@@ -913,6 +941,7 @@ def register_face_api(request, user_id):
 
 @login_required
 @staff_required
+# داشبورد مدیریت
 def management_dashboard(request):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
@@ -1071,6 +1100,7 @@ def management_dashboard(request):
 
 @login_required
 @staff_required
+# گزارش‌گیری از کاربران
 def user_reports(request):
 
     active_users = User.objects.filter(is_active=True).count()
@@ -1107,6 +1137,7 @@ def user_reports(request):
 
 @login_required
 @staff_required
+# نمایش عملکرد ماهانه
 def monthly_profile(request):
     form = MonthlyPerformanceForm(request.GET or None)
     report = None
@@ -1128,6 +1159,7 @@ def monthly_profile(request):
 
 @login_required
 @staff_required
+# وضعیت حضور و غیاب در روز
 def attendance_status(request):
 
     if request.GET:
@@ -1165,6 +1197,7 @@ def attendance_status(request):
 
 @login_required
 @staff_required
+# API وضعیت حضور و غیاب
 def api_attendance_status(request):
 
     form = AttendanceStatusForm(request.GET or None)
@@ -1192,6 +1225,7 @@ def api_attendance_status(request):
 
 @login_required
 @staff_required
+# لیست ترددهای مشکوک
 def suspicious_logs(request):
 
     logs = (
@@ -1207,6 +1241,7 @@ def suspicious_logs(request):
 @login_required
 @staff_required
 @require_POST
+# رسیدگی به لاگ مشکوک
 def suspicious_log_action(request, pk):
 
     log = get_object_or_404(SuspiciousLog, id=pk, status="pending")
@@ -1255,6 +1290,7 @@ def suspicious_log_action(request, pk):
 
 @login_required
 @staff_required
+# مدیریت درخواست‌های ویرایش
 def edit_requests(request):
 
     if not request.session.get("face_verified"):
@@ -1315,6 +1351,7 @@ def edit_requests(request):
 
 @login_required
 @staff_required
+# مدیریت درخواست‌های مرخصی
 def leave_requests(request):
 
     if not request.session.get("face_verified"):
@@ -1378,6 +1415,7 @@ def leave_requests(request):
 
 @login_required
 @staff_required
+# افزودن تردد دستی
 def add_log(request):
 
     if not request.session.get("face_verified"):
@@ -1397,6 +1435,7 @@ def add_log(request):
 
 @login_required
 @staff_required
+# افزودن مرخصی دستی
 def add_leave(request):
 
     if not request.session.get("face_verified"):
@@ -1415,6 +1454,7 @@ def add_leave(request):
     })
 @login_required
 @staff_required
+# تنظیم تعطیلات هفتگی
 def weekly_holidays(request):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
@@ -1434,6 +1474,7 @@ def weekly_holidays(request):
 
 @login_required
 @staff_required
+# گزارش ترددهای کاربر برای مدیریت
 def user_logs_admin(request, user_id):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
@@ -1454,6 +1495,7 @@ def user_logs_admin(request, user_id):
 
 @login_required
 @staff_required
+# تنظیمات دستگاه
 def device_settings(request):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
@@ -1467,6 +1509,7 @@ def device_settings(request):
 
 @login_required
 @staff_required
+# لیست شیفت‌ها
 def shift_list(request):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
@@ -1482,6 +1525,7 @@ def shift_list(request):
 
 @login_required
 @staff_required
+# افزودن یا ویرایش شیفت
 def shift_edit(request, pk=None):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
@@ -1499,6 +1543,7 @@ def shift_edit(request, pk=None):
 @require_POST
 @login_required
 @staff_required
+# حذف شیفت
 def shift_delete(request, pk):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
@@ -1509,6 +1554,7 @@ def shift_delete(request, pk):
 
 @login_required
 @staff_required
+# لیست گروه‌ها
 def group_list(request):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
@@ -1525,6 +1571,7 @@ def group_list(request):
 
 @login_required
 @staff_required
+# افزودن یا ویرایش گروه
 def group_edit(request, pk=None):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
@@ -1542,6 +1589,7 @@ def group_edit(request, pk=None):
 @require_POST
 @login_required
 @staff_required
+# حذف گروه
 def group_delete(request, pk):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
@@ -1552,6 +1600,7 @@ def group_delete(request, pk):
 
 @login_required
 @staff_required
+# لیست انواع مرخصی
 def leave_type_list(request):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
@@ -1560,6 +1609,7 @@ def leave_type_list(request):
 
 @login_required
 @staff_required
+# افزودن یا ویرایش نوع مرخصی
 def leave_type_edit(request, pk=None):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
@@ -1577,6 +1627,7 @@ def leave_type_edit(request, pk=None):
 @require_POST
 @login_required
 @staff_required
+# حذف نوع مرخصی
 def leave_type_delete(request, pk):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")

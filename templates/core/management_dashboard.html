@@ -190,6 +190,7 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+// رسم نمودار وضعیت حضور
 const statusCtx = document.getElementById('statusChart').getContext('2d');
 const statusChart = new Chart(statusCtx, {
   type: 'doughnut',
@@ -215,6 +216,7 @@ const statusChart = new Chart(statusCtx, {
   }
 });
 
+// نمایش اطلاعات بیشتر در کارت‌ها
 document.querySelectorAll('.info-icon').forEach(icon => {
   icon.addEventListener('click', () => {
     const target = document.getElementById(icon.dataset.target);

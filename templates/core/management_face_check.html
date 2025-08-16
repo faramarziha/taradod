@@ -3,7 +3,7 @@
 {% block title %}تأیید چهره مدیر{% endblock %}
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => { // تأیید چهره مدیر
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
   const ctx = canvas.getContext('2d');
@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let capture1 = null;
   let verifying = false;
 
-  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) { // دسترسی به دوربین
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
       .then(stream => { video.srcObject = stream; })
       .catch(() => { msgEl.textContent = 'اجازه دوربین رد شد'; btn.disabled = true; });
@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.disabled = true;
   }
 
+  // گرفتن دو تصویر و ارسال جهت تأیید
   btn.onclick = async () => {
     if (verifying || video.readyState !== video.HAVE_ENOUGH_DATA) return;
     verifying = true;
@@ -57,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  // گرفتن تصویر از ویدیو
   function grabFrame() {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -67,10 +69,12 @@ document.addEventListener('DOMContentLoaded', () => {
     return canvas.toDataURL('image/jpeg');
   }
 
+  // توقف ساده
   function wait(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  // دریافت توکن CSRF
   function getCsrf() {
     return document.cookie.split(';')
       .map(c => c.trim())

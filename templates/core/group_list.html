@@ -45,6 +45,7 @@
 
 {% block extra_js %}
 <script>
+// تأیید حذف گروه
 const modal = document.getElementById('delete-modal');
 const deleteForm = document.getElementById('delete-form');
 const deleteMsg = document.getElementById('delete-message');
@@ -62,6 +63,7 @@ document.querySelectorAll('.delete-item').forEach(btn => {
     modal.classList.add('open');
   });
 });
+// بستن پنجره
 document.getElementById('cancel-delete').addEventListener('click', function(){
   modal.classList.remove('open');
 });

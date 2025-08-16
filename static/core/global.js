@@ -1,3 +1,4 @@
+// نمایش هشدار موقت
 function showAlert(message, type = "success", duration = 3200) {
   const old = document.getElementById("main-alert");
   if (old) old.remove();
@@ -10,9 +11,9 @@ function showAlert(message, type = "success", duration = 3200) {
   setTimeout(() => alert.classList.add("fade-out"), duration - 400);
   setTimeout(() => { alert.remove(); }, duration);
 }
-const overlay = document.getElementById('device-overlay');
+const overlay = document.getElementById('device-overlay'); // پوشش آغازین دستگاه
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", () => { // پس از آماده شدن صفحه
   const first = document.querySelector('form input:not([type=hidden]):not([disabled])');
   if (first) first.focus();
   if (overlay) {
@@ -27,7 +28,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  const navToggle = document.getElementById("nav-toggle");
+  const navToggle = document.getElementById("nav-toggle"); // دکمه منو
   const mainNav = document.getElementById("main-nav");
   const sidebar = document.getElementById("management-sidebar");
   const sidebarOverlay = document.getElementById("sidebar-overlay");
@@ -48,7 +49,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  if (window.jalaliDatepicker) {
+  if (window.jalaliDatepicker) { // فعال‌سازی تقویم جلالی
     jalaliDatepicker.startWatch({
       time: true,
       hasSecond: false,

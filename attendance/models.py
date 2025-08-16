@@ -2,17 +2,20 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 
+# نوع رویداد تردد
 LOG_TYPE_CHOICES = [
     ("in", "ورود"),
     ("out", "خروج"),
 ]
 
+# منبع ثبت تردد
 SOURCE_CHOICES = [
     ("self", "کارمند"),
     ("auto", "سیستم"),
     ("manager", "مدیر"),
 ]
 
+# ثبت هر ورود و خروج
 class AttendanceLog(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     timestamp = models.DateTimeField(default=timezone.now)
@@ -22,6 +25,7 @@ class AttendanceLog(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.timestamp:%Y-%m-%d %H:%M:%S}"
 
+# لاگ‌های مشکوک با تصویر
 class SuspiciousLog(models.Model):
 
     STATUS_CHOICES = [
@@ -51,6 +55,7 @@ class SuspiciousLog(models.Model):
         user_part = self.matched_user.username if self.matched_user else "Unknown"
         return f"{user_part} ? {self.similarity:.3f} ({self.status})"
 
+# درخواست اصلاح تردد
 class EditRequest(models.Model):
 
     STATUS_CHOICES = [
@@ -80,6 +85,7 @@ class EditRequest(models.Model):
     def __str__(self):
         return f"{self.user.username} @ {self.timestamp:%Y-%m-%d %H:%M}"
 
+# درخواست مرخصی
 class LeaveRequest(models.Model):
 
     STATUS_CHOICES = [
@@ -124,6 +130,7 @@ class LeaveRequest(models.Model):
     def __str__(self):
         return f"{self.user.username} {self.start_date} - {self.end_date}"
 
+# روزهای تعطیل هفتگی
 class WeeklyHoliday(models.Model):
 
     WEEKDAY_CHOICES = [
@@ -141,6 +148,7 @@ class WeeklyHoliday(models.Model):
     def __str__(self):
         return dict(self.WEEKDAY_CHOICES).get(self.weekday, str(self.weekday))
 
+# شیفت کاری
 class Shift(models.Model):
 
     name = models.CharField(max_length=50, unique=True)
@@ -150,6 +158,7 @@ class Shift(models.Model):
     def __str__(self):
         return self.name
 
+# گروه کارکنان
 class Group(models.Model):
 
     name = models.CharField(max_length=50, unique=True)
@@ -160,6 +169,7 @@ class Group(models.Model):
     def __str__(self):
         return self.name
 
+# نوع مرخصی
 class LeaveType(models.Model):
 
     name = models.CharField(max_length=50, unique=True)

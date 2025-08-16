@@ -14,6 +14,7 @@ from attendance.models import (
 
 User = get_user_model()
 
+# ورودی تاریخ شمسی
 class JalaliDateInput(forms.TextInput):
 
     def __init__(self, attrs=None):
@@ -22,6 +23,7 @@ class JalaliDateInput(forms.TextInput):
             base_attrs.update(attrs)
         super().__init__(attrs=base_attrs)
 
+# ورودی زمان شمسی
 class JalaliTimeInput(forms.TextInput):
 
     def __init__(self, attrs=None):
@@ -30,10 +32,12 @@ class JalaliTimeInput(forms.TextInput):
             base_attrs.update(attrs)
         super().__init__(attrs=base_attrs)
 
+# فرم استعلام کاربر
 class InquiryForm(forms.Form):
     personnel_code = forms.CharField(label="کد پرسنلی", max_length=20)
     national_id    = forms.CharField(label="کد ملی",     max_length=10)
 
+# فرم ساده کاربر
 class CustomUserSimpleForm(forms.ModelForm):
     class Meta:
         model = User
@@ -49,6 +53,7 @@ class CustomUserSimpleForm(forms.ModelForm):
             "is_staff",
         ]
 
+# فرم درخواست ویرایش تردد
 class EditRequestForm(forms.ModelForm):
     date = jforms.jDateField(label="تاریخ", widget=JalaliDateInput())
     log_type = forms.ChoiceField(choices=LOG_TYPE_CHOICES, label="نوع تردد")
@@ -109,6 +114,7 @@ class EditRequestForm(forms.ModelForm):
             instance.save()
         return instance
 
+# فرم درخواست مرخصی
 class LeaveRequestForm(forms.ModelForm):
     start_date = jforms.jDateField(label="از تاریخ", widget=JalaliDateInput())
     duration = forms.IntegerField(label="مدت (روز)", min_value=1)
@@ -161,6 +167,7 @@ class LeaveRequestForm(forms.ModelForm):
             instance.save()
         return instance
 
+# ثبت تردد دستی
 class ManualLogForm(forms.Form):
 
     user = forms.ModelChoiceField(queryset=User.objects.all(), label="کارمند")
@@ -200,6 +207,7 @@ class ManualLogForm(forms.Form):
             source="manager",
         )
 
+# ثبت مرخصی دستی
 class ManualLeaveForm(forms.ModelForm):
 
     user = forms.ModelChoiceField(queryset=User.objects.all(), label="کارمند")
@@ -243,6 +251,7 @@ class ManualLeaveForm(forms.ModelForm):
             instance.save()
         return instance
 
+# فرم وضعیت حضور
 class AttendanceStatusForm(forms.Form):
 
     date = jforms.jDateField(
@@ -251,6 +260,7 @@ class AttendanceStatusForm(forms.Form):
         required=False,
     )
 
+# فرم بازه گزارش تردد
 class UserLogsRangeForm(forms.Form):
     start = jforms.jDateField(label="از تاریخ", widget=JalaliDateInput())
     end = jforms.jDateField(label="تا تاریخ", widget=JalaliDateInput())
@@ -267,6 +277,7 @@ class UserLogsRangeForm(forms.Form):
             self.add_error("end", "بازه نامعتبر است")
         return cleaned
 
+# انتخاب روزهای تعطیل
 class WeeklyHolidayForm(forms.Form):
     days = forms.MultipleChoiceField(
         choices=[
@@ -283,6 +294,7 @@ class WeeklyHolidayForm(forms.Form):
         label="روزهای تعطیل",
     )
 
+# فرم شیفت کاری
 class ShiftForm(forms.ModelForm):
     class Meta:
         model = attendance_models.Shift
@@ -297,6 +309,7 @@ class ShiftForm(forms.ModelForm):
             "end_time": JalaliTimeInput(),
         }
 
+# فرم گروه کارکنان
 class GroupForm(forms.ModelForm):
     class Meta:
         model = attendance_models.Group
@@ -306,12 +319,14 @@ class GroupForm(forms.ModelForm):
             "shift": "شیفت",
         }
 
+# فرم نوع مرخصی
 class LeaveTypeForm(forms.ModelForm):
     class Meta:
         model = attendance_models.LeaveType
         fields = ["name", "description"]
         labels = {"name": "نام", "description": "توضیح"}
 
+# فیلتر گزارش‌ها
 class ReportFilterForm(forms.Form):
     start_date = jforms.jDateField(
         label="از تاریخ",
@@ -358,6 +373,7 @@ class ReportFilterForm(forms.Form):
             lambda obj: f"{obj.personnel_code} – {obj.first_name} {obj.last_name}"
         )
 
+# فرم عملکرد ماهانه
 class MonthlyPerformanceForm(forms.Form):
     user = forms.ModelChoiceField(queryset=User.objects.all(), label="کارمند")
     year = forms.IntegerField(label="سال", initial=jdatetime.date.today().year)

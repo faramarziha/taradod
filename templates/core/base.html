@@ -42,6 +42,7 @@
   {% if messages %}
   <script>
     document.addEventListener('DOMContentLoaded', function() {
+      // نمایش پیام‌های سیستم
       {% for message in messages %}
         showAlert("{{ message|escapejs }}", "{{ message.tags }}");
       {% endfor %}

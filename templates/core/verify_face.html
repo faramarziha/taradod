@@ -3,14 +3,14 @@
 {% block title %}تأیید چهره{% endblock %}
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => { // حلقه تأیید چهره
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
   const ctx = canvas.getContext('2d');
   const resultDiv = document.getElementById('verifyResult');
   let verifying = false;
 
-  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) { // دسترسی به دوربین
     navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
       .then(stream => { video.srcObject = stream; })
       .catch(() => { resultDiv.textContent = 'دسترسی به دوربین ممکن نشد.'; });
@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
+  // گرفتن تصویر از ویدیو
   function capture() {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -29,10 +30,12 @@ document.addEventListener('DOMContentLoaded', () => {
     return canvas.toDataURL('image/jpeg');
   }
 
+  // توقف ساده
   function wait(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  // حلقه بررسی پیاپی
   async function verifyLoop() {
     if (verifying || video.readyState !== video.HAVE_ENOUGH_DATA) {
       setTimeout(verifyLoop, 1000);
@@ -71,6 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   verifyLoop();
 
+  // دریافت توکن CSRF
   function getCsrfToken() {
     let value = '; ' + document.cookie;
     let parts = value.split('; csrftoken=');
