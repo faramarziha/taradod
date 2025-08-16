@@ -145,15 +145,21 @@ class LeaveRequestForm(forms.ModelForm):
         sd = cleaned_data.get("start_date")
         dur = cleaned_data.get("duration")
         if sd:
-            cleaned_data["start_date"] = sd.togregorian()
+            start_g = sd.togregorian()
+            cleaned_data["start_date"] = start_g
         if sd and dur:
             end_j = sd + jdatetime.timedelta(days=dur - 1)
-            cleaned_data["end_date"] = end_j.togregorian()
+            end_g = end_j.togregorian()
+            cleaned_data["end_date"] = end_g
             cleaned_data["end_jalali"] = end_j
         user = self.user or cleaned_data.get("user")
         if user and sd and dur:
-            if LeaveRequest.objects.filter(user=user, start_date=sd.togregorian(), end_date=end_j.togregorian()).exists():
-                raise forms.ValidationError("برای این بازه قبلاً درخواستی ثبت شده است.")
+            if LeaveRequest.objects.filter(
+                user=user, start_date=start_g, end_date=end_g
+            ).exists():
+                raise forms.ValidationError(
+                    "برای این بازه قبلاً درخواستی ثبت شده است."
+                )
         return cleaned_data
 
     def save(self, commit=True):
@@ -235,13 +241,19 @@ class ManualLeaveForm(forms.ModelForm):
         if sd and ed and ed < sd:
             self.add_error("end_date", "بازه نامعتبر است")
         if sd:
-            cleaned_data["start_date"] = sd.togregorian()
+            start_g = sd.togregorian()
+            cleaned_data["start_date"] = start_g
         if ed:
-            cleaned_data["end_date"] = ed.togregorian()
+            end_g = ed.togregorian()
+            cleaned_data["end_date"] = end_g
         user = cleaned_data.get("user")
         if user and sd and ed:
-            if LeaveRequest.objects.filter(user=user, start_date=sd.togregorian(), end_date=ed.togregorian()).exists():
-                raise forms.ValidationError("برای این بازه قبلاً درخواستی ثبت شده است.")
+            if LeaveRequest.objects.filter(
+                user=user, start_date=start_g, end_date=end_g
+            ).exists():
+                raise forms.ValidationError(
+                    "برای این بازه قبلاً درخواستی ثبت شده است."
+                )
         return cleaned_data
 
     def save(self, commit=True):
