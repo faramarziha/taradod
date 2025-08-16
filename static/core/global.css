@@ -5,7 +5,6 @@
   font-style: normal;
 }
 
-
 :root {
   --color-bg: #f7fafd;
   --color-surface: #fff;
@@ -55,7 +54,6 @@ body {
   display: flex;
   flex-direction: column;
 }
-
 
 .site-header {
   background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
@@ -112,7 +110,6 @@ body {
 
 .header-home { right: 0.5rem; }
 .header-logout { left: 0.5rem; }
-
 
   .desktop-only { display: none; }
   .mobile-only { display: block; }
@@ -214,7 +211,6 @@ button:hover, .btn:hover, input[type="submit"]:hover {
     text-decoration: none;
 }
 
-
 .home-buttons {
   display: flex;
   flex-direction: column;
@@ -265,7 +261,6 @@ label {
   border: 1px solid var(--color-border);
 }
 
-
 .management-table {
   width: 100%;
   border-collapse: collapse;
@@ -295,11 +290,9 @@ label {
   background: #e3f2fd44;
 }
 
-
 .table-responsive {
   overflow-x: auto;
 }
-
 
 .profile-card { text-align: right; overflow: hidden; }
 .profile-banner {
@@ -414,7 +407,6 @@ label {
   font-size: 1.3rem;
   font-weight: 600;
 }
-
 
 .page {
   width: 100%;
@@ -533,7 +525,6 @@ label {
   }
 }
 
-
 .form-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -542,10 +533,9 @@ label {
 .form-grid .form-group { margin-bottom: 0; }
 @media (min-width: 600px) {
   .form-grid { grid-template-columns: repeat(2, 1fr); }
-  
+
   .page-sm.form-grid { grid-template-columns: 1fr; }
 }
-
 
 .log-cards { display: none; }
 .log-card {
@@ -575,7 +565,6 @@ label {
 .badge-error { background: var(--color-error); }
 .badge-warning { background: #ff9800; }
 .badge-info { background: var(--color-primary); }
-
 
 .status-grid {
   display: grid;
@@ -642,7 +631,6 @@ label {
   opacity: 0.6;
 }
 
-
 .tabs {
   list-style: none;
   display: flex;
@@ -669,7 +657,6 @@ label {
 .tab-content { display: none; }
 .tab-content.active { display: block; }
 
-
 .request-cards { display: none; }
 .request-card {
   background: var(--color-bg);
@@ -695,4 +682,3 @@ label {
 @media (max-width: 900px) {
   .request-cards { display: flex; flex-direction: column; gap: 1rem; }
 }
-

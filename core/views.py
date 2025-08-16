@@ -59,14 +59,11 @@ MATCH_SAVE_DISTANCE = 0.6
 
 User = get_user_model()
 
-
 def _now():
     return timezone.now().replace(tzinfo=None)
 
-
 def _to_naive(dt):
     return dt.replace(tzinfo=None) if dt and dt.tzinfo is not None else dt
-
 
 def _get_user_shift(user):
 
@@ -78,7 +75,6 @@ def _get_user_shift(user):
 def _weekday_index(date):
 
     return (date.weekday() + 2) % 7
-
 
 def _calculate_monthly_performance(user, year, month):
 
@@ -182,7 +178,7 @@ def _calculate_monthly_performance(user, year, month):
                     session_pairs.append((current_in, log.timestamp))
                     incomplete = True
                 current_in = log.timestamp
-            else:       
+            else:
                 if current_in is not None:
                     session_pairs.append((current_in, log.timestamp))
                     current_in = None
@@ -243,7 +239,6 @@ def _calculate_monthly_performance(user, year, month):
     }
     return report, list(leaves_qs)
 
-
 def _get_face_encoding_from_base64(data_url: str):
 
     try:
@@ -260,18 +255,12 @@ def _get_face_encoding_from_base64(data_url: str):
         print("Face encode error:", e)
         return None
 
-
-                           
-               
-                           
-
 class ManagementLoginView(LoginView):
     template_name = "core/management_login.html"
     redirect_authenticated_user = True
     def get_success_url(self):
-                                                             
-        return reverse("management_face_check")
 
+        return reverse("management_face_check")
 
 class DeviceLoginView(LoginView):
     template_name = "core/device_login.html"
@@ -284,18 +273,8 @@ class DeviceLoginView(LoginView):
         login(self.request, user)
         return redirect("device_face_check")
 
-
-                           
-             
-                           
-
 def home(request):
     return render(request, "core/home.html")
-
-
-                           
-                    
-                           
 
 @login_required
 @user_passes_test(lambda u: u.is_staff)
@@ -304,19 +283,15 @@ def device_face_check(request):
         return render(request, "core/register_face.html")
     return render(request, "core/device_face_check.html")
 
-
 @login_required
 def device_page(request):
 
     return render(request, "core/device.html")
 
-
 @require_POST
 @login_required
 @user_passes_test(lambda u: u.is_staff)
 def api_device_verify_face(request):
-
-
 
     try:
         data = json.loads(request.body)
@@ -456,7 +431,6 @@ def api_register_face(request):
 
     request.user.face_encoding = enc.tobytes()
 
-                      
     try:
         if "," in data_url:
             header, b64data = data_url.split(",", 1)
@@ -472,9 +446,6 @@ def api_register_face(request):
 
     request.user.save()
     return JsonResponse({"ok": True, "redirect": reverse("management_dashboard")})
-                           
-                         
-                           
 
 def user_inquiry(request):
     if request.method == "POST":
@@ -495,7 +466,6 @@ def user_inquiry(request):
         form = InquiryForm()
     return render(request, "core/user_inquiry.html", {"form": form})
 
-
 def user_profile(request):
     uid = request.session.get("inquiry_user_id")
     if not uid:
@@ -503,7 +473,6 @@ def user_profile(request):
     u = get_object_or_404(User, id=uid)
     today = _now().date()
 
-                                           
     status = "holiday"
     first_in = None
     if not WeeklyHoliday.objects.filter(weekday=_weekday_index(today)).exists():
@@ -522,7 +491,6 @@ def user_profile(request):
             status = "absent"
     today_status = {"status": status, "first_in": first_in}
 
-                                                              
     events = []
     leave_events = LeaveRequest.objects.filter(user=u).order_by("-created_at")[:4]
     for r in leave_events:
@@ -535,7 +503,6 @@ def user_profile(request):
         events.append({"created_at": r.created_at, "message": msg})
     events = sorted(events, key=lambda x: x["created_at"], reverse=True)[:4]
 
-                                    
     today_j = jdatetime.date.today()
     report, _ = _calculate_monthly_performance(u, today_j.year, today_j.month)
     monthly_stats = {
@@ -544,7 +511,6 @@ def user_profile(request):
         "absent_days": report["absence_days"],
     }
 
-                                        
     month_param = request.GET.get("month")
     if month_param:
         ly, lm = [int(x) for x in month_param.split("-")]
@@ -597,8 +563,6 @@ def user_profile(request):
         },
     )
 
-
-
 def edit_request(request):
 
     uid = request.session.get("inquiry_user_id")
@@ -616,7 +580,6 @@ def edit_request(request):
     else:
         form = EditRequestForm(user=u)
     return render(request, "core/edit_request_form.html", {"form": form, "user": u})
-
 
 def leave_request(request):
     uid = request.session.get("inquiry_user_id")
@@ -642,7 +605,6 @@ def leave_request(request):
         form = LeaveRequestForm(user=u)
     return render(request, "core/leave_request_form.html", {"form": form, "user": u})
 
-
 def cancel_edit_request(request, pk):
 
     uid = request.session.get("inquiry_user_id")
@@ -656,7 +618,6 @@ def cancel_edit_request(request, pk):
         req.save()
         messages.info(request, "درخواست ویرایش لغو شد.")
     return redirect(reverse("user_profile") + "#edit-requests")
-
 
 def cancel_leave_request(request, pk):
 
@@ -672,11 +633,6 @@ def cancel_leave_request(request, pk):
         messages.info(request, "درخواست مرخصی لغو شد.")
     return redirect(reverse("user_profile") + "#leave-requests")
 
-
-                           
-                    
-                           
-
 staff_required = user_passes_test(lambda u: u.is_staff)
 
 @login_required
@@ -686,7 +642,6 @@ def management_face_check(request):
     if request.user.face_encoding is None:
         return render(request, "core/register_face.html")
     return render(request, "core/management_face_check.html")
-
 
 @csrf_exempt
 @login_required
@@ -725,7 +680,6 @@ def api_management_verify_face(request):
         return JsonResponse({"success": True})
     return JsonResponse({"success": False, "error": "چهره مطابقت نداشت."})
 
-
 @login_required
 @staff_required
 def management_users(request):
@@ -733,7 +687,6 @@ def management_users(request):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
 
-                                        
     if request.method == "POST":
         action = request.POST.get("bulk_action")
         selected_ids = request.POST.getlist("selected_users")
@@ -759,7 +712,6 @@ def management_users(request):
 
     users = User.objects.all().select_related("group", "shift")
 
-                                     
     q = request.GET.get("q")
     status = request.GET.get("status")
     group = request.GET.get("group")
@@ -792,7 +744,6 @@ def management_users(request):
     }
     return render(request, "core/management_users.html", ctx)
 
-
 @login_required
 @staff_required
 def user_add(request):
@@ -800,7 +751,7 @@ def user_add(request):
         form = CustomUserSimpleForm(request.POST, request.FILES)
         if form.is_valid():
             user = form.save(commit=False)
-                                               
+
             user.set_password(secrets.token_urlsafe(16))
             user.save()
             messages.success(request, "کارمند جدید اضافه شد.")
@@ -835,7 +786,6 @@ def user_delete(request, pk):
         messages.success(request, "حذف موفق.")
     return redirect("management_users")
 
-
 @login_required
 @staff_required
 def admin_user_profile(request, pk):
@@ -853,7 +803,6 @@ def admin_user_profile(request, pk):
     else:
         form = CustomUserSimpleForm(instance=user_obj)
 
-                                        
     month_param = request.GET.get("month")
     if month_param:
         ly, lm = [int(x) for x in month_param.split("-")]
@@ -908,7 +857,6 @@ def admin_user_profile(request, pk):
         },
     )
 
-
 @require_POST
 @login_required
 @staff_required
@@ -927,7 +875,6 @@ def user_face_delete(request, pk):
 def register_face_page_for_user(request, user_id):
     target = get_object_or_404(User, id=user_id)
     return render(request, "core/register_face_for_user.html", {"user_to_register": target})
-
 
 @require_POST
 @login_required
@@ -964,8 +911,6 @@ def register_face_api(request, user_id):
     target.save()
     return JsonResponse({"ok": True, "redirect": reverse("admin_user_profile", args=[user_id])})
 
-
-                                    
 @login_required
 @staff_required
 def management_dashboard(request):
@@ -991,7 +936,6 @@ def management_dashboard(request):
         user__in=users_qs, timestamp__date=today, log_type="out"
     ).count()
 
-                                     
     if is_holiday:
         present_users = leave_users = absent_users = users_qs.none()
         present_ids = []
@@ -1032,14 +976,12 @@ def management_dashboard(request):
                     tardy_ids.append(user.id)
         tardy_users = users_qs.filter(id__in=tardy_ids)
 
-             
     pending_edit_objs = EditRequest.objects.select_related("user").filter(user__in=users_qs, status="pending")
     pending_leave_objs = LeaveRequest.objects.select_related("user").filter(user__in=users_qs, status="pending")
     pending_edits = pending_edit_objs.count()
     pending_leaves = pending_leave_objs.count()
     suspicious_today = SuspiciousLog.objects.filter(matched_user__in=users_qs, timestamp__date=today).count()
 
-                                                         
     pending_actions = []
     for req in pending_edit_objs[:5]:
         pending_actions.append({
@@ -1060,7 +1002,6 @@ def management_dashboard(request):
             "action_url": reverse("leave_requests"),
         })
 
-                                            
     month_start = today - timedelta(days=30)
     tardy_stats = []
     streak_stats = []
@@ -1128,12 +1069,10 @@ def management_dashboard(request):
     }
     return render(request, 'core/management_dashboard.html', context)
 
-
-                                    
 @login_required
 @staff_required
 def user_reports(request):
-                   
+
     active_users = User.objects.filter(is_active=True).count()
     inactive_users = User.objects.filter(is_active=False).count()
     no_face_users = User.objects.filter(face_encoding__isnull=True).count()
@@ -1166,7 +1105,6 @@ def user_reports(request):
     }
     return render(request, 'core/user_reports.html', context)
 
-
 @login_required
 @staff_required
 def monthly_profile(request):
@@ -1187,7 +1125,6 @@ def monthly_profile(request):
         "selected_user": selected_user,
     }
     return render(request, "core/monthly_profile.html", context)
-
 
 @login_required
 @staff_required
@@ -1226,7 +1163,6 @@ def attendance_status(request):
     }
     return render(request, 'core/attendance_status.html', context)
 
-
 @login_required
 @staff_required
 def api_attendance_status(request):
@@ -1254,7 +1190,6 @@ def api_attendance_status(request):
     }
     return JsonResponse(data)
 
-
 @login_required
 @staff_required
 def suspicious_logs(request):
@@ -1268,7 +1203,6 @@ def suspicious_logs(request):
         'active_tab': 'suspicions',
         'logs': logs,
     })
-
 
 @login_required
 @staff_required
@@ -1318,7 +1252,6 @@ def suspicious_log_action(request, pk):
         log.save(update_fields=['status'])
         messages.warning(request, 'به عنوان تقلب ثبت شد.')
     return redirect('suspicious_logs')
-
 
 @login_required
 @staff_required
@@ -1379,7 +1312,6 @@ def edit_requests(request):
             "selected_shift": shift_id,
         },
     )
-
 
 @login_required
 @staff_required
@@ -1444,7 +1376,6 @@ def leave_requests(request):
         },
     )
 
-
 @login_required
 @staff_required
 def add_log(request):
@@ -1463,7 +1394,6 @@ def add_log(request):
         "active_tab": "edit_requests",
         "form": form,
     })
-
 
 @login_required
 @staff_required
@@ -1502,7 +1432,6 @@ def weekly_holidays(request):
         form = WeeklyHolidayForm(initial={"days": [str(d) for d in existing]})
     return render(request, "core/weekly_holidays.html", {"form": form, "active_tab": "weekly_holidays"})
 
-
 @login_required
 @staff_required
 def user_logs_admin(request, user_id):
@@ -1522,7 +1451,6 @@ def user_logs_admin(request, user_id):
         "form": form,
         "logs": logs,
     })
-
 
 @login_required
 @staff_required
@@ -1552,7 +1480,6 @@ def shift_list(request):
         {"shifts": shifts, "active_tab": "settings"},
     )
 
-
 @login_required
 @staff_required
 def shift_edit(request, pk=None):
@@ -1569,7 +1496,6 @@ def shift_edit(request, pk=None):
         form = ShiftForm(instance=instance)
     return render(request, "core/shift_form.html", {"form": form, "active_tab": "settings"})
 
-
 @require_POST
 @login_required
 @staff_required
@@ -1580,7 +1506,6 @@ def shift_delete(request, pk):
     shift.delete()
     messages.success(request, "حذف شد.")
     return redirect("shift_list")
-
 
 @login_required
 @staff_required
@@ -1598,7 +1523,6 @@ def group_list(request):
         {"groups": groups, "active_tab": "settings"},
     )
 
-
 @login_required
 @staff_required
 def group_edit(request, pk=None):
@@ -1615,7 +1539,6 @@ def group_edit(request, pk=None):
         form = GroupForm(instance=instance)
     return render(request, "core/group_form.html", {"form": form, "active_tab": "settings"})
 
-
 @require_POST
 @login_required
 @staff_required
@@ -1627,7 +1550,6 @@ def group_delete(request, pk):
     messages.success(request, "حذف شد.")
     return redirect("group_list")
 
-
 @login_required
 @staff_required
 def leave_type_list(request):
@@ -1635,7 +1557,6 @@ def leave_type_list(request):
         return redirect("management_face_check")
     types = LeaveType.objects.all()
     return render(request, "core/leave_type_list.html", {"types": types, "active_tab": "settings"})
-
 
 @login_required
 @staff_required
@@ -1652,7 +1573,6 @@ def leave_type_edit(request, pk=None):
     else:
         form = LeaveTypeForm(instance=instance)
     return render(request, "core/leave_type_form.html", {"form": form, "active_tab": "settings"})
-
 
 @require_POST
 @login_required

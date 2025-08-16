@@ -3,9 +3,7 @@ from datetime import timedelta
 from django.db import models
 from django.utils import timezone
 
-
 class Device(models.Model):
-
 
     name = models.CharField(max_length=100)
     is_active = models.BooleanField(default=True)
@@ -17,5 +15,5 @@ class Device(models.Model):
             return False
         return timezone.now() - self.last_seen < timedelta(minutes=1)
 
-    def __str__(self) -> str:                                            
+    def __str__(self) -> str:
         return self.name

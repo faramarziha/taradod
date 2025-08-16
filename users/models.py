@@ -6,7 +6,7 @@ class CustomUser(AbstractUser):
     national_id    = models.CharField("کد ملی", max_length=10, unique=True)
     face_encoding  = models.BinaryField(null=True, blank=True)
     face_image = models.ImageField("تصویر چهره", upload_to="faces/", null=True, blank=True)
-                                                          
+
     group = models.ForeignKey(
         "attendance.Group",
         null=True,

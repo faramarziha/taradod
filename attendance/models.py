@@ -22,7 +22,6 @@ class AttendanceLog(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.timestamp:%Y-%m-%d %H:%M:%S}"
 
-
 class SuspiciousLog(models.Model):
 
     STATUS_CHOICES = [
@@ -52,9 +51,7 @@ class SuspiciousLog(models.Model):
         user_part = self.matched_user.username if self.matched_user else "Unknown"
         return f"{user_part} ? {self.similarity:.3f} ({self.status})"
 
-
 class EditRequest(models.Model):
-
 
     STATUS_CHOICES = [
         ("pending", "در انتظار"),
@@ -83,9 +80,7 @@ class EditRequest(models.Model):
     def __str__(self):
         return f"{self.user.username} @ {self.timestamp:%Y-%m-%d %H:%M}"
 
-
 class LeaveRequest(models.Model):
-
 
     STATUS_CHOICES = [
         ("pending", "در انتظار"),
@@ -129,9 +124,7 @@ class LeaveRequest(models.Model):
     def __str__(self):
         return f"{self.user.username} {self.start_date} - {self.end_date}"
 
-
 class WeeklyHoliday(models.Model):
-
 
     WEEKDAY_CHOICES = [
         (0, "شنبه"),
@@ -148,9 +141,7 @@ class WeeklyHoliday(models.Model):
     def __str__(self):
         return dict(self.WEEKDAY_CHOICES).get(self.weekday, str(self.weekday))
 
-
 class Shift(models.Model):
-
 
     name = models.CharField(max_length=50, unique=True)
     start_time = models.TimeField()
@@ -159,9 +150,7 @@ class Shift(models.Model):
     def __str__(self):
         return self.name
 
-
 class Group(models.Model):
-
 
     name = models.CharField(max_length=50, unique=True)
     shift = models.ForeignKey(
@@ -171,9 +160,7 @@ class Group(models.Model):
     def __str__(self):
         return self.name
 
-
 class LeaveType(models.Model):
-
 
     name = models.CharField(max_length=50, unique=True)
     description = models.TextField(blank=True)
