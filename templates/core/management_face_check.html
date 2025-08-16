@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btn = document.getElementById('verifyBtn');
   const msgEl = document.getElementById('verifyResult');
   let capture1 = null;
+  let verifying = false;
 
   if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
@@ -21,7 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   btn.onclick = async () => {
-    if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
+    if (verifying || video.readyState !== video.HAVE_ENOUGH_DATA) return;
+    verifying = true;
     btn.disabled = true;
     msgEl.textContent = 'لطفاً مستقیم به دوربین نگاه کنید.';
     await wait(1000);
@@ -46,10 +48,12 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         msgEl.textContent = '❌ ' + (j.error || 'شناسایی ناموفق');
         btn.disabled = false;
+        verifying = false;
       }
     } catch (e) {
       msgEl.textContent = '❌ خطا در ارتباط با سرور';
       btn.disabled = false;
+      verifying = false;
     }
   };
 

@@ -634,6 +634,14 @@ label {
   box-shadow: 0 0.4rem 0.8rem rgba(0,0,0,0.3);
 }
 
+.action-btn:disabled {
+  background: var(--color-muted);
+  cursor: not-allowed;
+  transform: translateX(-50%);
+  box-shadow: none;
+  opacity: 0.6;
+}
+
 
 .tabs {
   list-style: none;
