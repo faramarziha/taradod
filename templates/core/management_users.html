@@ -120,6 +120,7 @@
 
 {% block extra_js %}
 <script>
+// انتخاب همه کاربران
 const selectAll = document.getElementById('select-all');
 if(selectAll){
   selectAll.addEventListener('change', function(){
@@ -127,6 +128,7 @@ if(selectAll){
   });
 }
 
+// اعمال گروهی
 const bulkForm = document.getElementById('bulk-form');
 if(bulkForm){
   bulkForm.addEventListener('submit', function(e){
@@ -138,6 +140,7 @@ if(bulkForm){
   });
 }
 
+// پنجره تأیید حذف فردی
 const modal = document.getElementById('delete-modal');
 const deleteForm = document.getElementById('delete-form');
 document.querySelectorAll('.delete-user').forEach(btn => {
@@ -151,6 +154,7 @@ document.getElementById('cancel-delete').addEventListener('click', function(){
   modal.classList.remove('open');
 });
 
+// نمایش فیلدهای اضافی بر اساس عمل
 const actionSelect = document.getElementById('bulk-action-select');
 const groupSelect = document.getElementById('bulk-group-select');
 const shiftSelect = document.getElementById('bulk-shift-select');

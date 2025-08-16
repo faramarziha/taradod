@@ -23,7 +23,7 @@
 {% endblock %}
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => { // ثبت چهره برای کارمند
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
   const ctx = canvas.getContext('2d');
@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let step = 0;
   message.textContent = steps[0];
 
-  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) { // دسترسی به دوربین
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
       .then(stream => { video.srcObject = stream; })
       .catch(() => { message.textContent = "دسترسی به دوربین ممکن نشد."; });
@@ -46,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     message.textContent = "دوربین توسط مرورگر پشتیبانی نمی‌شود.";
   }
 
+  // ثبت دو تصویر و ارسال به سرور
   btn.onclick = () => {
     if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
     canvas.width = video.videoWidth;
@@ -88,6 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
+  // دریافت توکن CSRF
   function getCsrfToken() {
     let value = "; " + document.cookie;
     let parts = value.split("; csrftoken=");

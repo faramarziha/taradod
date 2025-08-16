@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => { // شروع پس از لود
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
   const ctx = canvas.getContext('2d');
@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let unsupportedWarned = false;
   let messageHoldUntil = 0;
 
+  // نمایش پیام به کاربر
   function showMessage(text, holdMs = 0) {
     message.textContent = text;
     if (holdMs > 0) {
@@ -38,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showMessage('دوربین توسط مرورگر پشتیبانی نمی‌شود.');
   }
 
+  // گرفتن تصویر از ویدیو و برگرداندن base64
   function capture() {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -48,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return canvas.toDataURL('image/jpeg');
   }
 
+  // نمایش اطلاعات کاربر شناسایی‌شده
   function showUserInfo(data) {
     userFace.src = data.image_url || '/static/core/avatar.png';
     userFullname.textContent = data.name || '';
@@ -56,10 +59,12 @@ document.addEventListener('DOMContentLoaded', () => {
     userInfo.style.display = '';
   }
 
+  // پنهان‌سازی پنل کاربر
   function hideUserInfo() {
     userInfo.style.display = 'none';
   }
 
+  // بررسی قرارگیری چهره در کادر
   async function updateFraming() {
     if (verifying || Date.now() < messageHoldUntil) return;
     if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
@@ -130,10 +135,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   setInterval(updateFraming, 800);
 
+  // توقف ساده
   function wait(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
+  // حلقه اصلی تأیید چهره
   async function verifyLoop() {
     if (verifying || !framingOk) {
       setTimeout(verifyLoop, 1000);
@@ -198,6 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 2000);
   }
 
+  // دریافت توکن CSRF از کوکی
   function getCsrfToken() {
     const value = '; ' + document.cookie;
     const parts = value.split('; csrftoken=');
