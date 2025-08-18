@@ -77,7 +77,7 @@
           <td>{{ log.timestamp|jformat:"%Y/%m/%d" }}</td>
           <td>{{ log.timestamp|time:"H:i" }}</td>
           <td>{% if log.log_type == 'in' %}ورود{% else %}خروج{% endif %}</td>
-          <td>{% if log.source == 'self' %}کارمند{% elif log.source == 'auto' %}سیستم{% else %}مدیر{% endif %}</td>
+          <td>{% if log.source == 'self' %}کارمند{% else %}مدیر{% endif %}</td>
         </tr>
         {% empty %}
         <tr><td colspan="5">ترددی ثبت نشده است.</td></tr>

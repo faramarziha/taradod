@@ -373,13 +373,6 @@ def api_verify_face(request):
                 last_ts = _to_naive(last_log.timestamp) if last_log else None
                 if last_log and now - last_ts < timedelta(minutes=5):
                     return JsonResponse({"ok": False, "msg": "تردد تکراری"})
-
-                today = now.date()
-                if last_log and last_log.log_type == 'in' and last_ts.date() < today:
-                    end_of_day = datetime.combine(last_ts.date(), time(23, 59, 59))
-                    AttendanceLog.objects.create(user=u, timestamp=end_of_day, log_type='out', source='auto')
-                    last_log = None
-
                 log_type = 'out' if last_log and last_log.log_type == 'in' else 'in'
                 AttendanceLog.objects.create(user=u, timestamp=now, log_type=log_type, source='self')
                 img_url = u.face_image.url if hasattr(u, 'face_image') and u.face_image else static('core/avatar.png')
@@ -1250,12 +1243,6 @@ def suspicious_log_action(request, pk):
         if log.matched_user:
             u = log.matched_user
             last_log = AttendanceLog.objects.filter(user=u).order_by('-timestamp').first()
-            last_ts = _to_naive(last_log.timestamp) if last_log else None
-            today = _now().date()
-            if last_log and last_log.log_type == 'in' and last_ts.date() < today:
-                end_of_day = datetime.combine(last_ts.date(), time(23, 59, 59))
-                AttendanceLog.objects.create(user=u, timestamp=end_of_day, log_type='out', source='auto')
-                last_log = None
             log_type = 'out' if last_log and last_log.log_type == 'in' else 'in'
             now = _now()
             AttendanceLog.objects.create(user=u, timestamp=now, log_type=log_type, source='manager')
