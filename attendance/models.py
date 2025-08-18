@@ -11,7 +11,6 @@ LOG_TYPE_CHOICES = [
 # منبع ثبت تردد
 SOURCE_CHOICES = [
     ("self", "کارمند"),
-    ("auto", "سیستم"),
     ("manager", "مدیر"),
 ]
 
