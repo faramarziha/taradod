@@ -1,8 +1,8 @@
 {% extends "core/base.html" %}
-{% block title %}درخواست ویرایش تردد{% endblock %}
+{% block title %}درخواست اصلاح تردد{% endblock %}
 {% block content %}
 <div class="card page page-md">
-  <h2 class="page-title">درخواست ویرایش تردد برای {{ user.get_full_name }}</h2>
+  <h2 class="page-title">درخواست اصلاح تردد برای {{ user.get_full_name }}</h2>
   <form method="post">
     {% csrf_token %}
     {{ form.non_field_errors }}

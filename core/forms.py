@@ -53,7 +53,7 @@ class CustomUserSimpleForm(forms.ModelForm):
             "is_staff",
         ]
 
-# فرم درخواست ویرایش تردد
+# فرم درخواست اصلاح تردد
 class EditRequestForm(forms.ModelForm):
     date = jforms.jDateField(label="تاریخ", widget=JalaliDateInput())
     log_type = forms.ChoiceField(choices=LOG_TYPE_CHOICES, label="نوع تردد")
