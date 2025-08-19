@@ -498,17 +498,6 @@ def user_profile(request):
             status = "absent"
     today_status = {"status": status, "first_in": first_in}
 
-    events = []
-    leave_events = LeaveRequest.objects.filter(user=u).order_by("-created_at")[:4]
-    for r in leave_events:
-        msg = f"درخواست مرخصی شما برای تاریخ {r.start_date} تا {r.end_date} {r.get_status_display()}."
-        events.append({"created_at": r.created_at, "message": msg})
-    edit_events = EditRequest.objects.filter(user=u).order_by("-created_at")[:4]
-    for r in edit_events:
-        time_str = r.timestamp.strftime("%Y-%m-%d %H:%M")
-        msg = f"درخواست اصلاح تردد شما برای {time_str} {r.get_status_display()}."
-        events.append({"created_at": r.created_at, "message": msg})
-    events = sorted(events, key=lambda x: x["created_at"], reverse=True)[:4]
     t = jdatetime.date.today()
     mp_form = MonthlyPerformanceForm(request.GET or None, initial={"year": t.year, "month": t.month})
     mp_form.fields.pop("user", None)
@@ -553,7 +542,6 @@ def user_profile(request):
         {
             "user": u,
             "today_status": today_status,
-            "recent_events": events,
             "monthly_report": report,
             "mp_form": mp_form,
             "daily_logs": daily_logs,
