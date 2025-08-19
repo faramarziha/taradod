@@ -506,24 +506,19 @@ def user_profile(request):
     edit_events = EditRequest.objects.filter(user=u).order_by("-created_at")[:4]
     for r in edit_events:
         time_str = r.timestamp.strftime("%Y-%m-%d %H:%M")
-        msg = f"درخواست ویرایش تردد شما برای {time_str} {r.get_status_display()}."
+        msg = f"درخواست اصلاح تردد شما برای {time_str} {r.get_status_display()}."
         events.append({"created_at": r.created_at, "message": msg})
     events = sorted(events, key=lambda x: x["created_at"], reverse=True)[:4]
-
-    today_j = jdatetime.date.today()
-    report, _ = _calculate_monthly_performance(u, today_j.year, today_j.month)
-    monthly_stats = {
-        "total_hours": report["present_hours"],
-        "total_delay": report["tardy_minutes"],
-        "absent_days": report["absence_days"],
-    }
-
-    month_param = request.GET.get("month")
-    if month_param:
-        ly, lm = [int(x) for x in month_param.split("-")]
+    t = jdatetime.date.today()
+    mp_form = MonthlyPerformanceForm(request.GET or None, initial={"year": t.year, "month": t.month})
+    mp_form.fields.pop("user", None)
+    if mp_form.is_bound and mp_form.is_valid():
+        ly = mp_form.cleaned_data["year"]
+        lm = int(mp_form.cleaned_data["month"])
     else:
-        t = jdatetime.date.today()
-        ly, lm = t.year, t.month
+        ly = t.year
+        lm = t.month
+    report, _ = _calculate_monthly_performance(u, ly, lm)
     days = jdatetime.j_days_in_month[lm - 1]
     start_j = jdatetime.date(ly, lm, 1)
     end_j = jdatetime.date(ly, lm, days)
@@ -559,7 +554,8 @@ def user_profile(request):
             "user": u,
             "today_status": today_status,
             "recent_events": events,
-            "monthly_stats": monthly_stats,
+            "monthly_report": report,
+            "mp_form": mp_form,
             "daily_logs": daily_logs,
             "log_jyear": ly,
             "log_jmonth": lm,
@@ -570,7 +566,7 @@ def user_profile(request):
         },
     )
 
-# ثبت درخواست ویرایش تردد
+# ثبت درخواست اصلاح تردد
 def edit_request(request):
 
     uid = request.session.get("inquiry_user_id")
@@ -614,7 +610,7 @@ def leave_request(request):
         form = LeaveRequestForm(user=u)
     return render(request, "core/leave_request_form.html", {"form": form, "user": u})
 
-# لغو درخواست ویرایش
+# لغو درخواست اصلاح تردد
 def cancel_edit_request(request, pk):
 
     uid = request.session.get("inquiry_user_id")
@@ -626,7 +622,7 @@ def cancel_edit_request(request, pk):
         req.decision_at = _now()
         req.cancelled_by_user = True
         req.save()
-        messages.info(request, "درخواست ویرایش لغو شد.")
+        messages.info(request, "درخواست اصلاح تردد لغو شد.")
     return redirect(reverse("user_profile") + "#edit-requests")
 
 # لغو درخواست مرخصی
@@ -1011,7 +1007,7 @@ def management_dashboard(request):
             "user": req.user,
             "date": jdatetime.date.fromgregorian(date=req.timestamp.date()).strftime("%Y/%m/%d"),
             "type": "edit",
-            "type_label": f"ویرایش تردد ({req.get_log_type_display()})",
+            "type_label": f"اصلاح تردد ({req.get_log_type_display()})",
             "action_url": reverse("edit_requests"),
         })
     for req in pending_leave_objs[:5]:
@@ -1277,7 +1273,7 @@ def suspicious_log_action(request, pk):
 
 @login_required
 @staff_required
-# مدیریت درخواست‌های ویرایش
+# مدیریت اصلاح تردد
 def edit_requests(request):
 
     if not request.session.get("face_verified"):
@@ -1338,7 +1334,7 @@ def edit_requests(request):
 
 @login_required
 @staff_required
-# مدیریت درخواست‌های مرخصی
+# مدیریت مرخصی‌ها
 def leave_requests(request):
 
     if not request.session.get("face_verified"):

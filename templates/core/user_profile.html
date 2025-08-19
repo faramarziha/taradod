@@ -28,8 +28,9 @@
 
   <ul class="tabs">
     <li><a href="#logs" class="tab-link active">مشاهده تردد</a></li>
-    <li><a href="#edit-requests" class="tab-link">درخواست‌های ویرایش</a></li>
-    <li><a href="#leave-requests" class="tab-link">درخواست‌های مرخصی</a></li>
+    <li><a href="#edit-requests" class="tab-link">اصلاح تردد</a></li>
+    <li><a href="#leave-requests" class="tab-link">مرخصی‌ها</a></li>
+    <li><a href="#monthly-performance" class="tab-link">عملکرد ماهانه</a></li>
   </ul>
 
   <div id="logs" class="tab-content active">
@@ -198,6 +199,33 @@
     <div class="profile-actions">
       <a class="btn" href="{% url 'leave_request' %}" style="margin-left:0.5rem;"><i class="fa fa-calendar-plus" style="margin-left:0.4rem;"></i> درخواست جدید</a>
     </div>
+  </div>
+
+  <div id="monthly-performance" class="tab-content">
+    <form method="get" action="#monthly-performance" class="card report-filter" style="margin-top:1rem;">
+      <div class="form-grid">
+        <div>{{ mp_form.year.label_tag }}{{ mp_form.year }}</div>
+        <div>{{ mp_form.month.label_tag }}{{ mp_form.month }}</div>
+      </div>
+      <button type="submit" class="btn">نمایش</button>
+    </form>
+    <div class="dashboard-stats" style="margin-top:1rem;">
+      <div class="dashboard-card"><div class="value">{{ monthly_report.required_hours }}</div><div class="label">ساعات موظفی</div></div>
+      <div class="dashboard-card"><div class="value">{{ monthly_report.present_hours }}</div><div class="label">ساعات حضور</div></div>
+      <div class="dashboard-card"><div class="value">{{ monthly_report.overtime_minutes }}</div><div class="label">اضافه/کسری (دقیقه)</div></div>
+      <div class="dashboard-card"><div class="value">{{ monthly_report.absence_days }}</div><div class="label">روز غیبت</div></div>
+      <div class="dashboard-card"><div class="value">{{ monthly_report.tardy_minutes }}</div><div class="label">دقایق تأخیر</div></div>
+    </div>
+    {% if monthly_report.incomplete_days %}
+    <div class="card" style="margin-top:1rem;">
+      <h4>تردد ناقص</h4>
+      <ul>
+        {% for d in monthly_report.incomplete_days %}
+          <li>{{ d|jformat:"%Y/%m/%d" }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
   </div>
 
   <div class="profile-actions" style="margin-top:1rem;">

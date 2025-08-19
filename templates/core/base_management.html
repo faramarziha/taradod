@@ -29,7 +29,7 @@
           <i class="fas fa-exclamation-triangle"></i> موارد مشکوک
         </a>
         <a href="{% url 'edit_requests' %}" class="{% if request.resolver_match.url_name == 'edit_requests' %}active{% endif %}">
-          <i class="fas fa-edit"></i> درخواست‌های ویرایش
+          <i class="fas fa-edit"></i> اصلاح تردد
         </a>
       <a href="{% url 'leave_requests' %}" class="{% if request.resolver_match.url_name == 'leave_requests' %}active{% endif %}">
         <i class="fas fa-calendar-check"></i> مرخصی‌ها

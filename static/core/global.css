@@ -682,3 +682,43 @@ label {
 @media (max-width: 900px) {
   .request-cards { display: flex; flex-direction: column; gap: 1rem; }
 }
+
+/* Monthly performance dashboard */
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2.4rem;
+}
+
+@media (min-width: 1000px) {
+  .dashboard-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.dashboard-card {
+  background: var(--color-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--color-border);
+  padding: 1rem 0.8rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.dashboard-card .value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+  color: var(--color-primary-dark);
+}
+
+.dashboard-card .label {
+  font-size: 0.9rem;
+  color: var(--color-muted);
+}
+
