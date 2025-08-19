@@ -202,20 +202,30 @@
   </div>
 
   <div id="monthly-performance" class="tab-content">
-    <div class="table-responsive">
-      <table class="management-table">
-        <tbody>
-          <tr><td>دقایق حضور</td><td>{{ monthly_report.present_minutes }}</td></tr>
-          <tr><td>دقایق موظفی</td><td>{{ monthly_report.mandatory_minutes }}</td></tr>
-          <tr><td>ساعت حضور</td><td>{{ monthly_report.present_hours }}</td></tr>
-          <tr><td>ساعت موظفی</td><td>{{ monthly_report.required_hours }}</td></tr>
-          <tr><td>دقایق تأخیر</td><td>{{ monthly_report.tardy_minutes }}</td></tr>
-          <tr><td>دقایق اضافه‌کاری</td><td>{{ monthly_report.overtime_minutes }}</td></tr>
-          <tr><td>روزهای غیبت</td><td>{{ monthly_report.absence_days }}</td></tr>
-          <tr><td>روزهای ناقص</td><td>{% if monthly_report.incomplete_days %}{% for d in monthly_report.incomplete_days %}{{ d|jformat:"%Y/%m/%d" }}{% if not forloop.last %}، {% endif %}{% endfor %}{% else %}-{% endif %}</td></tr>
-        </tbody>
-      </table>
+    <form method="get" action="#monthly-performance" class="card report-filter" style="margin-top:1rem;">
+      <div class="form-grid">
+        <div>{{ mp_form.year.label_tag }}{{ mp_form.year }}</div>
+        <div>{{ mp_form.month.label_tag }}{{ mp_form.month }}</div>
+      </div>
+      <button type="submit" class="btn">نمایش</button>
+    </form>
+    <div class="dashboard-stats" style="margin-top:1rem;">
+      <div class="dashboard-card"><div class="value">{{ monthly_report.required_hours }}</div><div class="label">ساعات موظفی</div></div>
+      <div class="dashboard-card"><div class="value">{{ monthly_report.present_hours }}</div><div class="label">ساعات حضور</div></div>
+      <div class="dashboard-card"><div class="value">{{ monthly_report.overtime_minutes }}</div><div class="label">اضافه/کسری (دقیقه)</div></div>
+      <div class="dashboard-card"><div class="value">{{ monthly_report.absence_days }}</div><div class="label">روز غیبت</div></div>
+      <div class="dashboard-card"><div class="value">{{ monthly_report.tardy_minutes }}</div><div class="label">دقایق تأخیر</div></div>
     </div>
+    {% if monthly_report.incomplete_days %}
+    <div class="card" style="margin-top:1rem;">
+      <h4>تردد ناقص</h4>
+      <ul>
+        {% for d in monthly_report.incomplete_days %}
+          <li>{{ d|jformat:"%Y/%m/%d" }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
   </div>
 
   <div class="profile-actions" style="margin-top:1rem;">

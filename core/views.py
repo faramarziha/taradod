@@ -50,6 +50,7 @@ from core.forms import (
     LeaveTypeForm,
     ReportFilterForm,
     MonthlyPerformanceForm,
+    UserMonthlyPerformanceForm,
 )
 from .models import Device
 
@@ -509,13 +510,21 @@ def user_profile(request):
         msg = f"درخواست اصلاح تردد شما برای {time_str} {r.get_status_display()}."
         events.append({"created_at": r.created_at, "message": msg})
     events = sorted(events, key=lambda x: x["created_at"], reverse=True)[:4]
-
     month_param = request.GET.get("month")
-    if month_param:
+    year_param = request.GET.get("year")
+    t = jdatetime.date.today()
+    if month_param and "-" in month_param:
         ly, lm = [int(x) for x in month_param.split("-")]
     else:
-        t = jdatetime.date.today()
-        ly, lm = t.year, t.month
+        try:
+            ly = int(year_param) if year_param else t.year
+        except ValueError:
+            ly = t.year
+        try:
+            lm = int(month_param) if month_param and "-" not in month_param else t.month
+        except ValueError:
+            lm = t.month
+    mp_form = UserMonthlyPerformanceForm(initial={"year": ly, "month": lm})
     report, _ = _calculate_monthly_performance(u, ly, lm)
     days = jdatetime.j_days_in_month[lm - 1]
     start_j = jdatetime.date(ly, lm, 1)
@@ -553,6 +562,7 @@ def user_profile(request):
             "today_status": today_status,
             "recent_events": events,
             "monthly_report": report,
+            "mp_form": mp_form,
             "daily_logs": daily_logs,
             "log_jyear": ly,
             "log_jmonth": lm,
