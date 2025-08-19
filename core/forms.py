@@ -392,12 +392,3 @@ class MonthlyPerformanceForm(forms.Form):
         (12, "اسفند"),
     ]
     month = forms.ChoiceField(label="ماه", choices=MONTH_CHOICES, initial=jdatetime.date.today().month)
-
-# فرم عملکرد ماهانه برای کاربر
-class UserMonthlyPerformanceForm(forms.Form):
-    year = forms.IntegerField(label="سال", initial=jdatetime.date.today().year)
-    month = forms.ChoiceField(
-        label="ماه",
-        choices=MonthlyPerformanceForm.MONTH_CHOICES,
-        initial=jdatetime.date.today().month,
-    )

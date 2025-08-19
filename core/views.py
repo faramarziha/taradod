@@ -50,7 +50,6 @@ from core.forms import (
     LeaveTypeForm,
     ReportFilterForm,
     MonthlyPerformanceForm,
-    UserMonthlyPerformanceForm,
 )
 from .models import Device
 
@@ -510,21 +509,15 @@ def user_profile(request):
         msg = f"درخواست اصلاح تردد شما برای {time_str} {r.get_status_display()}."
         events.append({"created_at": r.created_at, "message": msg})
     events = sorted(events, key=lambda x: x["created_at"], reverse=True)[:4]
-    month_param = request.GET.get("month")
-    year_param = request.GET.get("year")
     t = jdatetime.date.today()
-    if month_param and "-" in month_param:
-        ly, lm = [int(x) for x in month_param.split("-")]
+    mp_form = MonthlyPerformanceForm(request.GET or None, initial={"year": t.year, "month": t.month})
+    mp_form.fields.pop("user", None)
+    if mp_form.is_bound and mp_form.is_valid():
+        ly = mp_form.cleaned_data["year"]
+        lm = int(mp_form.cleaned_data["month"])
     else:
-        try:
-            ly = int(year_param) if year_param else t.year
-        except ValueError:
-            ly = t.year
-        try:
-            lm = int(month_param) if month_param and "-" not in month_param else t.month
-        except ValueError:
-            lm = t.month
-    mp_form = UserMonthlyPerformanceForm(initial={"year": ly, "month": lm})
+        ly = t.year
+        lm = t.month
     report, _ = _calculate_monthly_performance(u, ly, lm)
     days = jdatetime.j_days_in_month[lm - 1]
     start_j = jdatetime.date(ly, lm, 1)
