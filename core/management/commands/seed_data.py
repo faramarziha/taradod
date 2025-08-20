@@ -20,7 +20,9 @@ class Command(BaseCommand):
     help = "Seed database with fake data for testing"
 
     def handle(self, *args, **options):
+        random.seed(0)
         fake = Faker("fa_IR")
+        fake.seed_instance(0)
         self.create_weekly_holidays()
         shifts = self.create_shifts()
         groups = self.create_groups(shifts)
@@ -166,7 +168,7 @@ class Command(BaseCommand):
                 user=user,
                 start_date=leave_day,
                 end_date=leave_day,
-                status="approved",
+                status="pending",
                 leave_type=random.choice(leave_types),
             )
 
