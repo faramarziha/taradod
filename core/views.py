@@ -58,27 +58,7 @@ LIVENESS_MOVEMENT_THRESHOLD = 0.08
 MATCH_SAVE_DISTANCE = 0.6
 
 User = get_user_model()
-
-# زمان فعلی بدون منطقه
-def _now():
-    return timezone.now().replace(tzinfo=None)
-
-# حذف منطقه زمانی از تاریخ
-def _to_naive(dt):
-    return dt.replace(tzinfo=None) if dt and dt.tzinfo is not None else dt
-
-# تعیین شیفت کاربر در صورت وجود
-def _get_user_shift(user):
-
-    if getattr(user, "shift", None):
-        return user.shift
-    if getattr(user, "group", None) and user.group and user.group.shift:
-        return user.group.shift
-    return None
-def _weekday_index(date):
-
-    # تبدیل اندیس هفته به فرمت مورد نیاز
-    return (date.weekday() + 2) % 7
+staff_required = user_passes_test(lambda u: u.is_staff)
 
 # محاسبه عملکرد ماهانه کاربر
 def _calculate_monthly_performance(user, year, month):
@@ -261,16 +241,40 @@ def _get_face_encoding_from_base64(data_url: str):
         print("Face encode error:", e)
         return None
 
+# تعیین شیفت کاربر در صورت وجود
+def _get_user_shift(user):
+
+    if getattr(user, "shift", None):
+        return user.shift
+    if getattr(user, "group", None) and user.group and user.group.shift:
+        return user.group.shift
+    return None
+
+# زمان فعلی بدون منطقه
+def _now():
+    return timezone.now().replace(tzinfo=None)
+
+# حذف منطقه زمانی از تاریخ
+def _to_naive(dt):
+    return dt.replace(tzinfo=None) if dt and dt.tzinfo is not None else dt
+
+def _weekday_index(date):
+
+    # تبدیل اندیس هفته به فرمت مورد نیاز
+    return (date.weekday() + 2) % 7
+
 class ManagementLoginView(LoginView):
     template_name = "core/management_login.html"
     redirect_authenticated_user = True
-    def get_success_url(self):
 
+    def get_success_url(self):
         return reverse("management_face_check")
+
 
 class DeviceLoginView(LoginView):
     template_name = "core/device_login.html"
     redirect_authenticated_user = False
+
     def form_valid(self, form):
         user = form.get_user()
         if not user.is_staff:
@@ -279,23 +283,145 @@ class DeviceLoginView(LoginView):
         login(self.request, user)
         return redirect("device_face_check")
 
-# صفحه اصلی
-def home(request):
-    return render(request, "core/home.html")
-
-# تأیید چهره مدیر برای دستگاه
 @login_required
-@user_passes_test(lambda u: u.is_staff)
-def device_face_check(request):
-    if request.user.face_encoding is None:
-        return render(request, "core/register_face.html")
-    return render(request, "core/device_face_check.html")
+@staff_required
+# افزودن مرخصی دستی
+def add_leave(request):
 
-# صفحه ثبت تردد
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    if request.method == "POST":
+        form = ManualLeaveForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "مرخصی ثبت شد.")
+            return redirect("leave_requests")
+    else:
+        form = ManualLeaveForm()
+    return render(request, "core/manual_leave_form.html", {
+        'active_tab': 'leave_requests',
+        'form': form,
+    })
+
 @login_required
-def device_page(request):
+@staff_required
+# افزودن تردد دستی
+def add_log(request):
 
-    return render(request, "core/device.html")
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    if request.method == "POST":
+        form = ManualLogForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "تردد ثبت شد.")
+            return redirect("edit_requests")
+    else:
+        form = ManualLogForm()
+    return render(request, "core/manual_log_form.html", {
+        "active_tab": "edit_requests",
+        "form": form,
+    })
+
+@login_required
+@staff_required
+# پروفایل کارمند برای مدیریت
+def admin_user_profile(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+
+    user_obj = get_object_or_404(User, pk=pk)
+
+    if request.method == "POST":
+        form = CustomUserSimpleForm(request.POST, request.FILES, instance=user_obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "اطلاعات کارمند به‌روز شد.")
+            return redirect("admin_user_profile", pk=pk)
+    else:
+        form = CustomUserSimpleForm(instance=user_obj)
+
+    month_param = request.GET.get("month")
+    if month_param:
+        ly, lm = [int(x) for x in month_param.split("-")]
+    else:
+        t = jdatetime.date.today()
+        ly, lm = t.year, t.month
+    days = jdatetime.j_days_in_month[lm - 1]
+    start_g = jdatetime.date(ly, lm, 1).togregorian()
+    end_g = jdatetime.date(ly, lm, days).togregorian()
+    qs = AttendanceLog.objects.filter(
+        user=user_obj, timestamp__date__range=(start_g, end_g)
+    ).order_by("timestamp")
+    daily_logs = {d: {"in": None, "out": None} for d in range(1, days + 1)}
+    for log in qs:
+        jd = jdatetime.date.fromgregorian(date=log.timestamp.date())
+        info = daily_logs.get(jd.day)
+        if log.log_type == "in" and info["in"] is None:
+            info["in"] = log.timestamp.time()
+        if log.log_type == "out":
+            info["out"] = log.timestamp.time()
+    prev_m = (jdatetime.date(ly, lm, 1) - jdatetime.timedelta(days=1))
+    next_m = (jdatetime.date(ly, lm, days) + jdatetime.timedelta(days=1))
+
+    requests_form = UserLogsRangeForm(request.GET or None, prefix="req")
+    edit_requests = EditRequest.objects.filter(user=user_obj).order_by("-created_at")
+    leave_requests = LeaveRequest.objects.filter(user=user_obj).order_by("-created_at")
+    if requests_form.is_valid():
+        sd = requests_form.cleaned_data.get("start_g")
+        ed = requests_form.cleaned_data.get("end_g")
+        if sd and ed:
+            edit_requests = edit_requests.filter(
+                created_at__date__gte=sd, created_at__date__lte=ed
+            )
+            leave_requests = leave_requests.filter(
+                created_at__date__gte=sd, created_at__date__lte=ed
+            )
+
+    return render(
+        request,
+        "core/admin_user_profile.html",
+        {
+            "user_obj": user_obj,
+            "form": form,
+            "requests_form": requests_form,
+            "edit_requests": edit_requests,
+            "leave_requests": leave_requests,
+            "daily_logs": daily_logs,
+            "log_jyear": ly,
+            "log_jmonth": lm,
+            "prev_month": f"{prev_m.year}-{prev_m.month:02d}",
+            "next_month": f"{next_m.year}-{next_m.month:02d}",
+        },
+    )
+
+@login_required
+@staff_required
+# API وضعیت حضور و غیاب
+def api_attendance_status(request):
+
+    form = AttendanceStatusForm(request.GET or None)
+    if form.is_valid() and form.cleaned_data.get("date"):
+        target_date = form.cleaned_data["date"].togregorian()
+    else:
+        target_date = _now().date()
+
+    holiday = WeeklyHoliday.objects.filter(weekday=_weekday_index(target_date)).exists()
+    if holiday:
+        present_users = leave_users = absent_users = []
+    else:
+        present_ids = AttendanceLog.objects.filter(timestamp__date=target_date).values_list('user_id', flat=True).distinct()
+        leave_ids = LeaveRequest.objects.filter(start_date__lte=target_date, end_date__gte=target_date).values_list('user_id', flat=True).distinct()
+        present_users = User.objects.filter(id__in=present_ids)
+        leave_users = User.objects.filter(id__in=leave_ids)
+        absent_users = User.objects.filter(is_active=True).exclude(id__in=present_ids).exclude(id__in=leave_ids)
+
+    data = {
+        'present': [{'id': u.id, 'name': u.get_full_name(), 'code': u.personnel_code} for u in present_users],
+        'absent': [{'id': u.id, 'name': u.get_full_name(), 'code': u.personnel_code} for u in absent_users],
+        'leave': [{'id': u.id, 'name': u.get_full_name(), 'code': u.personnel_code} for u in leave_users],
+    }
+    return JsonResponse(data)
 
 # API بررسی چهره در دستگاه
 @require_POST
@@ -331,6 +457,84 @@ def api_device_verify_face(request):
     except Exception as e:
         print("Device verify error:", e)
         return JsonResponse({"success": False, "error": "خطا در پردازش تصویر."})
+
+@csrf_exempt
+@login_required
+@staff_required
+# API تأیید چهره مدیر
+def api_management_verify_face(request):
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "درخواست نامعتبر."})
+    try:
+        data = json.loads(request.body)
+    except Exception as e:
+        print("Management verify decode error:", e)
+        return JsonResponse({"success": False, "error": "خطا در پردازش تصویر."})
+
+    img1 = data.get("image1")
+    img2 = data.get("image2")
+    if not img1 or not img2:
+        return JsonResponse({"success": False, "error": "ارسال ناقص تصاویر."})
+
+    enc1 = _get_face_encoding_from_base64(img1)
+    enc2 = _get_face_encoding_from_base64(img2)
+    if enc1 is None or enc2 is None:
+        return JsonResponse({"success": False, "error": "چهره‌ای شناسایی نشد."})
+
+    movement = np.linalg.norm(enc1 - enc2)
+    if movement < LIVENESS_MOVEMENT_THRESHOLD:
+        return JsonResponse({"success": False, "error": "حرکت تشخیص داده نشد."})
+
+    enc = (enc1 + enc2) / 2
+    if request.user.face_encoding is None:
+        return JsonResponse({"success": False, "error": "چهره مدیر ثبت نشده."})
+
+    known = np.frombuffer(request.user.face_encoding, dtype=np.float64)
+    distance = np.linalg.norm(known - enc)
+    if distance < FACE_DISTANCE_THRESHOLD:
+        request.session["face_verified"] = True
+        return JsonResponse({"success": True})
+    return JsonResponse({"success": False, "error": "چهره مطابقت نداشت."})
+
+@require_POST
+@login_required
+# API ثبت چهره کاربر
+def api_register_face(request):
+
+    img1 = request.POST.get("image1")
+    img2 = request.POST.get("image2")
+    if not img1 or not img2:
+        return JsonResponse({"ok": False, "msg": "ارسال ناقص تصاویر."})
+
+    enc1 = _get_face_encoding_from_base64(img1)
+    enc2 = _get_face_encoding_from_base64(img2)
+    if enc1 is None or enc2 is None:
+        return JsonResponse({"ok": False, "msg": "چهره واضح نیست."})
+
+    movement = np.linalg.norm(enc1 - enc2)
+    if movement < LIVENESS_MOVEMENT_THRESHOLD:
+        return JsonResponse({"ok": False, "msg": "حرکت تشخیص داده نشد."})
+
+    enc = (enc1 + enc2) / 2
+    data_url = img1
+
+    request.user.face_encoding = enc.tobytes()
+
+    try:
+        if "," in data_url:
+            header, b64data = data_url.split(",", 1)
+            fmt = header.split(";")[0].split("/")[1]
+        else:
+            b64data = data_url
+            fmt = "png"
+        img_data = base64.b64decode(b64data)
+        filename = f"{request.user.username}_face.{fmt}"
+        request.user.face_image.save(filename, ContentFile(img_data), save=False)
+    except Exception as e:
+        print("Save face image error:", e)
+
+    request.user.save()
+    return JsonResponse({"ok": True, "redirect": reverse("management_dashboard")})
 
 # API ثبت تردد با تشخیص چهره
 @csrf_exempt
@@ -412,191 +616,43 @@ def api_verify_face(request):
         print("Verify face error:", e)
         return JsonResponse({"ok": False, "msg": "خطا در پردازش تصویر. لطفاً دوباره تلاش کنید."})
 
-@require_POST
 @login_required
-# API ثبت چهره کاربر
-def api_register_face(request):
+@staff_required
+# وضعیت حضور و غیاب در روز
+def attendance_status(request):
 
-    img1 = request.POST.get("image1")
-    img2 = request.POST.get("image2")
-    if not img1 or not img2:
-        return JsonResponse({"ok": False, "msg": "ارسال ناقص تصاویر."})
-
-    enc1 = _get_face_encoding_from_base64(img1)
-    enc2 = _get_face_encoding_from_base64(img2)
-    if enc1 is None or enc2 is None:
-        return JsonResponse({"ok": False, "msg": "چهره واضح نیست."})
-
-    movement = np.linalg.norm(enc1 - enc2)
-    if movement < LIVENESS_MOVEMENT_THRESHOLD:
-        return JsonResponse({"ok": False, "msg": "حرکت تشخیص داده نشد."})
-
-    enc = (enc1 + enc2) / 2
-    data_url = img1
-
-    request.user.face_encoding = enc.tobytes()
-
-    try:
-        if "," in data_url:
-            header, b64data = data_url.split(",", 1)
-            fmt = header.split(";")[0].split("/")[1]
-        else:
-            b64data = data_url
-            fmt = "png"
-        img_data = base64.b64decode(b64data)
-        filename = f"{request.user.username}_face.{fmt}"
-        request.user.face_image.save(filename, ContentFile(img_data), save=False)
-    except Exception as e:
-        print("Save face image error:", e)
-
-    request.user.save()
-    return JsonResponse({"ok": True, "redirect": reverse("management_dashboard")})
-
-# فرم استعلام کاربر
-def user_inquiry(request):
-    if request.method == "POST":
-        form = InquiryForm(request.POST)
-        if form.is_valid():
-            cd = form.cleaned_data
-            try:
-                u = User.objects.get(
-                    personnel_code=cd["personnel_code"],
-                    national_id=cd["national_id"]
-                )
-            except User.DoesNotExist:
-                form.add_error(None, "اطلاعات معتبر نیست")
-            else:
-                request.session["inquiry_user_id"] = u.id
-                return redirect("user_profile")
+    if request.GET:
+        form = AttendanceStatusForm(request.GET)
     else:
-        form = InquiryForm()
-    return render(request, "core/user_inquiry.html", {"form": form})
-
-# نمایش پروفایل کاربر
-def user_profile(request):
-    uid = request.session.get("inquiry_user_id")
-    if not uid:
-        return redirect("user_inquiry")
-    u = get_object_or_404(User, id=uid)
-    today = _now().date()
-
-    status = "holiday"
-    first_in = None
-    if not WeeklyHoliday.objects.filter(weekday=_weekday_index(today)).exists():
-        logs = AttendanceLog.objects.filter(user=u, timestamp__date=today).order_by("timestamp")
-        if logs.exists():
-            status = "present"
-            first_in = logs.first().timestamp.time()
-        elif LeaveRequest.objects.filter(
-            user=u,
-            status="approved",
-            start_date__lte=today,
-            end_date__gte=today,
-        ).exists():
-            status = "leave"
-        else:
-            status = "absent"
-    today_status = {"status": status, "first_in": first_in}
-
-    t = jdatetime.date.today()
-    mp_form = MonthlyPerformanceForm(request.GET or None, initial={"year": t.year, "month": t.month})
-    mp_form.fields.pop("user", None)
-    if mp_form.is_bound and mp_form.is_valid():
-        ly = mp_form.cleaned_data["year"]
-        lm = int(mp_form.cleaned_data["month"])
+        form = AttendanceStatusForm(initial={'date': jdatetime.date.today()})
+    if form.is_valid() and form.cleaned_data.get("date"):
+        target_date = form.cleaned_data["date"].togregorian()
     else:
-        ly = t.year
-        lm = t.month
-    report, _ = _calculate_monthly_performance(u, ly, lm)
-    days = jdatetime.j_days_in_month[lm - 1]
-    start_j = jdatetime.date(ly, lm, 1)
-    end_j = jdatetime.date(ly, lm, days)
-    today_j = jdatetime.date.today()
-    if ly == today_j.year and lm == today_j.month:
-        days = today_j.day
-        end_j = today_j
-    start_g = start_j.togregorian()
-    end_g = end_j.togregorian()
-    start_dt = datetime.combine(start_g, time.min)
-    end_dt = datetime.combine(end_g + timedelta(days=1), time.min)
-    qs = AttendanceLog.objects.filter(
-        user=u, timestamp__gte=start_dt, timestamp__lt=end_dt
-    ).order_by("timestamp")
-    daily_logs = {d: {"in": None, "out": None} for d in range(1, days + 1)}
-    for log in qs:
-        jd = jdatetime.date.fromgregorian(date=log.timestamp.date())
-        info = daily_logs.get(jd.day)
-        if log.log_type == "in" and info["in"] is None:
-            info["in"] = log.timestamp.time()
-        if log.log_type == "out":
-            info["out"] = log.timestamp.time()
-    prev_m = (start_j - jdatetime.timedelta(days=1))
-    next_m = (end_j + jdatetime.timedelta(days=1))
+        target_date = _now().date()
 
-    edit_requests = EditRequest.objects.filter(user=u).order_by("-created_at")
-    leave_requests = LeaveRequest.objects.select_related("leave_type").filter(user=u).order_by("-created_at")
-
-    return render(
-        request,
-        "core/user_profile.html",
-        {
-            "user": u,
-            "today_status": today_status,
-            "monthly_report": report,
-            "mp_form": mp_form,
-            "daily_logs": daily_logs,
-            "log_jyear": ly,
-            "log_jmonth": lm,
-            "prev_month": f"{prev_m.year}-{prev_m.month:02d}",
-            "next_month": f"{next_m.year}-{next_m.month:02d}",
-            "edit_requests": edit_requests,
-            "leave_requests": leave_requests,
-        },
-    )
-
-# ثبت درخواست اصلاح تردد
-def edit_request(request):
-
-    uid = request.session.get("inquiry_user_id")
-    if not uid:
-        return redirect("user_inquiry")
-    u = get_object_or_404(User, id=uid)
-    if request.method == "POST":
-        form = EditRequestForm(request.POST, user=u)
-        if form.is_valid():
-            obj = form.save(commit=False)
-            obj.timestamp = _to_naive(obj.timestamp)
-            obj.save()
-            messages.success(request, "درخواست شما ثبت شد و در انتظار تأیید است.")
-            return redirect(reverse("user_profile") + "#edit-requests")
+    holiday = WeeklyHoliday.objects.filter(weekday=_weekday_index(target_date)).exists()
+    if holiday:
+        present_users = leave_users = absent_users = User.objects.none()
     else:
-        form = EditRequestForm(user=u)
-    return render(request, "core/edit_request_form.html", {"form": form, "user": u})
+        present_ids = AttendanceLog.objects.filter(timestamp__date=target_date).values_list('user_id', flat=True).distinct()
+        leave_ids = LeaveRequest.objects.filter(start_date__lte=target_date, end_date__gte=target_date).values_list('user_id', flat=True).distinct()
+        present_users = User.objects.filter(id__in=present_ids)
+        leave_users = User.objects.filter(id__in=leave_ids)
+        absent_users = User.objects.filter(is_active=True).exclude(id__in=present_ids).exclude(id__in=leave_ids)
 
-# ثبت درخواست مرخصی
-def leave_request(request):
-    uid = request.session.get("inquiry_user_id")
-    if not uid:
-        return redirect("user_inquiry")
-    u = get_object_or_404(User, id=uid)
-    if request.method == "POST":
-        form = LeaveRequestForm(request.POST, user=u)
-        if "confirm" in request.POST:
-            if form.is_valid():
-                obj = form.save(commit=False)
-                obj.save()
-                messages.success(request, "درخواست مرخصی ثبت شد.")
-                return redirect(reverse("user_profile") + "#leave-requests")
-        else:
-            if form.is_valid():
-                return render(
-                    request,
-                    "core/leave_request_confirm.html",
-                    {"form": form, "user": u, "end_date": form.cleaned_data["end_jalali"]},
-                )
-    else:
-        form = LeaveRequestForm(user=u)
-    return render(request, "core/leave_request_form.html", {"form": form, "user": u})
+    jdate = jdatetime.date.fromgregorian(date=target_date)
+
+    context = {
+        'active_tab': 'attendance_status',
+        'present_users': present_users,
+        'absent_users': absent_users,
+        'leave_users': leave_users,
+        'jdate': jdate.strftime('%Y/%m/%d'),
+        'realtime': target_date == _now().date(),
+        'form': form,
+        'holiday': holiday,
+    }
+    return render(request, 'core/attendance_status.html', context)
 
 # لغو درخواست اصلاح تردد
 def cancel_edit_request(request, pk):
@@ -628,293 +684,290 @@ def cancel_leave_request(request, pk):
         messages.info(request, "درخواست مرخصی لغو شد.")
     return redirect(reverse("user_profile") + "#leave-requests")
 
-staff_required = user_passes_test(lambda u: u.is_staff)
-
+# تأیید چهره مدیر برای دستگاه
 @login_required
-@staff_required
-# صفحه تأیید چهره مدیر
-def management_face_check(request):
-
+@user_passes_test(lambda u: u.is_staff)
+def device_face_check(request):
     if request.user.face_encoding is None:
         return render(request, "core/register_face.html")
-    return render(request, "core/management_face_check.html")
+    return render(request, "core/device_face_check.html")
 
-@csrf_exempt
+# صفحه ثبت تردد
 @login_required
-@staff_required
-# API تأیید چهره مدیر
-def api_management_verify_face(request):
-    if request.method != "POST":
-        return JsonResponse({"success": False, "error": "درخواست نامعتبر."})
-    try:
-        data = json.loads(request.body)
-    except Exception as e:
-        print("Management verify decode error:", e)
-        return JsonResponse({"success": False, "error": "خطا در پردازش تصویر."})
+def device_page(request):
 
-    img1 = data.get("image1")
-    img2 = data.get("image2")
-    if not img1 or not img2:
-        return JsonResponse({"success": False, "error": "ارسال ناقص تصاویر."})
-
-    enc1 = _get_face_encoding_from_base64(img1)
-    enc2 = _get_face_encoding_from_base64(img2)
-    if enc1 is None or enc2 is None:
-        return JsonResponse({"success": False, "error": "چهره‌ای شناسایی نشد."})
-
-    movement = np.linalg.norm(enc1 - enc2)
-    if movement < LIVENESS_MOVEMENT_THRESHOLD:
-        return JsonResponse({"success": False, "error": "حرکت تشخیص داده نشد."})
-
-    enc = (enc1 + enc2) / 2
-    if request.user.face_encoding is None:
-        return JsonResponse({"success": False, "error": "چهره مدیر ثبت نشده."})
-
-    known = np.frombuffer(request.user.face_encoding, dtype=np.float64)
-    distance = np.linalg.norm(known - enc)
-    if distance < FACE_DISTANCE_THRESHOLD:
-        request.session["face_verified"] = True
-        return JsonResponse({"success": True})
-    return JsonResponse({"success": False, "error": "چهره مطابقت نداشت."})
+    return render(request, "core/device.html")
 
 @login_required
 @staff_required
-# مدیریت کارکنان
-def management_users(request):
+# تنظیمات دستگاه
+def device_settings(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    device, _ = Device.objects.get_or_create(id=1, defaults={"name": "Main device"})
+    if request.method == "POST" and device.online:
+        action = request.POST.get('action')
+        device.is_active = action != 'deactivate'
+        device.save(update_fields=['is_active'])
+        return redirect('device_settings')
+    return render(request, 'core/device_settings.html', {'device': device, 'active_tab': 'settings'})
+
+# ثبت درخواست اصلاح تردد
+def edit_request(request):
+
+    uid = request.session.get("inquiry_user_id")
+    if not uid:
+        return redirect("user_inquiry")
+    u = get_object_or_404(User, id=uid)
+    if request.method == "POST":
+        form = EditRequestForm(request.POST, user=u)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.timestamp = _to_naive(obj.timestamp)
+            obj.save()
+            messages.success(request, "درخواست شما ثبت شد و در انتظار تأیید است.")
+            return redirect(reverse("user_profile") + "#edit-requests")
+    else:
+        form = EditRequestForm(user=u)
+    return render(request, "core/edit_request_form.html", {"form": form, "user": u})
+
+@login_required
+@staff_required
+# مدیریت اصلاح تردد
+def edit_requests(request):
 
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
-
     if request.method == "POST":
-        action = request.POST.get("bulk_action")
-        selected_ids = request.POST.getlist("selected_users")
-        if action and selected_ids:
-            qs = User.objects.filter(id__in=selected_ids)
-            if action == "deactivate":
-                qs.update(is_active=False)
-                messages.success(request, "کارکنان انتخاب‌شده غیرفعال شدند.")
-            elif action == "assign_group":
-                group_id = request.POST.get("group")
-                if group_id:
-                    qs.update(group_id=group_id)
-                    messages.success(request, "گروه کارکنان به‌روزرسانی شد.")
-            elif action == "assign_shift":
-                shift_id = request.POST.get("shift")
-                if shift_id:
-                    qs.update(shift_id=shift_id)
-                    messages.success(request, "شیفت کارکنان به‌روزرسانی شد.")
-            elif action == "delete":
-                qs.delete()
-                messages.success(request, "کارکنان انتخاب‌شده حذف شدند.")
-        return redirect("management_users")
+        req = get_object_or_404(EditRequest, id=request.POST.get("req_id"))
+        if req.status == "pending":
+            action = request.POST.get("action")
+            note = request.POST.get("manager_note", "")
+            if action == "approve":
+                AttendanceLog.objects.create(
+                    user=req.user,
+                    timestamp=_to_naive(req.timestamp),
+                    log_type=req.log_type,
+                    source="manager",
+                )
+                req.status = "approved"
+                req.decision_at = _now()
+                req.manager_note = note
+                req.save()
+                messages.success(request, "درخواست تأیید شد.")
+            elif action == "reject":
+                req.status = "rejected"
+                req.decision_at = _now()
+                req.manager_note = note
+                req.save()
+                messages.info(request, "درخواست رد شد.")
+            elif action == "cancel":
+                req.status = "cancelled"
+                req.decision_at = _now()
+                req.manager_note = note
+                req.save()
+                messages.info(request, "درخواست لغو شد.")
+        next_url = request.POST.get("next")
+        if next_url:
+            return redirect(next_url)
+        return redirect("edit_requests")
+    group_id = request.GET.get("group")
+    shift_id = request.GET.get("shift")
 
-    users = User.objects.all().select_related("group", "shift")
-
-    q = request.GET.get("q")
-    status = request.GET.get("status")
-    group = request.GET.get("group")
-    shift = request.GET.get("shift")
-    face = request.GET.get("face")
-
-    if q:
-        users = users.filter(
-            Q(first_name__icontains=q)
-            | Q(last_name__icontains=q)
-            | Q(personnel_code__icontains=q)
-        )
-    if status == "active":
-        users = users.filter(is_active=True)
-    elif status == "inactive":
-        users = users.filter(is_active=False)
-    if group:
-        users = users.filter(group_id=group)
-    if shift:
-        users = users.filter(shift_id=shift)
-    if face == "with":
-        users = users.filter(face_encoding__isnull=False)
-    elif face == "without":
-        users = users.filter(face_encoding__isnull=True)
-
-    ctx = {
-        "users": users,
-        "groups": Group.objects.all(),
-        "shifts": Shift.objects.all(),
-    }
-    return render(request, "core/management_users.html", ctx)
-
-@login_required
-@staff_required
-# افزودن کارمند جدید
-def user_add(request):
-    if request.method == "POST":
-        form = CustomUserSimpleForm(request.POST, request.FILES)
-        if form.is_valid():
-            user = form.save(commit=False)
-
-            user.set_password(secrets.token_urlsafe(16))
-            user.save()
-            messages.success(request, "کارمند جدید اضافه شد.")
-            return redirect("register_face_page_for_user", user_id=user.pk)
-    else:
-        form = CustomUserSimpleForm()
-    return render(request, "core/user_form.html", {"form": form, "title": "افزودن کارمند جدید"})
-
-@login_required
-@staff_required
-# ویرایش کارمند
-def user_update(request, pk):
-    obj = get_object_or_404(User, pk=pk)
-    if request.method == "POST":
-        form = CustomUserSimpleForm(request.POST, request.FILES, instance=obj)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "کارمند ویرایش شد.")
-            return redirect("management_users")
-    else:
-        form = CustomUserSimpleForm(instance=obj)
-    return render(request, "core/user_form.html", {"form": form, "title": "ویرایش کارمند"})
-
-@login_required
-@staff_required
-@require_POST
-# حذف کارمند
-def user_delete(request, pk):
-    obj = get_object_or_404(User, pk=pk)
-    if obj == request.user:
-        messages.error(request, "نمی‌توانید خودتان را حذف کنید.")
-    else:
-        obj.delete()
-        messages.success(request, "حذف موفق.")
-    return redirect("management_users")
-
-@login_required
-@staff_required
-# پروفایل کارمند برای مدیریت
-def admin_user_profile(request, pk):
-    if not request.session.get("face_verified"):
-        return redirect("management_face_check")
-
-    user_obj = get_object_or_404(User, pk=pk)
-
-    if request.method == "POST":
-        form = CustomUserSimpleForm(request.POST, request.FILES, instance=user_obj)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "اطلاعات کارمند به‌روز شد.")
-            return redirect("admin_user_profile", pk=pk)
-    else:
-        form = CustomUserSimpleForm(instance=user_obj)
-
-    month_param = request.GET.get("month")
-    if month_param:
-        ly, lm = [int(x) for x in month_param.split("-")]
-    else:
-        t = jdatetime.date.today()
-        ly, lm = t.year, t.month
-    days = jdatetime.j_days_in_month[lm - 1]
-    start_g = jdatetime.date(ly, lm, 1).togregorian()
-    end_g = jdatetime.date(ly, lm, days).togregorian()
-    qs = AttendanceLog.objects.filter(
-        user=user_obj, timestamp__date__range=(start_g, end_g)
-    ).order_by("timestamp")
-    daily_logs = {d: {"in": None, "out": None} for d in range(1, days + 1)}
-    for log in qs:
-        jd = jdatetime.date.fromgregorian(date=log.timestamp.date())
-        info = daily_logs.get(jd.day)
-        if log.log_type == "in" and info["in"] is None:
-            info["in"] = log.timestamp.time()
-        if log.log_type == "out":
-            info["out"] = log.timestamp.time()
-    prev_m = (jdatetime.date(ly, lm, 1) - jdatetime.timedelta(days=1))
-    next_m = (jdatetime.date(ly, lm, days) + jdatetime.timedelta(days=1))
-
-    requests_form = UserLogsRangeForm(request.GET or None, prefix="req")
-    edit_requests = EditRequest.objects.filter(user=user_obj).order_by("-created_at")
-    leave_requests = LeaveRequest.objects.filter(user=user_obj).order_by("-created_at")
-    if requests_form.is_valid():
-        sd = requests_form.cleaned_data.get("start_g")
-        ed = requests_form.cleaned_data.get("end_g")
-        if sd and ed:
-            edit_requests = edit_requests.filter(
-                created_at__date__gte=sd, created_at__date__lte=ed
-            )
-            leave_requests = leave_requests.filter(
-                created_at__date__gte=sd, created_at__date__lte=ed
-            )
-
+    requests = EditRequest.objects.select_related("user").filter(cancelled_by_user=False).order_by("-created_at")
+    if group_id:
+        requests = requests.filter(user__group_id=group_id)
+    if shift_id:
+        requests = requests.filter(user__shift_id=shift_id)
     return render(
         request,
-        "core/admin_user_profile.html",
+        "core/edit_requests.html",
         {
-            "user_obj": user_obj,
-            "form": form,
-            "requests_form": requests_form,
-            "edit_requests": edit_requests,
-            "leave_requests": leave_requests,
-            "daily_logs": daily_logs,
-            "log_jyear": ly,
-            "log_jmonth": lm,
-            "prev_month": f"{prev_m.year}-{prev_m.month:02d}",
-            "next_month": f"{next_m.year}-{next_m.month:02d}",
+            "active_tab": "edit_requests",
+            "requests": requests,
+            "groups": Group.objects.all(),
+            "shifts": Shift.objects.all(),
+            "selected_group": group_id,
+            "selected_shift": shift_id,
         },
     )
 
 @require_POST
 @login_required
 @staff_required
-# حذف چهره ثبت‌شده کاربر
-def user_face_delete(request, pk):
-    user_obj = get_object_or_404(User, pk=pk)
-    user_obj.face_encoding = None
-    if user_obj.face_image:
-        user_obj.face_image.delete(save=False)
-    user_obj.face_image = None
-    user_obj.save()
-    messages.success(request, "چهره کارمند حذف شد.")
-    return redirect("admin_user_profile", pk=pk)
+# حذف گروه
+def group_delete(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    grp = get_object_or_404(Group, pk=pk)
+    grp.delete()
+    messages.success(request, "حذف شد.")
+    return redirect("group_list")
 
 @login_required
 @staff_required
-# صفحه ثبت چهره برای کارمند
-def register_face_page_for_user(request, user_id):
-    target = get_object_or_404(User, id=user_id)
-    return render(request, "core/register_face_for_user.html", {"user_to_register": target})
+# افزودن یا ویرایش گروه
+def group_edit(request, pk=None):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    instance = Group.objects.filter(pk=pk).first()
+    if request.method == "POST":
+        form = GroupForm(request.POST, instance=instance)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "گروه ذخیره شد.")
+            return redirect("group_list")
+    else:
+        form = GroupForm(instance=instance)
+    return render(request, "core/group_form.html", {"form": form, "active_tab": "settings"})
+
+@login_required
+@staff_required
+# لیست گروه‌ها
+def group_list(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    groups = (
+        Group.objects.select_related("shift")
+        .annotate(user_count=Count("customuser"))
+        .all()
+    )
+    return render(
+        request,
+        "core/group_list.html",
+        {"groups": groups, "active_tab": "settings"},
+    )
+
+# صفحه اصلی
+def home(request):
+    return render(request, "core/home.html")
+
+# ثبت درخواست مرخصی
+def leave_request(request):
+    uid = request.session.get("inquiry_user_id")
+    if not uid:
+        return redirect("user_inquiry")
+    u = get_object_or_404(User, id=uid)
+    if request.method == "POST":
+        form = LeaveRequestForm(request.POST, user=u)
+        if "confirm" in request.POST:
+            if form.is_valid():
+                obj = form.save(commit=False)
+                obj.save()
+                messages.success(request, "درخواست مرخصی ثبت شد.")
+                return redirect(reverse("user_profile") + "#leave-requests")
+        else:
+            if form.is_valid():
+                return render(
+                    request,
+                    "core/leave_request_confirm.html",
+                    {"form": form, "user": u, "end_date": form.cleaned_data["end_jalali"]},
+                )
+    else:
+        form = LeaveRequestForm(user=u)
+    return render(request, "core/leave_request_form.html", {"form": form, "user": u})
+
+@login_required
+@staff_required
+# مدیریت مرخصی‌ها
+def leave_requests(request):
+
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    if request.method == "POST":
+        req = get_object_or_404(LeaveRequest, id=request.POST.get("req_id"))
+        action = request.POST.get("action")
+        note = request.POST.get("manager_note", "")
+        if action in {"approve", "reject", "cancel"} and req.status == "pending":
+            if action == "approve":
+                req.status = "approved"
+                msg = "درخواست مرخصی تأیید شد."
+            elif action == "reject":
+                req.status = "rejected"
+                msg = "درخواست مرخصی رد شد."
+            else:
+                req.status = "cancelled"
+                msg = "درخواست مرخصی لغو شد."
+            req.decision_at = _now()
+            req.manager_note = note
+            req.save()
+            messages.info(request, msg)
+        elif action == "update" and req.start_date > _now().date():
+            status = request.POST.get("status")
+            if status in {"pending", "approved", "rejected", "cancelled"}:
+                req.status = status
+                req.decision_at = _now() if status != "pending" else None
+                req.manager_note = note
+                req.save()
+                messages.success(request, "وضعیت مرخصی به‌روزرسانی شد.")
+        next_url = request.POST.get("next")
+        if next_url:
+            return redirect(next_url)
+        return redirect("leave_requests")
+    group_id = request.GET.get("group")
+    shift_id = request.GET.get("shift")
+
+    requests = (
+        LeaveRequest.objects.select_related("user", "leave_type")
+        .filter(cancelled_by_user=False)
+        .order_by("-created_at")
+    )
+    if group_id:
+        requests = requests.filter(user__group_id=group_id)
+    if shift_id:
+        requests = requests.filter(user__shift_id=shift_id)
+
+    return render(
+        request,
+        "core/leave_requests.html",
+        {
+            "active_tab": "leave_requests",
+            "requests": requests,
+            "today": _now().date(),
+            "groups": Group.objects.all(),
+            "shifts": Shift.objects.all(),
+            "selected_group": group_id,
+            "selected_shift": shift_id,
+        },
+    )
 
 @require_POST
 @login_required
 @staff_required
-# API ثبت چهره کارمند توسط مدیر
-def register_face_api(request, user_id):
-    target = get_object_or_404(User, id=user_id)
-    img1 = request.POST.get("image1")
-    img2 = request.POST.get("image2")
-    if not img1 or not img2:
-        return JsonResponse({"ok": False, "msg": "ارسال ناقص تصاویر."})
-    enc1 = _get_face_encoding_from_base64(img1)
-    enc2 = _get_face_encoding_from_base64(img2)
-    if enc1 is None or enc2 is None:
-        return JsonResponse({"ok": False, "msg": "چهره واضح نیست."})
-    if np.linalg.norm(enc1 - enc2) < LIVENESS_MOVEMENT_THRESHOLD:
-        return JsonResponse({"ok": False, "msg": "حرکت تشخیص داده نشد."})
-    enc = (enc1 + enc2) / 2
-    data_url = img1
+# حذف نوع مرخصی
+def leave_type_delete(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    obj = get_object_or_404(LeaveType, pk=pk)
+    obj.delete()
+    messages.success(request, "حذف شد.")
+    return redirect("leave_type_list")
 
-    target.face_encoding = enc.tobytes()
-    try:
-        if "," in data_url:
-            header, b64data = data_url.split(",", 1)
-            fmt = header.split(";")[0].split("/")[1]
-        else:
-            b64data = data_url
-            fmt = "png"
-        img_data = base64.b64decode(b64data)
-        filename = f"{target.username}_face.{fmt}"
-        target.face_image.save(filename, ContentFile(img_data), save=False)
-    except Exception as e:
-        print("Save target face image error:", e)
+@login_required
+@staff_required
+# افزودن یا ویرایش نوع مرخصی
+def leave_type_edit(request, pk=None):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    instance = LeaveType.objects.filter(pk=pk).first()
+    if request.method == "POST":
+        form = LeaveTypeForm(request.POST, instance=instance)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "نوع مرخصی ذخیره شد.")
+            return redirect("leave_type_list")
+    else:
+        form = LeaveTypeForm(instance=instance)
+    return render(request, "core/leave_type_form.html", {"form": form, "active_tab": "settings"})
 
-    target.save()
-    return JsonResponse({"ok": True, "redirect": reverse("admin_user_profile", args=[user_id])})
+@login_required
+@staff_required
+# لیست انواع مرخصی
+def leave_type_list(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    types = LeaveType.objects.all()
+    return render(request, "core/leave_type_list.html", {"types": types, "active_tab": "settings"})
 
 @login_required
 @staff_required
@@ -1078,40 +1131,77 @@ def management_dashboard(request):
 
 @login_required
 @staff_required
-# گزارش‌گیری از کاربران
-def user_reports(request):
+# صفحه تأیید چهره مدیر
+def management_face_check(request):
 
-    active_users = User.objects.filter(is_active=True).count()
-    inactive_users = User.objects.filter(is_active=False).count()
-    no_face_users = User.objects.filter(face_encoding__isnull=True).count()
+    if request.user.face_encoding is None:
+        return render(request, "core/register_face.html")
+    return render(request, "core/management_face_check.html")
 
-    form = ReportFilterForm(request.GET or None)
-    logs_qs = AttendanceLog.objects.select_related('user').order_by('-timestamp')
-    if form.is_valid():
-        cd = form.cleaned_data
-        if cd['start_date']:
-            logs_qs = logs_qs.filter(timestamp__date__gte=cd['start_date'].togregorian())
-        if cd['end_date']:
-            logs_qs = logs_qs.filter(timestamp__date__lte=cd['end_date'].togregorian())
-        if cd['groups']:
-            logs_qs = logs_qs.filter(user__group__in=cd['groups'])
-        if cd['shifts']:
-            logs_qs = logs_qs.filter(user__shift__in=cd['shifts'])
-        if cd['users']:
-            logs_qs = logs_qs.filter(user__in=cd['users'])
-        logs = list(logs_qs[:100])
-    else:
-        logs = list(logs_qs[:10])
+@login_required
+@staff_required
+# مدیریت کارکنان
+def management_users(request):
 
-    context = {
-        'active_tab': 'reports',
-        'active_users': active_users,
-        'inactive_users': inactive_users,
-        'no_face_users': no_face_users,
-        'logs': logs,
-        'form': form,
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+
+    if request.method == "POST":
+        action = request.POST.get("bulk_action")
+        selected_ids = request.POST.getlist("selected_users")
+        if action and selected_ids:
+            qs = User.objects.filter(id__in=selected_ids)
+            if action == "deactivate":
+                qs.update(is_active=False)
+                messages.success(request, "کارکنان انتخاب‌شده غیرفعال شدند.")
+            elif action == "assign_group":
+                group_id = request.POST.get("group")
+                if group_id:
+                    qs.update(group_id=group_id)
+                    messages.success(request, "گروه کارکنان به‌روزرسانی شد.")
+            elif action == "assign_shift":
+                shift_id = request.POST.get("shift")
+                if shift_id:
+                    qs.update(shift_id=shift_id)
+                    messages.success(request, "شیفت کارکنان به‌روزرسانی شد.")
+            elif action == "delete":
+                qs.delete()
+                messages.success(request, "کارکنان انتخاب‌شده حذف شدند.")
+        return redirect("management_users")
+
+    users = User.objects.all().select_related("group", "shift")
+
+    q = request.GET.get("q")
+    status = request.GET.get("status")
+    group = request.GET.get("group")
+    shift = request.GET.get("shift")
+    face = request.GET.get("face")
+
+    if q:
+        users = users.filter(
+            Q(first_name__icontains=q)
+            | Q(last_name__icontains=q)
+            | Q(personnel_code__icontains=q)
+        )
+    if status == "active":
+        users = users.filter(is_active=True)
+    elif status == "inactive":
+        users = users.filter(is_active=False)
+    if group:
+        users = users.filter(group_id=group)
+    if shift:
+        users = users.filter(shift_id=shift)
+    if face == "with":
+        users = users.filter(face_encoding__isnull=False)
+    elif face == "without":
+        users = users.filter(face_encoding__isnull=True)
+
+    ctx = {
+        "users": users,
+        "groups": Group.objects.all(),
+        "shifts": Shift.objects.all(),
     }
-    return render(request, 'core/user_reports.html', context)
+    return render(request, "core/management_users.html", ctx)
 
 @login_required
 @staff_required
@@ -1135,86 +1225,94 @@ def monthly_profile(request):
     }
     return render(request, "core/monthly_profile.html", context)
 
+@require_POST
 @login_required
 @staff_required
-# وضعیت حضور و غیاب در روز
-def attendance_status(request):
+# API ثبت چهره کارمند توسط مدیر
+def register_face_api(request, user_id):
+    target = get_object_or_404(User, id=user_id)
+    img1 = request.POST.get("image1")
+    img2 = request.POST.get("image2")
+    if not img1 or not img2:
+        return JsonResponse({"ok": False, "msg": "ارسال ناقص تصاویر."})
+    enc1 = _get_face_encoding_from_base64(img1)
+    enc2 = _get_face_encoding_from_base64(img2)
+    if enc1 is None or enc2 is None:
+        return JsonResponse({"ok": False, "msg": "چهره واضح نیست."})
+    if np.linalg.norm(enc1 - enc2) < LIVENESS_MOVEMENT_THRESHOLD:
+        return JsonResponse({"ok": False, "msg": "حرکت تشخیص داده نشد."})
+    enc = (enc1 + enc2) / 2
+    data_url = img1
 
-    if request.GET:
-        form = AttendanceStatusForm(request.GET)
-    else:
-        form = AttendanceStatusForm(initial={'date': jdatetime.date.today()})
-    if form.is_valid() and form.cleaned_data.get("date"):
-        target_date = form.cleaned_data["date"].togregorian()
-    else:
-        target_date = _now().date()
+    target.face_encoding = enc.tobytes()
+    try:
+        if "," in data_url:
+            header, b64data = data_url.split(",", 1)
+            fmt = header.split(";")[0].split("/")[1]
+        else:
+            b64data = data_url
+            fmt = "png"
+        img_data = base64.b64decode(b64data)
+        filename = f"{target.username}_face.{fmt}"
+        target.face_image.save(filename, ContentFile(img_data), save=False)
+    except Exception as e:
+        print("Save target face image error:", e)
 
-    holiday = WeeklyHoliday.objects.filter(weekday=_weekday_index(target_date)).exists()
-    if holiday:
-        present_users = leave_users = absent_users = User.objects.none()
-    else:
-        present_ids = AttendanceLog.objects.filter(timestamp__date=target_date).values_list('user_id', flat=True).distinct()
-        leave_ids = LeaveRequest.objects.filter(start_date__lte=target_date, end_date__gte=target_date).values_list('user_id', flat=True).distinct()
-        present_users = User.objects.filter(id__in=present_ids)
-        leave_users = User.objects.filter(id__in=leave_ids)
-        absent_users = User.objects.filter(is_active=True).exclude(id__in=present_ids).exclude(id__in=leave_ids)
-
-    jdate = jdatetime.date.fromgregorian(date=target_date)
-
-    context = {
-        'active_tab': 'attendance_status',
-        'present_users': present_users,
-        'absent_users': absent_users,
-        'leave_users': leave_users,
-        'jdate': jdate.strftime('%Y/%m/%d'),
-        'realtime': target_date == _now().date(),
-        'form': form,
-        'holiday': holiday,
-    }
-    return render(request, 'core/attendance_status.html', context)
-
-@login_required
-@staff_required
-# API وضعیت حضور و غیاب
-def api_attendance_status(request):
-
-    form = AttendanceStatusForm(request.GET or None)
-    if form.is_valid() and form.cleaned_data.get("date"):
-        target_date = form.cleaned_data["date"].togregorian()
-    else:
-        target_date = _now().date()
-
-    holiday = WeeklyHoliday.objects.filter(weekday=_weekday_index(target_date)).exists()
-    if holiday:
-        present_users = leave_users = absent_users = []
-    else:
-        present_ids = AttendanceLog.objects.filter(timestamp__date=target_date).values_list('user_id', flat=True).distinct()
-        leave_ids = LeaveRequest.objects.filter(start_date__lte=target_date, end_date__gte=target_date).values_list('user_id', flat=True).distinct()
-        present_users = User.objects.filter(id__in=present_ids)
-        leave_users = User.objects.filter(id__in=leave_ids)
-        absent_users = User.objects.filter(is_active=True).exclude(id__in=present_ids).exclude(id__in=leave_ids)
-
-    data = {
-        'present': [{'id': u.id, 'name': u.get_full_name(), 'code': u.personnel_code} for u in present_users],
-        'absent': [{'id': u.id, 'name': u.get_full_name(), 'code': u.personnel_code} for u in absent_users],
-        'leave': [{'id': u.id, 'name': u.get_full_name(), 'code': u.personnel_code} for u in leave_users],
-    }
-    return JsonResponse(data)
+    target.save()
+    return JsonResponse({"ok": True, "redirect": reverse("admin_user_profile", args=[user_id])})
 
 @login_required
 @staff_required
-# لیست ترددهای مشکوک
-def suspicious_logs(request):
+# صفحه ثبت چهره برای کارمند
+def register_face_page_for_user(request, user_id):
+    target = get_object_or_404(User, id=user_id)
+    return render(request, "core/register_face_for_user.html", {"user_to_register": target})
 
-    logs = (
-        SuspiciousLog.objects.select_related('matched_user')
-        .filter(status="pending")
-        .order_by('-timestamp')[:50]
+@require_POST
+@login_required
+@staff_required
+# حذف شیفت
+def shift_delete(request, pk):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    shift = get_object_or_404(Shift, pk=pk)
+    shift.delete()
+    messages.success(request, "حذف شد.")
+    return redirect("shift_list")
+
+@login_required
+@staff_required
+# افزودن یا ویرایش شیفت
+def shift_edit(request, pk=None):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    instance = Shift.objects.filter(pk=pk).first()
+    if request.method == "POST":
+        form = ShiftForm(request.POST, instance=instance)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "شیفت ذخیره شد.")
+            return redirect("shift_list")
+    else:
+        form = ShiftForm(instance=instance)
+    return render(request, "core/shift_form.html", {"form": form, "active_tab": "settings"})
+
+@login_required
+@staff_required
+# لیست شیفت‌ها
+def shift_list(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    shifts = list(Shift.objects.all())
+    for s in shifts:
+        s.user_count = (
+            User.objects.filter(Q(shift=s) | Q(group__shift=s)).distinct().count()
+        )
+    return render(
+        request,
+        "core/shift_list.html",
+        {"shifts": shifts, "active_tab": "settings"},
     )
-    return render(request, 'core/suspicious_logs.html', {
-        'active_tab': 'suspicions',
-        'logs': logs,
-    })
 
 @login_required
 @staff_required
@@ -1262,187 +1360,82 @@ def suspicious_log_action(request, pk):
 
 @login_required
 @staff_required
-# مدیریت اصلاح تردد
-def edit_requests(request):
+# لیست ترددهای مشکوک
+def suspicious_logs(request):
 
-    if not request.session.get("face_verified"):
-        return redirect("management_face_check")
+    logs = (
+        SuspiciousLog.objects.select_related('matched_user')
+        .filter(status="pending")
+        .order_by('-timestamp')[:50]
+    )
+    return render(request, 'core/suspicious_logs.html', {
+        'active_tab': 'suspicions',
+        'logs': logs,
+    })
+
+@login_required
+@staff_required
+# افزودن کارمند جدید
+def user_add(request):
     if request.method == "POST":
-        req = get_object_or_404(EditRequest, id=request.POST.get("req_id"))
-        if req.status == "pending":
-            action = request.POST.get("action")
-            note = request.POST.get("manager_note", "")
-            if action == "approve":
-                AttendanceLog.objects.create(
-                    user=req.user,
-                    timestamp=_to_naive(req.timestamp),
-                    log_type=req.log_type,
-                    source="manager",
+        form = CustomUserSimpleForm(request.POST, request.FILES)
+        if form.is_valid():
+            user = form.save(commit=False)
+
+            user.set_password(secrets.token_urlsafe(16))
+            user.save()
+            messages.success(request, "کارمند جدید اضافه شد.")
+            return redirect("register_face_page_for_user", user_id=user.pk)
+    else:
+        form = CustomUserSimpleForm()
+    return render(request, "core/user_form.html", {"form": form, "title": "افزودن کارمند جدید"})
+
+@login_required
+@staff_required
+@require_POST
+# حذف کارمند
+def user_delete(request, pk):
+    obj = get_object_or_404(User, pk=pk)
+    if obj == request.user:
+        messages.error(request, "نمی‌توانید خودتان را حذف کنید.")
+    else:
+        obj.delete()
+        messages.success(request, "حذف موفق.")
+    return redirect("management_users")
+
+@require_POST
+@login_required
+@staff_required
+# حذف چهره ثبت‌شده کاربر
+def user_face_delete(request, pk):
+    user_obj = get_object_or_404(User, pk=pk)
+    user_obj.face_encoding = None
+    if user_obj.face_image:
+        user_obj.face_image.delete(save=False)
+    user_obj.face_image = None
+    user_obj.save()
+    messages.success(request, "چهره کارمند حذف شد.")
+    return redirect("admin_user_profile", pk=pk)
+
+# فرم استعلام کاربر
+def user_inquiry(request):
+    if request.method == "POST":
+        form = InquiryForm(request.POST)
+        if form.is_valid():
+            cd = form.cleaned_data
+            try:
+                u = User.objects.get(
+                    personnel_code=cd["personnel_code"],
+                    national_id=cd["national_id"]
                 )
-                req.status = "approved"
-                req.decision_at = _now()
-                req.manager_note = note
-                req.save()
-                messages.success(request, "درخواست تأیید شد.")
-            elif action == "reject":
-                req.status = "rejected"
-                req.decision_at = _now()
-                req.manager_note = note
-                req.save()
-                messages.info(request, "درخواست رد شد.")
-            elif action == "cancel":
-                req.status = "cancelled"
-                req.decision_at = _now()
-                req.manager_note = note
-                req.save()
-                messages.info(request, "درخواست لغو شد.")
-        next_url = request.POST.get("next")
-        if next_url:
-            return redirect(next_url)
-        return redirect("edit_requests")
-    group_id = request.GET.get("group")
-    shift_id = request.GET.get("shift")
-
-    requests = EditRequest.objects.select_related("user").filter(cancelled_by_user=False).order_by("-created_at")
-    if group_id:
-        requests = requests.filter(user__group_id=group_id)
-    if shift_id:
-        requests = requests.filter(user__shift_id=shift_id)
-    return render(
-        request,
-        "core/edit_requests.html",
-        {
-            "active_tab": "edit_requests",
-            "requests": requests,
-            "groups": Group.objects.all(),
-            "shifts": Shift.objects.all(),
-            "selected_group": group_id,
-            "selected_shift": shift_id,
-        },
-    )
-
-@login_required
-@staff_required
-# مدیریت مرخصی‌ها
-def leave_requests(request):
-
-    if not request.session.get("face_verified"):
-        return redirect("management_face_check")
-    if request.method == "POST":
-        req = get_object_or_404(LeaveRequest, id=request.POST.get("req_id"))
-        action = request.POST.get("action")
-        note = request.POST.get("manager_note", "")
-        if action in {"approve", "reject", "cancel"} and req.status == "pending":
-            if action == "approve":
-                req.status = "approved"
-                msg = "درخواست مرخصی تأیید شد."
-            elif action == "reject":
-                req.status = "rejected"
-                msg = "درخواست مرخصی رد شد."
+            except User.DoesNotExist:
+                form.add_error(None, "اطلاعات معتبر نیست")
             else:
-                req.status = "cancelled"
-                msg = "درخواست مرخصی لغو شد."
-            req.decision_at = _now()
-            req.manager_note = note
-            req.save()
-            messages.info(request, msg)
-        elif action == "update" and req.start_date > _now().date():
-            status = request.POST.get("status")
-            if status in {"pending", "approved", "rejected", "cancelled"}:
-                req.status = status
-                req.decision_at = _now() if status != "pending" else None
-                req.manager_note = note
-                req.save()
-                messages.success(request, "وضعیت مرخصی به‌روزرسانی شد.")
-        next_url = request.POST.get("next")
-        if next_url:
-            return redirect(next_url)
-        return redirect("leave_requests")
-    group_id = request.GET.get("group")
-    shift_id = request.GET.get("shift")
-
-    requests = (
-        LeaveRequest.objects.select_related("user", "leave_type")
-        .filter(cancelled_by_user=False)
-        .order_by("-created_at")
-    )
-    if group_id:
-        requests = requests.filter(user__group_id=group_id)
-    if shift_id:
-        requests = requests.filter(user__shift_id=shift_id)
-
-    return render(
-        request,
-        "core/leave_requests.html",
-        {
-            "active_tab": "leave_requests",
-            "requests": requests,
-            "today": _now().date(),
-            "groups": Group.objects.all(),
-            "shifts": Shift.objects.all(),
-            "selected_group": group_id,
-            "selected_shift": shift_id,
-        },
-    )
-
-@login_required
-@staff_required
-# افزودن تردد دستی
-def add_log(request):
-
-    if not request.session.get("face_verified"):
-        return redirect("management_face_check")
-    if request.method == "POST":
-        form = ManualLogForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "تردد ثبت شد.")
-            return redirect("edit_requests")
+                request.session["inquiry_user_id"] = u.id
+                return redirect("user_profile")
     else:
-        form = ManualLogForm()
-    return render(request, "core/manual_log_form.html", {
-        "active_tab": "edit_requests",
-        "form": form,
-    })
-
-@login_required
-@staff_required
-# افزودن مرخصی دستی
-def add_leave(request):
-
-    if not request.session.get("face_verified"):
-        return redirect("management_face_check")
-    if request.method == "POST":
-        form = ManualLeaveForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "مرخصی ثبت شد.")
-            return redirect("leave_requests")
-    else:
-        form = ManualLeaveForm()
-    return render(request, "core/manual_leave_form.html", {
-        'active_tab': 'leave_requests',
-        'form': form,
-    })
-@login_required
-@staff_required
-# تنظیم تعطیلات هفتگی
-def weekly_holidays(request):
-    if not request.session.get("face_verified"):
-        return redirect("management_face_check")
-    existing = set(WeeklyHoliday.objects.values_list("weekday", flat=True))
-    if request.method == "POST":
-        form = WeeklyHolidayForm(request.POST)
-        if form.is_valid():
-            days = [int(d) for d in form.cleaned_data["days"]]
-            WeeklyHoliday.objects.all().delete()
-            for d in days:
-                WeeklyHoliday.objects.create(weekday=d)
-            messages.success(request, "روزهای تعطیل ذخیره شد.")
-            existing = set(days)
-    else:
-        form = WeeklyHolidayForm(initial={"days": [str(d) for d in existing]})
-    return render(request, "core/weekly_holidays.html", {"form": form, "active_tab": "weekly_holidays"})
+        form = InquiryForm()
+    return render(request, "core/user_inquiry.html", {"form": form})
 
 @login_required
 @staff_required
@@ -1465,146 +1458,156 @@ def user_logs_admin(request, user_id):
         "logs": logs,
     })
 
-@login_required
-@staff_required
-# تنظیمات دستگاه
-def device_settings(request):
-    if not request.session.get("face_verified"):
-        return redirect("management_face_check")
-    device, _ = Device.objects.get_or_create(id=1, defaults={"name": "Main device"})
-    if request.method == "POST" and device.online:
-        action = request.POST.get('action')
-        device.is_active = action != 'deactivate'
-        device.save(update_fields=['is_active'])
-        return redirect('device_settings')
-    return render(request, 'core/device_settings.html', {'device': device, 'active_tab': 'settings'})
+# نمایش پروفایل کاربر
+def user_profile(request):
+    uid = request.session.get("inquiry_user_id")
+    if not uid:
+        return redirect("user_inquiry")
+    u = get_object_or_404(User, id=uid)
+    today = _now().date()
 
-@login_required
-@staff_required
-# لیست شیفت‌ها
-def shift_list(request):
-    if not request.session.get("face_verified"):
-        return redirect("management_face_check")
-    shifts = list(Shift.objects.all())
-    for s in shifts:
-        s.user_count = (
-            User.objects.filter(Q(shift=s) | Q(group__shift=s)).distinct().count()
-        )
+    status = "holiday"
+    first_in = None
+    if not WeeklyHoliday.objects.filter(weekday=_weekday_index(today)).exists():
+        logs = AttendanceLog.objects.filter(user=u, timestamp__date=today).order_by("timestamp")
+        if logs.exists():
+            status = "present"
+            first_in = logs.first().timestamp.time()
+        elif LeaveRequest.objects.filter(
+            user=u,
+            status="approved",
+            start_date__lte=today,
+            end_date__gte=today,
+        ).exists():
+            status = "leave"
+        else:
+            status = "absent"
+    today_status = {"status": status, "first_in": first_in}
+
+    t = jdatetime.date.today()
+    mp_form = MonthlyPerformanceForm(request.GET or None, initial={"year": t.year, "month": t.month})
+    mp_form.fields.pop("user", None)
+    if mp_form.is_bound and mp_form.is_valid():
+        ly = mp_form.cleaned_data["year"]
+        lm = int(mp_form.cleaned_data["month"])
+    else:
+        ly = t.year
+        lm = t.month
+    report, _ = _calculate_monthly_performance(u, ly, lm)
+    days = jdatetime.j_days_in_month[lm - 1]
+    start_j = jdatetime.date(ly, lm, 1)
+    end_j = jdatetime.date(ly, lm, days)
+    today_j = jdatetime.date.today()
+    if ly == today_j.year and lm == today_j.month:
+        days = today_j.day
+        end_j = today_j
+    start_g = start_j.togregorian()
+    end_g = end_j.togregorian()
+    start_dt = datetime.combine(start_g, time.min)
+    end_dt = datetime.combine(end_g + timedelta(days=1), time.min)
+    qs = AttendanceLog.objects.filter(
+        user=u, timestamp__gte=start_dt, timestamp__lt=end_dt
+    ).order_by("timestamp")
+    daily_logs = {d: {"in": None, "out": None} for d in range(1, days + 1)}
+    for log in qs:
+        jd = jdatetime.date.fromgregorian(date=log.timestamp.date())
+        info = daily_logs.get(jd.day)
+        if log.log_type == "in" and info["in"] is None:
+            info["in"] = log.timestamp.time()
+        if log.log_type == "out":
+            info["out"] = log.timestamp.time()
+    prev_m = (start_j - jdatetime.timedelta(days=1))
+    next_m = (end_j + jdatetime.timedelta(days=1))
+
+    edit_requests = EditRequest.objects.filter(user=u).order_by("-created_at")
+    leave_requests = LeaveRequest.objects.select_related("leave_type").filter(user=u).order_by("-created_at")
+
     return render(
         request,
-        "core/shift_list.html",
-        {"shifts": shifts, "active_tab": "settings"},
+        "core/user_profile.html",
+        {
+            "user": u,
+            "today_status": today_status,
+            "monthly_report": report,
+            "mp_form": mp_form,
+            "daily_logs": daily_logs,
+            "log_jyear": ly,
+            "log_jmonth": lm,
+            "prev_month": f"{prev_m.year}-{prev_m.month:02d}",
+            "next_month": f"{next_m.year}-{next_m.month:02d}",
+            "edit_requests": edit_requests,
+            "leave_requests": leave_requests,
+        },
     )
 
 @login_required
 @staff_required
-# افزودن یا ویرایش شیفت
-def shift_edit(request, pk=None):
-    if not request.session.get("face_verified"):
-        return redirect("management_face_check")
-    instance = Shift.objects.filter(pk=pk).first()
+# گزارش‌گیری از کاربران
+def user_reports(request):
+
+    active_users = User.objects.filter(is_active=True).count()
+    inactive_users = User.objects.filter(is_active=False).count()
+    no_face_users = User.objects.filter(face_encoding__isnull=True).count()
+
+    form = ReportFilterForm(request.GET or None)
+    logs_qs = AttendanceLog.objects.select_related('user').order_by('-timestamp')
+    if form.is_valid():
+        cd = form.cleaned_data
+        if cd['start_date']:
+            logs_qs = logs_qs.filter(timestamp__date__gte=cd['start_date'].togregorian())
+        if cd['end_date']:
+            logs_qs = logs_qs.filter(timestamp__date__lte=cd['end_date'].togregorian())
+        if cd['groups']:
+            logs_qs = logs_qs.filter(user__group__in=cd['groups'])
+        if cd['shifts']:
+            logs_qs = logs_qs.filter(user__shift__in=cd['shifts'])
+        if cd['users']:
+            logs_qs = logs_qs.filter(user__in=cd['users'])
+        logs = list(logs_qs[:100])
+    else:
+        logs = list(logs_qs[:10])
+
+    context = {
+        'active_tab': 'reports',
+        'active_users': active_users,
+        'inactive_users': inactive_users,
+        'no_face_users': no_face_users,
+        'logs': logs,
+        'form': form,
+    }
+    return render(request, 'core/user_reports.html', context)
+
+@login_required
+@staff_required
+# ویرایش کارمند
+def user_update(request, pk):
+    obj = get_object_or_404(User, pk=pk)
     if request.method == "POST":
-        form = ShiftForm(request.POST, instance=instance)
+        form = CustomUserSimpleForm(request.POST, request.FILES, instance=obj)
         if form.is_valid():
             form.save()
-            messages.success(request, "شیفت ذخیره شد.")
-            return redirect("shift_list")
+            messages.success(request, "کارمند ویرایش شد.")
+            return redirect("management_users")
     else:
-        form = ShiftForm(instance=instance)
-    return render(request, "core/shift_form.html", {"form": form, "active_tab": "settings"})
-
-@require_POST
-@login_required
-@staff_required
-# حذف شیفت
-def shift_delete(request, pk):
-    if not request.session.get("face_verified"):
-        return redirect("management_face_check")
-    shift = get_object_or_404(Shift, pk=pk)
-    shift.delete()
-    messages.success(request, "حذف شد.")
-    return redirect("shift_list")
+        form = CustomUserSimpleForm(instance=obj)
+    return render(request, "core/user_form.html", {"form": form, "title": "ویرایش کارمند"})
 
 @login_required
 @staff_required
-# لیست گروه‌ها
-def group_list(request):
+# تنظیم تعطیلات هفتگی
+def weekly_holidays(request):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
-    groups = (
-        Group.objects.select_related("shift")
-        .annotate(user_count=Count("customuser"))
-        .all()
-    )
-    return render(
-        request,
-        "core/group_list.html",
-        {"groups": groups, "active_tab": "settings"},
-    )
-
-@login_required
-@staff_required
-# افزودن یا ویرایش گروه
-def group_edit(request, pk=None):
-    if not request.session.get("face_verified"):
-        return redirect("management_face_check")
-    instance = Group.objects.filter(pk=pk).first()
+    existing = set(WeeklyHoliday.objects.values_list("weekday", flat=True))
     if request.method == "POST":
-        form = GroupForm(request.POST, instance=instance)
+        form = WeeklyHolidayForm(request.POST)
         if form.is_valid():
-            form.save()
-            messages.success(request, "گروه ذخیره شد.")
-            return redirect("group_list")
+            days = [int(d) for d in form.cleaned_data["days"]]
+            WeeklyHoliday.objects.all().delete()
+            for d in days:
+                WeeklyHoliday.objects.create(weekday=d)
+            messages.success(request, "روزهای تعطیل ذخیره شد.")
+            existing = set(days)
     else:
-        form = GroupForm(instance=instance)
-    return render(request, "core/group_form.html", {"form": form, "active_tab": "settings"})
-
-@require_POST
-@login_required
-@staff_required
-# حذف گروه
-def group_delete(request, pk):
-    if not request.session.get("face_verified"):
-        return redirect("management_face_check")
-    grp = get_object_or_404(Group, pk=pk)
-    grp.delete()
-    messages.success(request, "حذف شد.")
-    return redirect("group_list")
-
-@login_required
-@staff_required
-# لیست انواع مرخصی
-def leave_type_list(request):
-    if not request.session.get("face_verified"):
-        return redirect("management_face_check")
-    types = LeaveType.objects.all()
-    return render(request, "core/leave_type_list.html", {"types": types, "active_tab": "settings"})
-
-@login_required
-@staff_required
-# افزودن یا ویرایش نوع مرخصی
-def leave_type_edit(request, pk=None):
-    if not request.session.get("face_verified"):
-        return redirect("management_face_check")
-    instance = LeaveType.objects.filter(pk=pk).first()
-    if request.method == "POST":
-        form = LeaveTypeForm(request.POST, instance=instance)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "نوع مرخصی ذخیره شد.")
-            return redirect("leave_type_list")
-    else:
-        form = LeaveTypeForm(instance=instance)
-    return render(request, "core/leave_type_form.html", {"form": form, "active_tab": "settings"})
-
-@require_POST
-@login_required
-@staff_required
-# حذف نوع مرخصی
-def leave_type_delete(request, pk):
-    if not request.session.get("face_verified"):
-        return redirect("management_face_check")
-    obj = get_object_or_404(LeaveType, pk=pk)
-    obj.delete()
-    messages.success(request, "حذف شد.")
-    return redirect("leave_type_list")
+        form = WeeklyHolidayForm(initial={"days": [str(d) for d in existing]})
+    return render(request, "core/weekly_holidays.html", {"form": form, "active_tab": "weekly_holidays"})
