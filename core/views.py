@@ -979,6 +979,8 @@ def user_add(request):
 
             user.set_password(secrets.token_urlsafe(16))
             user.save()
+            # علامت‌گذاری کاربر ایجاد شده برای حذف در صورت انصراف
+            request.session["pending_user"] = user.pk
             messages.success(request, "کارمند جدید اضافه شد.")
             return redirect("register_face_page_for_user", user_id=user.pk)
     else:
@@ -1012,6 +1014,18 @@ def user_delete(request, pk):
         obj.delete()
         messages.success(request, "حذف موفق.")
     return redirect("management_users")
+
+
+@login_required
+@staff_required
+@require_POST
+def user_add_cancel(request, pk):
+    pending_id = request.session.get("pending_user")
+    if pending_id == pk:
+        User.objects.filter(pk=pk).delete()
+        del request.session["pending_user"]
+        return JsonResponse({"ok": True})
+    return JsonResponse({"ok": False})
 
 @login_required
 @staff_required
@@ -1104,7 +1118,8 @@ def user_face_delete(request, pk):
 # صفحه ثبت چهره برای کارمند
 def register_face_page_for_user(request, user_id):
     target = get_object_or_404(User, id=user_id)
-    return render(request, "core/register_face_for_user.html", {"user_to_register": target})
+    is_new = request.session.get("pending_user") == user_id
+    return render(request, "core/register_face_for_user.html", {"user_to_register": target, "is_new": is_new})
 
 @require_POST
 @login_required
@@ -1140,6 +1155,8 @@ def register_face_api(request, user_id):
         print("Save target face image error:", e)
 
     target.save()
+    if request.session.get("pending_user") == target.id:
+        del request.session["pending_user"]
     return JsonResponse({"ok": True, "redirect": reverse("admin_user_profile", args=[user_id])})
 
 @login_required
