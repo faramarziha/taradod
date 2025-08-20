@@ -261,6 +261,10 @@ def _get_face_encoding_from_base64(data_url: str):
         print("Face encode error:", e)
         return None
 
+# صفحه اصلی
+def home(request):
+    return render(request, "core/home.html")
+
 class ManagementLoginView(LoginView):
     template_name = "core/management_login.html"
     redirect_authenticated_user = True
@@ -279,10 +283,6 @@ class DeviceLoginView(LoginView):
         login(self.request, user)
         return redirect("device_face_check")
 
-# صفحه اصلی
-def home(request):
-    return render(request, "core/home.html")
-
 # تأیید چهره مدیر برای دستگاه
 @login_required
 @user_passes_test(lambda u: u.is_staff)
@@ -290,12 +290,6 @@ def device_face_check(request):
     if request.user.face_encoding is None:
         return render(request, "core/register_face.html")
     return render(request, "core/device_face_check.html")
-
-# صفحه ثبت تردد
-@login_required
-def device_page(request):
-
-    return render(request, "core/device.html")
 
 # API بررسی چهره در دستگاه
 @require_POST
@@ -331,6 +325,12 @@ def api_device_verify_face(request):
     except Exception as e:
         print("Device verify error:", e)
         return JsonResponse({"success": False, "error": "خطا در پردازش تصویر."})
+
+# صفحه ثبت تردد
+@login_required
+def device_page(request):
+
+    return render(request, "core/device.html")
 
 # API ثبت تردد با تشخیص چهره
 @csrf_exempt
@@ -679,6 +679,232 @@ def api_management_verify_face(request):
 
 @login_required
 @staff_required
+# داشبورد مدیریت
+def management_dashboard(request):
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+
+    today = _now().date()
+    is_holiday = WeeklyHoliday.objects.filter(weekday=_weekday_index(today)).exists()
+
+    group_id = request.GET.get("group")
+    shift_id = request.GET.get("shift")
+
+    users_qs = User.objects.all()
+    if group_id:
+        users_qs = users_qs.filter(group_id=group_id)
+    if shift_id:
+        users_qs = users_qs.filter(shift_id=shift_id)
+
+    today_in_logs = AttendanceLog.objects.filter(
+        user__in=users_qs, timestamp__date=today, log_type="in"
+    ).count()
+    today_out_logs = AttendanceLog.objects.filter(
+        user__in=users_qs, timestamp__date=today, log_type="out"
+    ).count()
+
+    if is_holiday:
+        present_users = leave_users = absent_users = users_qs.none()
+        present_ids = []
+    else:
+        present_ids = (
+            AttendanceLog.objects.filter(user__in=users_qs, timestamp__date=today)
+            .values_list("user_id", flat=True)
+            .distinct()
+        )
+        leave_ids = (
+            LeaveRequest.objects.filter(
+                user__in=users_qs,
+                start_date__lte=today,
+                end_date__gte=today,
+            )
+            .values_list("user_id", flat=True)
+            .distinct()
+        )
+        present_users = users_qs.filter(id__in=present_ids)
+        leave_users = users_qs.filter(id__in=leave_ids)
+        absent_users = users_qs.exclude(id__in=present_ids).exclude(id__in=leave_ids)
+
+    tardy_users = User.objects.none()
+    if not is_holiday:
+        tardy_ids = []
+        present_users_details = users_qs.filter(id__in=present_ids).select_related("shift", "group__shift")
+        for user in present_users_details:
+            shift = _get_user_shift(user)
+            if not shift:
+                continue
+            shift_start = shift.start_time
+            first_log = AttendanceLog.objects.filter(user=user, timestamp__date=today).order_by("timestamp").first()
+            if first_log:
+                start_dt = datetime.combine(today, shift_start)
+                first_dt = _to_naive(first_log.timestamp)
+                if first_dt > start_dt:
+                    tardy_ids.append(user.id)
+        tardy_users = users_qs.filter(id__in=tardy_ids)
+
+    pending_edit_objs = EditRequest.objects.select_related("user").filter(user__in=users_qs, status="pending")
+    pending_leave_objs = LeaveRequest.objects.select_related("user").filter(user__in=users_qs, status="pending")
+    pending_edits = pending_edit_objs.count()
+    pending_leaves = pending_leave_objs.count()
+    suspicious_today = SuspiciousLog.objects.filter(matched_user__in=users_qs, timestamp__date=today).count()
+
+    pending_actions = []
+    for req in pending_edit_objs[:5]:
+        pending_actions.append({
+            "id": req.id,
+            "user": req.user,
+            "date": jdatetime.date.fromgregorian(date=req.timestamp.date()).strftime("%Y/%m/%d"),
+            "type": "edit",
+            "type_label": f"اصلاح تردد ({req.get_log_type_display()})",
+            "action_url": reverse("edit_requests"),
+        })
+    for req in pending_leave_objs[:5]:
+        pending_actions.append({
+            "id": req.id,
+            "user": req.user,
+            "date": jdatetime.date.fromgregorian(date=req.start_date).strftime("%Y/%m/%d"),
+            "type": "leave",
+            "type_label": "مرخصی",
+            "action_url": reverse("leave_requests"),
+        })
+
+    month_start = today - timedelta(days=30)
+    tardy_stats = []
+    streak_stats = []
+    for u in users_qs:
+        shift = _get_user_shift(u)
+        if not shift:
+            continue
+        shift_start = shift.start_time
+        tardies = 0
+        for i in range(31):
+            day = month_start + timedelta(days=i)
+            first_log = (
+                AttendanceLog.objects.filter(user=u, timestamp__date=day)
+                .order_by("timestamp")
+                .first()
+            )
+            if first_log:
+                log_time = first_log.timestamp
+                log_time = _to_naive(log_time)
+                if log_time.time() > shift_start:
+                    tardies += 1
+        streak = 0
+        for i in range(30):
+            day = today - timedelta(days=i)
+            first_log = (
+                AttendanceLog.objects.filter(user=u, timestamp__date=day)
+                .order_by("timestamp")
+                .first()
+            )
+            if not first_log:
+                break
+            log_time = _to_naive(first_log.timestamp)
+            if log_time.time() > shift_start:
+                break
+            streak += 1
+        tardy_stats.append((u, tardies))
+        streak_stats.append((u, streak))
+    worst_performers = sorted(tardy_stats, key=lambda x: x[1], reverse=True)[:5]
+    best_performers = sorted(streak_stats, key=lambda x: x[1], reverse=True)[:5]
+
+    device = Device.objects.first()
+    device_online = device.online if device else False
+
+    context = {
+        'active_tab': 'dashboard',
+        'today_in_logs': today_in_logs,
+        'today_out_logs': today_out_logs,
+        'present_users': present_users,
+        'absent_users': absent_users,
+        'leave_users': leave_users,
+        'present_count': present_users.count(),
+        'absent_count': absent_users.count(),
+        'leave_count': leave_users.count(),
+        'tardy_users': tardy_users,
+        'pending_edits': pending_edits,
+        'pending_leaves': pending_leaves,
+        'suspicious_today': suspicious_today,
+        'pending_actions': pending_actions,
+        'worst_performers': worst_performers,
+        'best_performers': best_performers,
+        'device_online': device_online,
+        'is_holiday': is_holiday,
+        'groups': Group.objects.all(),
+        'shifts': Shift.objects.all(),
+        'selected_group': group_id,
+        'selected_shift': shift_id,
+    }
+    return render(request, 'core/management_dashboard.html', context)
+
+@login_required
+@staff_required
+# وضعیت حضور و غیاب در روز
+def attendance_status(request):
+
+    if request.GET:
+        form = AttendanceStatusForm(request.GET)
+    else:
+        form = AttendanceStatusForm(initial={'date': jdatetime.date.today()})
+    if form.is_valid() and form.cleaned_data.get("date"):
+        target_date = form.cleaned_data["date"].togregorian()
+    else:
+        target_date = _now().date()
+
+    holiday = WeeklyHoliday.objects.filter(weekday=_weekday_index(target_date)).exists()
+    if holiday:
+        present_users = leave_users = absent_users = User.objects.none()
+    else:
+        present_ids = AttendanceLog.objects.filter(timestamp__date=target_date).values_list('user_id', flat=True).distinct()
+        leave_ids = LeaveRequest.objects.filter(start_date__lte=target_date, end_date__gte=target_date).values_list('user_id', flat=True).distinct()
+        present_users = User.objects.filter(id__in=present_ids)
+        leave_users = User.objects.filter(id__in=leave_ids)
+        absent_users = User.objects.filter(is_active=True).exclude(id__in=present_ids).exclude(id__in=leave_ids)
+
+    jdate = jdatetime.date.fromgregorian(date=target_date)
+
+    context = {
+        'active_tab': 'attendance_status',
+        'present_users': present_users,
+        'absent_users': absent_users,
+        'leave_users': leave_users,
+        'jdate': jdate.strftime('%Y/%m/%d'),
+        'realtime': target_date == _now().date(),
+        'form': form,
+        'holiday': holiday,
+    }
+    return render(request, 'core/attendance_status.html', context)
+
+@login_required
+@staff_required
+# API وضعیت حضور و غیاب
+def api_attendance_status(request):
+
+    form = AttendanceStatusForm(request.GET or None)
+    if form.is_valid() and form.cleaned_data.get("date"):
+        target_date = form.cleaned_data["date"].togregorian()
+    else:
+        target_date = _now().date()
+
+    holiday = WeeklyHoliday.objects.filter(weekday=_weekday_index(target_date)).exists()
+    if holiday:
+        present_users = leave_users = absent_users = []
+    else:
+        present_ids = AttendanceLog.objects.filter(timestamp__date=target_date).values_list('user_id', flat=True).distinct()
+        leave_ids = LeaveRequest.objects.filter(start_date__lte=target_date, end_date__gte=target_date).values_list('user_id', flat=True).distinct()
+        present_users = User.objects.filter(id__in=present_ids)
+        leave_users = User.objects.filter(id__in=leave_ids)
+        absent_users = User.objects.filter(is_active=True).exclude(id__in=present_ids).exclude(id__in=leave_ids)
+
+    data = {
+        'present': [{'id': u.id, 'name': u.get_full_name(), 'code': u.personnel_code} for u in present_users],
+        'absent': [{'id': u.id, 'name': u.get_full_name(), 'code': u.personnel_code} for u in absent_users],
+        'leave': [{'id': u.id, 'name': u.get_full_name(), 'code': u.personnel_code} for u in leave_users],
+    }
+    return JsonResponse(data)
+
+@login_required
+@staff_required
 # مدیریت کارکنان
 def management_users(request):
 
@@ -918,347 +1144,24 @@ def register_face_api(request, user_id):
 
 @login_required
 @staff_required
-# داشبورد مدیریت
-def management_dashboard(request):
+# گزارش ترددهای کاربر برای مدیریت
+def user_logs_admin(request, user_id):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
-
-    today = _now().date()
-    is_holiday = WeeklyHoliday.objects.filter(weekday=_weekday_index(today)).exists()
-
-    group_id = request.GET.get("group")
-    shift_id = request.GET.get("shift")
-
-    users_qs = User.objects.all()
-    if group_id:
-        users_qs = users_qs.filter(group_id=group_id)
-    if shift_id:
-        users_qs = users_qs.filter(shift_id=shift_id)
-
-    today_in_logs = AttendanceLog.objects.filter(
-        user__in=users_qs, timestamp__date=today, log_type="in"
-    ).count()
-    today_out_logs = AttendanceLog.objects.filter(
-        user__in=users_qs, timestamp__date=today, log_type="out"
-    ).count()
-
-    if is_holiday:
-        present_users = leave_users = absent_users = users_qs.none()
-        present_ids = []
-    else:
-        present_ids = (
-            AttendanceLog.objects.filter(user__in=users_qs, timestamp__date=today)
-            .values_list("user_id", flat=True)
-            .distinct()
-        )
-        leave_ids = (
-            LeaveRequest.objects.filter(
-                user__in=users_qs,
-                start_date__lte=today,
-                end_date__gte=today,
-            )
-            .values_list("user_id", flat=True)
-            .distinct()
-        )
-        present_users = users_qs.filter(id__in=present_ids)
-        leave_users = users_qs.filter(id__in=leave_ids)
-        absent_users = users_qs.exclude(id__in=present_ids).exclude(id__in=leave_ids)
-
-    tardy_users = User.objects.none()
-    if not is_holiday:
-        tardy_ids = []
-        present_users_details = users_qs.filter(id__in=present_ids).select_related("shift", "group__shift")
-        for user in present_users_details:
-            shift = _get_user_shift(user)
-            if not shift:
-                continue
-            shift_start = shift.start_time
-            first_log = AttendanceLog.objects.filter(user=user, timestamp__date=today).order_by("timestamp").first()
-            if first_log:
-                start_dt = datetime.combine(today, shift_start)
-                first_dt = _to_naive(first_log.timestamp)
-                if first_dt > start_dt:
-                    tardy_ids.append(user.id)
-        tardy_users = users_qs.filter(id__in=tardy_ids)
-
-    pending_edit_objs = EditRequest.objects.select_related("user").filter(user__in=users_qs, status="pending")
-    pending_leave_objs = LeaveRequest.objects.select_related("user").filter(user__in=users_qs, status="pending")
-    pending_edits = pending_edit_objs.count()
-    pending_leaves = pending_leave_objs.count()
-    suspicious_today = SuspiciousLog.objects.filter(matched_user__in=users_qs, timestamp__date=today).count()
-
-    pending_actions = []
-    for req in pending_edit_objs[:5]:
-        pending_actions.append({
-            "id": req.id,
-            "user": req.user,
-            "date": jdatetime.date.fromgregorian(date=req.timestamp.date()).strftime("%Y/%m/%d"),
-            "type": "edit",
-            "type_label": f"اصلاح تردد ({req.get_log_type_display()})",
-            "action_url": reverse("edit_requests"),
-        })
-    for req in pending_leave_objs[:5]:
-        pending_actions.append({
-            "id": req.id,
-            "user": req.user,
-            "date": jdatetime.date.fromgregorian(date=req.start_date).strftime("%Y/%m/%d"),
-            "type": "leave",
-            "type_label": "مرخصی",
-            "action_url": reverse("leave_requests"),
-        })
-
-    month_start = today - timedelta(days=30)
-    tardy_stats = []
-    streak_stats = []
-    for u in users_qs:
-        shift = _get_user_shift(u)
-        if not shift:
-            continue
-        shift_start = shift.start_time
-        tardies = 0
-        for i in range(31):
-            day = month_start + timedelta(days=i)
-            first_log = (
-                AttendanceLog.objects.filter(user=u, timestamp__date=day)
-                .order_by("timestamp")
-                .first()
-            )
-            if first_log:
-                log_time = first_log.timestamp
-                log_time = _to_naive(log_time)
-                if log_time.time() > shift_start:
-                    tardies += 1
-        streak = 0
-        for i in range(30):
-            day = today - timedelta(days=i)
-            first_log = (
-                AttendanceLog.objects.filter(user=u, timestamp__date=day)
-                .order_by("timestamp")
-                .first()
-            )
-            if not first_log:
-                break
-            log_time = _to_naive(first_log.timestamp)
-            if log_time.time() > shift_start:
-                break
-            streak += 1
-        tardy_stats.append((u, tardies))
-        streak_stats.append((u, streak))
-    worst_performers = sorted(tardy_stats, key=lambda x: x[1], reverse=True)[:5]
-    best_performers = sorted(streak_stats, key=lambda x: x[1], reverse=True)[:5]
-
-    device = Device.objects.first()
-    device_online = device.online if device else False
-
-    context = {
-        'active_tab': 'dashboard',
-        'today_in_logs': today_in_logs,
-        'today_out_logs': today_out_logs,
-        'present_users': present_users,
-        'absent_users': absent_users,
-        'leave_users': leave_users,
-        'present_count': present_users.count(),
-        'absent_count': absent_users.count(),
-        'leave_count': leave_users.count(),
-        'tardy_users': tardy_users,
-        'pending_edits': pending_edits,
-        'pending_leaves': pending_leaves,
-        'suspicious_today': suspicious_today,
-        'pending_actions': pending_actions,
-        'worst_performers': worst_performers,
-        'best_performers': best_performers,
-        'device_online': device_online,
-        'is_holiday': is_holiday,
-        'groups': Group.objects.all(),
-        'shifts': Shift.objects.all(),
-        'selected_group': group_id,
-        'selected_shift': shift_id,
-    }
-    return render(request, 'core/management_dashboard.html', context)
-
-@login_required
-@staff_required
-# گزارش‌گیری از کاربران
-def user_reports(request):
-
-    active_users = User.objects.filter(is_active=True).count()
-    inactive_users = User.objects.filter(is_active=False).count()
-    no_face_users = User.objects.filter(face_encoding__isnull=True).count()
-
-    form = ReportFilterForm(request.GET or None)
-    logs_qs = AttendanceLog.objects.select_related('user').order_by('-timestamp')
+    user = get_object_or_404(User, id=user_id)
+    form = UserLogsRangeForm(request.GET or None)
+    logs = []
     if form.is_valid():
-        cd = form.cleaned_data
-        if cd['start_date']:
-            logs_qs = logs_qs.filter(timestamp__date__gte=cd['start_date'].togregorian())
-        if cd['end_date']:
-            logs_qs = logs_qs.filter(timestamp__date__lte=cd['end_date'].togregorian())
-        if cd['groups']:
-            logs_qs = logs_qs.filter(user__group__in=cd['groups'])
-        if cd['shifts']:
-            logs_qs = logs_qs.filter(user__shift__in=cd['shifts'])
-        if cd['users']:
-            logs_qs = logs_qs.filter(user__in=cd['users'])
-        logs = list(logs_qs[:100])
-    else:
-        logs = list(logs_qs[:10])
-
-    context = {
-        'active_tab': 'reports',
-        'active_users': active_users,
-        'inactive_users': inactive_users,
-        'no_face_users': no_face_users,
-        'logs': logs,
-        'form': form,
-    }
-    return render(request, 'core/user_reports.html', context)
-
-@login_required
-@staff_required
-# نمایش عملکرد ماهانه
-def monthly_profile(request):
-    form = MonthlyPerformanceForm(request.GET or None)
-    report = None
-    leaves = []
-    selected_user = None
-    if form.is_valid():
-        selected_user = form.cleaned_data["user"]
-        year = form.cleaned_data["year"]
-        month = int(form.cleaned_data["month"])
-        report, leaves = _calculate_monthly_performance(selected_user, year, month)
-    context = {
-        "active_tab": "reports",
+        sd = form.cleaned_data.get("start_g")
+        ed = form.cleaned_data.get("end_g")
+        if sd and ed:
+            logs = AttendanceLog.objects.filter(user=user, timestamp__date__gte=sd, timestamp__date__lte=ed).order_by("timestamp")
+    return render(request, "core/user_logs_admin.html", {
+        "active_tab": "management_users",
+        "user": user,
         "form": form,
-        "report": report,
-        "leaves": leaves,
-        "selected_user": selected_user,
-    }
-    return render(request, "core/monthly_profile.html", context)
-
-@login_required
-@staff_required
-# وضعیت حضور و غیاب در روز
-def attendance_status(request):
-
-    if request.GET:
-        form = AttendanceStatusForm(request.GET)
-    else:
-        form = AttendanceStatusForm(initial={'date': jdatetime.date.today()})
-    if form.is_valid() and form.cleaned_data.get("date"):
-        target_date = form.cleaned_data["date"].togregorian()
-    else:
-        target_date = _now().date()
-
-    holiday = WeeklyHoliday.objects.filter(weekday=_weekday_index(target_date)).exists()
-    if holiday:
-        present_users = leave_users = absent_users = User.objects.none()
-    else:
-        present_ids = AttendanceLog.objects.filter(timestamp__date=target_date).values_list('user_id', flat=True).distinct()
-        leave_ids = LeaveRequest.objects.filter(start_date__lte=target_date, end_date__gte=target_date).values_list('user_id', flat=True).distinct()
-        present_users = User.objects.filter(id__in=present_ids)
-        leave_users = User.objects.filter(id__in=leave_ids)
-        absent_users = User.objects.filter(is_active=True).exclude(id__in=present_ids).exclude(id__in=leave_ids)
-
-    jdate = jdatetime.date.fromgregorian(date=target_date)
-
-    context = {
-        'active_tab': 'attendance_status',
-        'present_users': present_users,
-        'absent_users': absent_users,
-        'leave_users': leave_users,
-        'jdate': jdate.strftime('%Y/%m/%d'),
-        'realtime': target_date == _now().date(),
-        'form': form,
-        'holiday': holiday,
-    }
-    return render(request, 'core/attendance_status.html', context)
-
-@login_required
-@staff_required
-# API وضعیت حضور و غیاب
-def api_attendance_status(request):
-
-    form = AttendanceStatusForm(request.GET or None)
-    if form.is_valid() and form.cleaned_data.get("date"):
-        target_date = form.cleaned_data["date"].togregorian()
-    else:
-        target_date = _now().date()
-
-    holiday = WeeklyHoliday.objects.filter(weekday=_weekday_index(target_date)).exists()
-    if holiday:
-        present_users = leave_users = absent_users = []
-    else:
-        present_ids = AttendanceLog.objects.filter(timestamp__date=target_date).values_list('user_id', flat=True).distinct()
-        leave_ids = LeaveRequest.objects.filter(start_date__lte=target_date, end_date__gte=target_date).values_list('user_id', flat=True).distinct()
-        present_users = User.objects.filter(id__in=present_ids)
-        leave_users = User.objects.filter(id__in=leave_ids)
-        absent_users = User.objects.filter(is_active=True).exclude(id__in=present_ids).exclude(id__in=leave_ids)
-
-    data = {
-        'present': [{'id': u.id, 'name': u.get_full_name(), 'code': u.personnel_code} for u in present_users],
-        'absent': [{'id': u.id, 'name': u.get_full_name(), 'code': u.personnel_code} for u in absent_users],
-        'leave': [{'id': u.id, 'name': u.get_full_name(), 'code': u.personnel_code} for u in leave_users],
-    }
-    return JsonResponse(data)
-
-@login_required
-@staff_required
-# لیست ترددهای مشکوک
-def suspicious_logs(request):
-
-    logs = (
-        SuspiciousLog.objects.select_related('matched_user')
-        .filter(status="pending")
-        .order_by('-timestamp')[:50]
-    )
-    return render(request, 'core/suspicious_logs.html', {
-        'active_tab': 'suspicions',
-        'logs': logs,
+        "logs": logs,
     })
-
-@login_required
-@staff_required
-@require_POST
-# رسیدگی به لاگ مشکوک
-def suspicious_log_action(request, pk):
-
-    log = get_object_or_404(SuspiciousLog, id=pk, status="pending")
-    action = request.POST.get("action")
-    if action == "confirm":
-        if log.matched_user:
-            u = log.matched_user
-            last_log = AttendanceLog.objects.filter(user=u).order_by('-timestamp').first()
-            log_type = 'out' if last_log and last_log.log_type == 'in' else 'in'
-            now = _now()
-            AttendanceLog.objects.create(user=u, timestamp=now, log_type=log_type, source='manager')
-            if request.POST.get('train') and log.image:
-                try:
-                    img = face_recognition.load_image_file(log.image.path)
-                    encs = face_recognition.face_encodings(img)
-                    if encs:
-                        new_enc = encs[0]
-                        if u.face_encoding:
-                            old = np.frombuffer(u.face_encoding, dtype=np.float64)
-                            new_enc = (old + new_enc) / 2
-                        u.face_encoding = new_enc.tobytes()
-                        if not u.face_image:
-                            with log.image.open('rb') as f:
-                                u.face_image.save(os.path.basename(log.image.name), ContentFile(f.read()), save=False)
-                        u.save()
-                except Exception as e:
-                    print("Suspicious training error:", e)
-        log.status = 'confirmed'
-        log.save(update_fields=['status'])
-        messages.success(request, "تردد ثبت شد.")
-    elif action == 'ignore':
-        log.status = 'ignored'
-        log.save(update_fields=['status'])
-        messages.info(request, 'مورد حذف شد.')
-    elif action == 'fraud':
-        log.status = 'fraud'
-        log.save(update_fields=['status'])
-        messages.warning(request, 'به عنوان تقلب ثبت شد.')
-    return redirect('suspicious_logs')
 
 @login_required
 @staff_required
@@ -1387,43 +1290,76 @@ def leave_requests(request):
 
 @login_required
 @staff_required
-# افزودن تردد دستی
-def add_log(request):
+# لیست ترددهای مشکوک
+def suspicious_logs(request):
 
-    if not request.session.get("face_verified"):
-        return redirect("management_face_check")
-    if request.method == "POST":
-        form = ManualLogForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "تردد ثبت شد.")
-            return redirect("edit_requests")
-    else:
-        form = ManualLogForm()
-    return render(request, "core/manual_log_form.html", {
-        "active_tab": "edit_requests",
-        "form": form,
+    logs = (
+        SuspiciousLog.objects.select_related('matched_user')
+        .filter(status="pending")
+        .order_by('-timestamp')[:50]
+    )
+    return render(request, 'core/suspicious_logs.html', {
+        'active_tab': 'suspicions',
+        'logs': logs,
     })
 
 @login_required
 @staff_required
-# افزودن مرخصی دستی
-def add_leave(request):
+@require_POST
+# رسیدگی به لاگ مشکوک
+def suspicious_log_action(request, pk):
 
+    log = get_object_or_404(SuspiciousLog, id=pk, status="pending")
+    action = request.POST.get("action")
+    if action == "confirm":
+        if log.matched_user:
+            u = log.matched_user
+            last_log = AttendanceLog.objects.filter(user=u).order_by('-timestamp').first()
+            log_type = 'out' if last_log and last_log.log_type == 'in' else 'in'
+            now = _now()
+            AttendanceLog.objects.create(user=u, timestamp=now, log_type=log_type, source='manager')
+            if request.POST.get('train') and log.image:
+                try:
+                    img = face_recognition.load_image_file(log.image.path)
+                    encs = face_recognition.face_encodings(img)
+                    if encs:
+                        new_enc = encs[0]
+                        if u.face_encoding:
+                            old = np.frombuffer(u.face_encoding, dtype=np.float64)
+                            new_enc = (old + new_enc) / 2
+                        u.face_encoding = new_enc.tobytes()
+                        if not u.face_image:
+                            with log.image.open('rb') as f:
+                                u.face_image.save(os.path.basename(log.image.name), ContentFile(f.read()), save=False)
+                        u.save()
+                except Exception as e:
+                    print("Suspicious training error:", e)
+        log.status = 'confirmed'
+        log.save(update_fields=['status'])
+        messages.success(request, "تردد ثبت شد.")
+    elif action == 'ignore':
+        log.status = 'ignored'
+        log.save(update_fields=['status'])
+        messages.info(request, 'مورد حذف شد.')
+    elif action == 'fraud':
+        log.status = 'fraud'
+        log.save(update_fields=['status'])
+        messages.warning(request, 'به عنوان تقلب ثبت شد.')
+    return redirect('suspicious_logs')
+
+@login_required
+@staff_required
+# تنظیمات دستگاه
+def device_settings(request):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
-    if request.method == "POST":
-        form = ManualLeaveForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "مرخصی ثبت شد.")
-            return redirect("leave_requests")
-    else:
-        form = ManualLeaveForm()
-    return render(request, "core/manual_leave_form.html", {
-        'active_tab': 'leave_requests',
-        'form': form,
-    })
+    device, _ = Device.objects.get_or_create(id=1, defaults={"name": "Main device"})
+    if request.method == "POST" and device.online:
+        action = request.POST.get('action')
+        device.is_active = action != 'deactivate'
+        device.save(update_fields=['is_active'])
+        return redirect('device_settings')
+    return render(request, 'core/device_settings.html', {'device': device, 'active_tab': 'settings'})
 @login_required
 @staff_required
 # تنظیم تعطیلات هفتگی
@@ -1443,41 +1379,6 @@ def weekly_holidays(request):
     else:
         form = WeeklyHolidayForm(initial={"days": [str(d) for d in existing]})
     return render(request, "core/weekly_holidays.html", {"form": form, "active_tab": "weekly_holidays"})
-
-@login_required
-@staff_required
-# گزارش ترددهای کاربر برای مدیریت
-def user_logs_admin(request, user_id):
-    if not request.session.get("face_verified"):
-        return redirect("management_face_check")
-    user = get_object_or_404(User, id=user_id)
-    form = UserLogsRangeForm(request.GET or None)
-    logs = []
-    if form.is_valid():
-        sd = form.cleaned_data.get("start_g")
-        ed = form.cleaned_data.get("end_g")
-        if sd and ed:
-            logs = AttendanceLog.objects.filter(user=user, timestamp__date__gte=sd, timestamp__date__lte=ed).order_by("timestamp")
-    return render(request, "core/user_logs_admin.html", {
-        "active_tab": "management_users",
-        "user": user,
-        "form": form,
-        "logs": logs,
-    })
-
-@login_required
-@staff_required
-# تنظیمات دستگاه
-def device_settings(request):
-    if not request.session.get("face_verified"):
-        return redirect("management_face_check")
-    device, _ = Device.objects.get_or_create(id=1, defaults={"name": "Main device"})
-    if request.method == "POST" and device.online:
-        action = request.POST.get('action')
-        device.is_active = action != 'deactivate'
-        device.save(update_fields=['is_active'])
-        return redirect('device_settings')
-    return render(request, 'core/device_settings.html', {'device': device, 'active_tab': 'settings'})
 
 @login_required
 @staff_required
@@ -1608,3 +1509,102 @@ def leave_type_delete(request, pk):
     obj.delete()
     messages.success(request, "حذف شد.")
     return redirect("leave_type_list")
+
+@login_required
+@staff_required
+# افزودن تردد دستی
+def add_log(request):
+
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    if request.method == "POST":
+        form = ManualLogForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "تردد ثبت شد.")
+            return redirect("edit_requests")
+    else:
+        form = ManualLogForm()
+    return render(request, "core/manual_log_form.html", {
+        "active_tab": "edit_requests",
+        "form": form,
+    })
+
+@login_required
+@staff_required
+# افزودن مرخصی دستی
+def add_leave(request):
+
+    if not request.session.get("face_verified"):
+        return redirect("management_face_check")
+    if request.method == "POST":
+        form = ManualLeaveForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "مرخصی ثبت شد.")
+            return redirect("leave_requests")
+    else:
+        form = ManualLeaveForm()
+    return render(request, "core/manual_leave_form.html", {
+        'active_tab': 'leave_requests',
+        'form': form,
+    })
+
+@login_required
+@staff_required
+# گزارش‌گیری از کاربران
+def user_reports(request):
+
+    active_users = User.objects.filter(is_active=True).count()
+    inactive_users = User.objects.filter(is_active=False).count()
+    no_face_users = User.objects.filter(face_encoding__isnull=True).count()
+
+    form = ReportFilterForm(request.GET or None)
+    logs_qs = AttendanceLog.objects.select_related('user').order_by('-timestamp')
+    if form.is_valid():
+        cd = form.cleaned_data
+        if cd['start_date']:
+            logs_qs = logs_qs.filter(timestamp__date__gte=cd['start_date'].togregorian())
+        if cd['end_date']:
+            logs_qs = logs_qs.filter(timestamp__date__lte=cd['end_date'].togregorian())
+        if cd['groups']:
+            logs_qs = logs_qs.filter(user__group__in=cd['groups'])
+        if cd['shifts']:
+            logs_qs = logs_qs.filter(user__shift__in=cd['shifts'])
+        if cd['users']:
+            logs_qs = logs_qs.filter(user__in=cd['users'])
+        logs = list(logs_qs[:100])
+    else:
+        logs = list(logs_qs[:10])
+
+    context = {
+        'active_tab': 'reports',
+        'active_users': active_users,
+        'inactive_users': inactive_users,
+        'no_face_users': no_face_users,
+        'logs': logs,
+        'form': form,
+    }
+    return render(request, 'core/user_reports.html', context)
+
+@login_required
+@staff_required
+# نمایش عملکرد ماهانه
+def monthly_profile(request):
+    form = MonthlyPerformanceForm(request.GET or None)
+    report = None
+    leaves = []
+    selected_user = None
+    if form.is_valid():
+        selected_user = form.cleaned_data["user"]
+        year = form.cleaned_data["year"]
+        month = int(form.cleaned_data["month"])
+        report, leaves = _calculate_monthly_performance(selected_user, year, month)
+    context = {
+        "active_tab": "reports",
+        "form": form,
+        "report": report,
+        "leaves": leaves,
+        "selected_user": selected_user,
+    }
+    return render(request, "core/monthly_profile.html", context)
