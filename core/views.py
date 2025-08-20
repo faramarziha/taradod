@@ -972,6 +972,17 @@ def management_users(request):
 @staff_required
 # افزودن کارمند جدید
 def user_add(request):
+    pending_id = request.session.get("pending_user_id")
+    if request.method == "GET" and pending_id:
+        try:
+            pending_user = User.objects.get(pk=pending_id, face_encoding__isnull=True)
+            pending_user.delete()
+            messages.info(request, "ثبت کارمند لغو شد.")
+        except User.DoesNotExist:
+            pass
+        request.session.pop("pending_user_id", None)
+        return redirect("management_users")
+
     if request.method == "POST":
         form = CustomUserSimpleForm(request.POST, request.FILES)
         if form.is_valid():
@@ -979,6 +990,7 @@ def user_add(request):
 
             user.set_password(secrets.token_urlsafe(16))
             user.save()
+            request.session["pending_user_id"] = user.pk
             messages.success(request, "کارمند جدید اضافه شد.")
             return redirect("register_face_page_for_user", user_id=user.pk)
     else:
@@ -1140,6 +1152,8 @@ def register_face_api(request, user_id):
         print("Save target face image error:", e)
 
     target.save()
+    if request.session.get("pending_user_id") == target.pk:
+        request.session.pop("pending_user_id", None)
     return JsonResponse({"ok": True, "redirect": reverse("admin_user_profile", args=[user_id])})
 
 @login_required
