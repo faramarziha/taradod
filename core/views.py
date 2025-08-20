@@ -970,14 +970,13 @@ def management_dashboard(request):
         present_users_details = users_qs.filter(id__in=present_ids).select_related("shift", "group__shift")
         for user in present_users_details:
             shift = _get_user_shift(user)
-            shift_start = time(9, 0)
-            if shift:
-                shift_start = shift.start_time
+            if not shift:
+                continue
+            shift_start = shift.start_time
             first_log = AttendanceLog.objects.filter(user=user, timestamp__date=today).order_by("timestamp").first()
             if first_log:
                 start_dt = datetime.combine(today, shift_start)
-                first_dt = first_log.timestamp
-                first_dt = _to_naive(first_dt)
+                first_dt = _to_naive(first_log.timestamp)
                 if first_dt > start_dt:
                     tardy_ids.append(user.id)
         tardy_users = users_qs.filter(id__in=tardy_ids)
@@ -1013,7 +1012,9 @@ def management_dashboard(request):
     streak_stats = []
     for u in users_qs:
         shift = _get_user_shift(u)
-        shift_start = shift.start_time if shift else time(9, 0)
+        if not shift:
+            continue
+        shift_start = shift.start_time
         tardies = 0
         for i in range(31):
             day = month_start + timedelta(days=i)
@@ -1484,10 +1485,11 @@ def device_settings(request):
 def shift_list(request):
     if not request.session.get("face_verified"):
         return redirect("management_face_check")
-    shifts = Shift.objects.annotate(
-        user_count=Count("customuser", distinct=True)
-        + Count("groups__customuser", distinct=True)
-    )
+    shifts = list(Shift.objects.all())
+    for s in shifts:
+        s.user_count = (
+            User.objects.filter(Q(shift=s) | Q(group__shift=s)).distinct().count()
+        )
     return render(
         request,
         "core/shift_list.html",
