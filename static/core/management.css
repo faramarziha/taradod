@@ -97,6 +97,13 @@
   background: var(--color-primary);
   color: #fff;
 }
+.management-sidebar summary .dropdown-icon {
+  margin-right: auto;
+  transition: transform 0.2s;
+}
+.management-sidebar details[open] summary .dropdown-icon {
+  transform: rotate(180deg);
+}
 .management-sidebar .sub-menu {
   display: flex;
   flex-direction: column;
