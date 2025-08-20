@@ -24,6 +24,18 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', () => { // ثبت چهره برای کارمند
+  const isNew = {{ is_new|yesno:'true,false' }};
+  if (isNew) {
+    history.pushState(null, document.title, location.href);
+    window.addEventListener('popstate', () => {
+      fetch("{% url 'user_add_cancel' user_to_register.pk %}", {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCsrfToken() },
+        keepalive: true
+      });
+      window.location.href = "{% url 'management_users' %}";
+    });
+  }
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
   const ctx = canvas.getContext('2d');
