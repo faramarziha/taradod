@@ -336,7 +336,7 @@ class ReportFilterForm(forms.Form):
                 "class": "date-input vjDateField",
             }
         ),
-        required=False,
+        required=True,
     )
     end_date = jforms.jDateField(
         label="تا تاریخ",
@@ -346,7 +346,7 @@ class ReportFilterForm(forms.Form):
                 "class": "date-input vjDateField",
             }
         ),
-        required=False,
+        required=True,
     )
     groups = forms.ModelMultipleChoiceField(
         queryset=Group.objects.all(),
@@ -369,9 +369,21 @@ class ReportFilterForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # نمایش کد پرسنلی به همراه نام کاربر
         self.fields["users"].label_from_instance = (
             lambda obj: f"{obj.personnel_code} – {obj.first_name} {obj.last_name}"
         )
+        # فیلتر کردن لیست کاربران بر اساس گروه یا شیفت انتخاب‌شده
+        data = self.data if self.data else {}
+        groups = data.getlist("groups") if hasattr(data, "getlist") else []
+        shifts = data.getlist("shifts") if hasattr(data, "getlist") else []
+        if groups or shifts:
+            qs = User.objects.all()
+            if groups:
+                qs = qs.filter(group_id__in=groups)
+            if shifts:
+                qs = qs.filter(shift_id__in=shifts)
+            self.fields["users"].queryset = qs
 
 # فرم عملکرد ماهانه
 class MonthlyPerformanceForm(forms.Form):
