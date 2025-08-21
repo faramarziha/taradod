@@ -1143,27 +1143,6 @@ def register_face_api(request, user_id):
 
 @login_required
 @staff_required
-# گزارش ترددهای کاربر برای مدیریت
-def user_logs_admin(request, user_id):
-    if not request.session.get("face_verified"):
-        return redirect("management_face_check")
-    user = get_object_or_404(User, id=user_id)
-    form = UserLogsRangeForm(request.GET or None)
-    logs = []
-    if form.is_valid():
-        sd = form.cleaned_data.get("start_g")
-        ed = form.cleaned_data.get("end_g")
-        if sd and ed:
-            logs = AttendanceLog.objects.filter(user=user, timestamp__date__gte=sd, timestamp__date__lte=ed).order_by("timestamp")
-    return render(request, "core/user_logs_admin.html", {
-        "active_tab": "management_users",
-        "user": user,
-        "form": form,
-        "logs": logs,
-    })
-
-@login_required
-@staff_required
 # مدیریت اصلاح تردد
 def edit_requests(request):
 

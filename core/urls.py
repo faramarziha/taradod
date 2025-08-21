@@ -62,5 +62,4 @@ urlpatterns = [
     path("management/leave-types/add/", views.leave_type_edit, name="leave_type_add"),
     path("management/leave-types/<int:pk>/edit/", views.leave_type_edit, name="leave_type_edit"),
     path("management/leave-types/<int:pk>/delete/", views.leave_type_delete, name="leave_type_delete"),
-    path("management/users/<int:user_id>/logs/", views.user_logs_admin, name="user_logs_admin"),
 ]
