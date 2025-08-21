@@ -999,21 +999,6 @@ def user_add(request):
 
 @login_required
 @staff_required
-# ویرایش کارمند
-def user_update(request, pk):
-    obj = get_object_or_404(User, pk=pk)
-    if request.method == "POST":
-        form = CustomUserSimpleForm(request.POST, request.FILES, instance=obj)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "کارمند ویرایش شد.")
-            return redirect("management_users")
-    else:
-        form = CustomUserSimpleForm(instance=obj)
-    return render(request, "core/user_form.html", {"form": form, "title": "ویرایش کارمند"})
-
-@login_required
-@staff_required
 @require_POST
 # حذف کارمند
 def user_delete(request, pk):
